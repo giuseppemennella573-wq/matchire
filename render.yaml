@@ -1,0 +1,28 @@
+# Render Blueprint: New → Blueprint → pick this repo.
+# A persistent disk keeps the SQLite database across deploys (needs a paid instance).
+services:
+  - type: web
+    name: matchire
+    runtime: docker
+    plan: starter
+    region: singapore
+    healthCheckPath: /login
+    disk:
+      name: matchire-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: APP_URL
+        sync: false # e.g. https://matchire.onrender.com, or https://app.matchire.ai
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CRON_SECRET
+        generateValue: true
+      - key: WHATSAPP_VERIFY_TOKEN
+        generateValue: true
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: "Matchire <bookings@matchire.ai>"

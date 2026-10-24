@@ -48,10 +48,23 @@ npm run typecheck
 
 The app keeps its data in one SQLite file, so it needs a host with a persistent disk (Fly.io, Railway, Render, a VPS). It won't work on serverless hosts that have no disk.
 
+**Render (one click):** in the Render dashboard choose **New → Blueprint**, pick this repository, and fill in `APP_URL` and `ANTHROPIC_API_KEY`. `render.yaml` sets up a Singapore web service with a 1 GB disk.
+
+**Fly.io:**
+```bash
+fly launch --copy-config --no-deploy
+fly volumes create matchire_data --region sin --size 1
+fly secrets set APP_URL=https://matchire.fly.dev ANTHROPIC_API_KEY=... CRON_SECRET=... WHATSAPP_VERIFY_TOKEN=...
+fly deploy
+```
+
+**Any Docker host:**
 ```bash
 docker build -t matchire .
 docker run -p 3000:3000 -v matchire-data:/data --env-file .env matchire
 ```
+
+To load demo data on a server, run `node --experimental-strip-types scripts/seed.ts` with `DATA_DIR` pointing at the data volume.
 
 Follow-ups and hold expiry run in-process every minute. On hosts that sleep idle apps, also call `GET /api/cron` with `Authorization: Bearer $CRON_SECRET` from an external scheduler.
 
