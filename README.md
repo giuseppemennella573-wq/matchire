@@ -64,8 +64,6 @@ docker build -t matchire .
 docker run -p 3000:3000 -v matchire-data:/data --env-file .env matchire
 ```
 
-To load demo data on a server, run `node --experimental-strip-types scripts/seed.ts` with `DATA_DIR` pointing at the data volume.
-
 Follow-ups and hold expiry run in-process every minute. On hosts that sleep idle apps, also call `GET /api/cron` with `Authorization: Bearer $CRON_SECRET` from an external scheduler.
 
 ## Code map
