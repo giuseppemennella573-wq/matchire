@@ -1,0 +1,26 @@
+import Link from "next/link";
+import { loginAction } from "../actions";
+
+export const metadata = { title: "Log in" };
+
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
+  return (
+    <main className="auth">
+      <div className="card stack-lg">
+        <a className="logo" href="/" style={{ padding: 0 }}><span className="logo-mark" aria-hidden="true" />Matchire<span>.ai</span></a>
+        <div className="stack">
+          <h1>Welcome back</h1>
+          <p className="muted">Your enquiries, quotes and holds are waiting.</p>
+        </div>
+        {error && <p className="alert alert-err" role="alert">{error}</p>}
+        <form action={loginAction} className="stack">
+          <label className="field"><span>Email</span><input name="email" type="email" required autoComplete="email" /></label>
+          <label className="field"><span>Password</span><input name="password" type="password" required autoComplete="current-password" /></label>
+          <button className="btn btn-primary" type="submit">Log in</button>
+        </form>
+        <p className="small muted">New to Matchire? <Link href="/signup">Create an account</Link></p>
+      </div>
+    </main>
+  );
+}

@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="en-SG">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Matchire.ai · The AI booking desk for event vendors</title>
+<meta name="description" content="Matchire.ai answers your WhatsApp and email enquiries in minutes with a priced quote, follows up for you, and matches you with partner vendors. Built for photobooths, venues, caterers and AV in Singapore.">
+<meta property="og:title" content="Matchire.ai · The AI booking desk for event vendors">
+<meta property="og:description" content="Every enquiry answered, quoted and followed up, even while you're working an event.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://matchire.ai/">
+<meta name="theme-color" content="#B4247A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23B4247A'/%3E%3Ccircle cx='19' cy='16' r='6' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: thesis hero beside a live "enquiry → quote" console; quiet editorial sections; pricing and sign-up close the page */
+:root{
+  --paper:#F7F5F8; --card:#FFFFFF; --ink:#1D1A24; --muted:#6B6475; --line:#E2DDE6;
+  --orchid:#B4247A; --orchid-ink:#FFFFFF; --orchid-soft:#F6E3EF; --leaf:#1F6B4F; --leaf-soft:#E1F1E9;
+  --bubble:#E9F6EE; --bubble-out:#FFFFFF;
+  --shadow:0 1px 2px rgba(29,26,36,.06),0 10px 30px rgba(29,26,36,.07);
+  --f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --f-body:"Instrument Sans","Helvetica Neue",Arial,system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --r:14px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --paper:#141118; --card:#1D1922; --ink:#EFEAF2; --muted:#A79FB0; --line:#2E2835;
+  --orchid:#E36AB0; --orchid-ink:#1A0F16; --orchid-soft:#3A1E30; --leaf:#5BC79B; --leaf-soft:#173328;
+  --bubble:#1C3328; --bubble-out:#262130;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.3); color-scheme:dark;}}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+img{max-width:100%}
+[hidden]{display:none!important}
+a{color:inherit}
+.wrap{max-width:1160px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.02em}
+h2{font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:1.08;font-weight:700}
+h3{font-size:1.15rem;font-weight:700;letter-spacing:-.01em}
+p{margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--orchid);font-weight:600}
+.lede{color:var(--muted);font-size:1.08rem;max-width:58ch}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+:focus-visible{outline:2.5px solid var(--orchid);outline-offset:2px;border-radius:6px}
+
+/* nav */
+header.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:24px;min-height:64px}
+.logo{font-family:var(--f-display);font-weight:800;font-size:1.35rem;text-decoration:none;letter-spacing:-.03em;display:flex;align-items:center;gap:8px}
+.logo-mark{width:26px;height:26px;border-radius:50%;background:var(--orchid);position:relative;flex:none}
+.logo-mark::after{content:"";position:absolute;inset:7px 7px 7px 13px;border-radius:50%;background:var(--paper)}
+.logo span{color:var(--orchid)}
+.nav-links{display:flex;gap:22px;margin-left:auto;font-size:.95rem}
+.nav-links a{text-decoration:none;color:var(--muted)}
+.nav-links a:hover{color:var(--ink)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 .95rem var(--f-body);padding:.72rem 1.15rem;border-radius:999px;border:1.5px solid transparent;cursor:pointer;text-decoration:none;transition:transform .15s ease,background .15s ease}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--orchid);color:var(--orchid-ink)}
+.btn-primary:hover{background:color-mix(in srgb,var(--orchid) 88%,var(--ink))}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn-ghost:hover{border-color:var(--ink)}
+.btn-sm{padding:.45rem .85rem;font-size:.85rem}
+@media (max-width:860px){.nav-links{display:none}.nav .btn{margin-left:auto}}
+
+/* hero */
+.hero{padding-block:56px 72px}
+.hero-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:48px;align-items:start}
+.hero h1{font-size:clamp(2.4rem,5.4vw,4.2rem);line-height:1;font-weight:800;letter-spacing:-.035em;margin-top:14px}
+.hero h1 em{font-style:normal;color:var(--orchid)}
+.hero .lede{margin-top:20px}
+.hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+.vendors{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
+.chip{font-size:.85rem;padding:.38rem .75rem;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--muted)}
+@media (max-width:980px){.hero-grid{grid-template-columns:1fr;gap:36px}}
+
+/* console */
+.console{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:hidden;min-width:0}
+.console-top{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.console-top b{font-family:var(--f-display);font-size:1rem}
+.demo-tag{font-family:var(--f-mono);font-size:.7rem;padding:.25rem .55rem;border-radius:6px;background:var(--orchid-soft);color:var(--orchid);letter-spacing:.06em;text-transform:uppercase}
+.tabs{display:flex;gap:6px;padding:12px 18px 0;overflow-x:auto}
+.tab{font:600 .85rem var(--f-body);padding:.45rem .85rem;border-radius:999px;border:1.5px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.console-body{display:grid;grid-template-columns:1fr 1fr;gap:0;min-width:0}
+.pane{padding:16px 18px 18px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.pane+.pane{border-left:1px dashed var(--line)}
+.pane-label{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+.chat{background:color-mix(in srgb,var(--paper) 60%,var(--card));border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:120px}
+.from{font-size:.75rem;color:var(--muted)}
+textarea{font:400 .93rem/1.45 var(--f-body);color:var(--ink);background:var(--bubble);border:1.5px solid transparent;border-radius:12px 12px 12px 4px;padding:10px 12px;resize:vertical;min-height:110px;width:100%}
+textarea:focus{outline:none;border-color:var(--orchid)}
+.samples{display:flex;gap:6px;flex-wrap:wrap}
+.extract{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:.78rem;padding:.25rem .55rem;border-radius:6px;background:var(--leaf-soft);color:var(--leaf);font-weight:600}
+.tag.miss{background:var(--orchid-soft);color:var(--orchid)}
+.quote{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px;background:var(--card)}
+.qline{display:flex;justify-content:space-between;gap:10px;font-size:.86rem}
+.qline span:first-child{color:var(--muted)}
+.strike{text-decoration:line-through;color:var(--muted);margin-right:6px;font-size:.78rem}
+.qtotal{display:flex;justify-content:space-between;align-items:baseline;border-top:1.5px solid var(--ink);padding-top:8px;margin-top:2px;font-weight:600}
+.qtotal .mono{font-size:1.15rem}
+.reply{background:var(--bubble-out);border:1px solid var(--line);border-radius:12px 12px 4px 12px;padding:10px 12px;font-size:.88rem;white-space:pre-line;color:var(--ink)}
+.partner{font-size:.84rem;padding:10px 12px;border-radius:10px;background:var(--orchid-soft);color:var(--ink)}
+.partner b{color:var(--orchid)}
+.lead{display:inline-flex;gap:6px;align-items:center;font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.lead i{width:8px;height:8px;border-radius:50%;background:var(--leaf);display:inline-block}
+.lead.warm i{background:#D9A21B}
+.reply-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.reply-actions small{color:var(--muted);font-size:.78rem}
+@media (max-width:640px){.console-body{grid-template-columns:1fr}.pane+.pane{border-left:0;border-top:1px dashed var(--line)}}
+
+/* sections */
+section.band{padding-block:84px;border-top:1px solid var(--line)}
+.sec-head{display:grid;gap:14px;margin-bottom:40px;max-width:720px}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feat{padding:24px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);display:grid;gap:10px;align-content:start}
+.feat p{color:var(--muted);font-size:.95rem}
+.feat svg{width:34px;height:34px}
+.feat.wide{grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center}
+@media (max-width:900px){.feat-grid{grid-template-columns:1fr 1fr}.feat.wide{grid-column:1/-1;grid-template-columns:1fr}}
+@media (max-width:560px){.feat-grid{grid-template-columns:1fr}}
+.timeline{display:grid;gap:8px;font-size:.85rem}
+.tl{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:center}
+.tl .mono{color:var(--muted);font-size:.78rem}
+.tl span:last-child{padding:.45rem .7rem;border-radius:8px;background:var(--paper);border:1px solid var(--line)}
+.tl.hi span:last-child{background:var(--leaf-soft);border-color:transparent;color:var(--leaf);font-weight:600}
+
+.network{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+@media (max-width:900px){.network{grid-template-columns:1fr}}
+.net-svg{width:100%;height:auto;max-width:520px;justify-self:center}
+.net-list{list-style:none;padding:0;margin:24px 0 0;display:grid;gap:14px}
+.net-list li{display:grid;gap:2px;padding-left:16px;border-left:2px solid var(--orchid)}
+.net-list p{color:var(--muted)}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.step{display:grid;gap:10px;align-content:start;padding-top:20px;border-top:2px solid var(--ink)}
+.step-n{font-family:var(--f-mono);font-size:.8rem;color:var(--orchid);font-weight:600}
+.step p{color:var(--muted)}
+@media (max-width:820px){.steps{grid-template-columns:1fr}}
+
+.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:stretch}
+@media (max-width:900px){.pricing{grid-template-columns:1fr}}
+.plan{border:1px solid var(--line);border-radius:18px;background:var(--card);padding:26px;display:flex;flex-direction:column;gap:14px}
+.plan.pop{border:2px solid var(--orchid)}
+.plan-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.badge{font-size:.72rem;font-weight:700;padding:.2rem .55rem;border-radius:999px;background:var(--orchid);color:var(--orchid-ink)}
+.price{font-family:var(--f-display);font-weight:800;font-size:2.8rem;line-height:1;letter-spacing:-.04em}
+.price small{font-family:var(--f-body);font-size:.9rem;font-weight:500;color:var(--muted);letter-spacing:0}
+.plan p.for{color:var(--muted);font-size:.92rem}
+.plan ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:.92rem;flex:1}
+.plan li{display:flex;gap:8px}
+.plan li::before{content:"✓";color:var(--leaf);font-weight:700}
+.price-note{margin-top:18px;color:var(--muted);font-size:.85rem}
+
+.faq{display:grid;gap:10px;max-width:820px}
+details{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:0 20px}
+summary{cursor:pointer;padding:18px 0;font-weight:600;list-style:none;display:flex;justify-content:space-between;gap:16px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-family:var(--f-mono);color:var(--orchid);font-size:1.2rem;line-height:1}
+details[open] summary::after{content:"–"}
+details p{color:var(--muted);padding-bottom:18px;max-width:65ch}
+
+.signup{display:grid;grid-template-columns:.9fr 1.1fr;gap:48px;align-items:start}
+@media (max-width:900px){.signup{grid-template-columns:1fr}}
+.form-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;box-shadow:var(--shadow)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:520px){.form-grid{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:.8rem;font-weight:600;color:var(--muted)}
+.field input,.field select{font:500 .98rem var(--f-body);color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:.65rem .75rem;width:100%;min-width:0}
+.field input:focus,.field select:focus{border-color:var(--orchid);outline:none}
+.form-foot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.form-foot small{color:var(--muted);font-size:.8rem;max-width:40ch}
+.form-msg{grid-column:1/-1;font-size:.92rem;padding:.75rem .9rem;border-radius:10px}
+.form-msg.ok{background:var(--leaf-soft);color:var(--leaf)}
+.form-msg.err{background:var(--orchid-soft);color:var(--orchid)}
+.hp{position:absolute;left:-9999px}
+.perks{list-style:none;padding:0;margin:24px 0 0;display:grid;gap:12px}
+.perks li{display:flex;gap:10px}
+.perks li b{color:var(--orchid);font-family:var(--f-mono);font-size:.85rem;flex:none;width:28px}
+
+footer{border-top:1px solid var(--line);padding-block:32px 40px;font-size:.88rem;color:var(--muted)}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+footer a{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Matchire.ai home"><span class="logo-mark" aria-hidden="true"></span>Matchire<span>.ai</span></a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="#network">Partner network</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a href="/login">Log in</a>
+    </nav>
+    <a class="btn btn-primary" href="/signup">Start free trial</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow">AI booking desk for event vendors</p>
+        <h1>Every enquiry answered, quoted and followed up, <em>even mid-event.</em></h1>
+        <p class="lede">When a planner messages five photobooths, the first one to reply with a real price usually wins the booking. Matchire replies on WhatsApp and email in minutes, quotes from your own packages, checks your calendar and chases quiet leads, while you're busy running the last job.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#early-access">Get early access</a>
+          <a class="btn btn-ghost" href="#demo">Try the demo</a>
+          <a class="btn btn-ghost" href="/signup">Create an account</a>
+        </div>
+        <div class="vendors" aria-label="Built for">
+          <span class="chip">Photobooths</span><span class="chip">Venues</span><span class="chip">Caterers</span><span class="chip">AV &amp; sound</span><span class="chip">Décor &amp; florists</span><span class="chip">Emcees</span>
+        </div>
+      </div>
+
+      <div class="console" id="demo">
+        <div class="console-top">
+          <b>Try it: paste a real enquiry</b>
+          <span class="demo-tag">Live demo · sample prices</span>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Vendor type">
+          <button class="tab" role="tab" data-v="photo" aria-selected="true">Photobooth</button>
+          <button class="tab" role="tab" data-v="venue" aria-selected="false">Venue</button>
+          <button class="tab" role="tab" data-v="cater" aria-selected="false">Caterer</button>
+          <button class="tab" role="tab" data-v="av" aria-selected="false">AV</button>
+        </div>
+        <div class="console-body">
+          <div class="pane">
+            <div class="pane-label"><span>Incoming · WhatsApp</span><span id="bizName"></span></div>
+            <div class="chat">
+              <span class="from">+65 9••• ••42 · just now</span>
+              <label for="enq" class="hp">Enquiry text</label>
+              <textarea id="enq" spellcheck="false"></textarea>
+            </div>
+            <div class="samples" id="samples"></div>
+            <div class="pane-label" style="margin-top:4px"><span>What Matchire picked up</span></div>
+            <div class="extract" id="extract"></div>
+          </div>
+          <div class="pane">
+            <div class="pane-label"><span>Drafted reply</span><span id="lead" class="lead"></span></div>
+            <div class="quote" id="quote"></div>
+            <div class="reply" id="reply"></div>
+            <div class="partner" id="partner" hidden></div>
+            <div class="reply-actions">
+              <button class="btn btn-primary btn-sm" type="button" id="sendBtn">Send reply</button>
+              <button class="btn btn-ghost btn-sm" type="button" id="copyBtn">Copy</button>
+              <small id="sendMsg"></small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Features</p>
+        <h2>Your sales desk, without hiring one</h2>
+        <p class="lede">Matchire sits on top of the channels you already use. Planners keep messaging you on WhatsApp; they just get answers faster.</p>
+      </div>
+      <div class="feat-grid">
+        <div class="feat wide">
+          <div style="display:grid;gap:10px">
+            <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M6 27l2-6a11 11 0 1 1 4 4z" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linejoin="round"/></svg>
+            <h3>Replies in minutes, any hour</h3>
+            <p>Matchire reads each enquiry on WhatsApp, email, Instagram DMs and your website form, picks out the date, headcount, budget and needs, then replies in your tone. Anything unusual comes to you for approval first.</p>
+          </div>
+          <div class="timeline" aria-label="Example enquiry timeline">
+            <div class="tl"><span class="mono">23:14</span><span>Enquiry arrives on WhatsApp</span></div>
+            <div class="tl hi"><span class="mono">23:16</span><span>Quote sent, date held for 48h</span></div>
+            <div class="tl"><span class="mono">+2 days</span><span>Gentle follow-up if no reply</span></div>
+            <div class="tl hi"><span class="mono">+3 days</span><span>Deposit paid, booking confirmed</span></div>
+          </div>
+        </div>
+        <div class="feat">
+          <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="6" y="5" width="22" height="25" rx="3" fill="none" stroke="var(--orchid)" stroke-width="2.2"/><path d="M11 12h12M11 17h12M11 22h7" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <h3>Instant quotes from your packages</h3>
+          <p>Load your price list once. Matchire builds each quote from your packages, extra hours, add-ons and minimums, and never invents a price.</p>
+        </div>
+        <div class="feat">
+          <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="5" y="7" width="24" height="22" rx="3" fill="none" stroke="var(--orchid)" stroke-width="2.2"/><path d="M5 13h24M11 4v6M23 4v6" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <h3>Calendar-aware holds</h3>
+          <p>Checks your availability before quoting, holds the date while the planner decides, and releases it automatically if they go quiet.</p>
+        </div>
+        <div class="feat">
+          <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M5 17h6l3-8 6 16 3-8h6" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <h3>Follow-ups that don't nag</h3>
+          <p>Leads that go quiet get one well-timed nudge, then a last call before the hold expires. You stop losing bookings to forgetfulness.</p>
+        </div>
+        <div class="feat">
+          <svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="11" fill="none" stroke="var(--orchid)" stroke-width="2.2"/><path d="M17 10v7l5 3" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <h3>Off-peak pricing</h3>
+          <p>Set lower rates for weekday daytime slots. Matchire offers them only when a planner's date qualifies, so quiet days fill without discounting Saturdays.</p>
+        </div>
+        <div class="feat">
+          <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M6 28V16M14 28V9M22 28v-8M30 28V12" stroke="var(--orchid)" stroke-width="2.6" stroke-linecap="round"/></svg>
+          <h3>Pipeline at a glance</h3>
+          <p>See every enquiry, quote and hold in one place, with reply times and which channels bring your best bookings.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="network">
+    <div class="wrap network">
+      <div>
+        <p class="eyebrow">The Match network</p>
+        <h2 style="margin-top:14px">Planners need more than you. Match them with partners you trust.</h2>
+        <p class="lede" style="margin-top:16px">A wedding needs a venue, a caterer, a photobooth and an emcee. Matchire connects vendors who work well together, so every enquiry can grow into a bundle.</p>
+        <ul class="net-list">
+          <li><h3>Bundle quotes</h3><p>A planner asks your venue about a party. Your reply includes your partner photobooth, already priced.</p></li>
+          <li><h3>Pass on dates you can't take</h3><p>Fully booked? Refer the enquiry to a partner instead of saying no, and earn a referral fee when they book.</p></li>
+          <li><h3>Only partners you choose</h3><p>You pick who joins your network. Nobody gets recommended to your clients without your say.</p></li>
+        </ul>
+      </div>
+      <svg class="net-svg" viewBox="0 0 520 420" role="img" aria-label="Diagram: a planner's enquiry reaches a venue, which brings in partner vendors">
+        <g stroke="var(--line)" stroke-width="2" fill="none">
+          <line x1="260" y1="210" x2="110" y2="90"/><line x1="260" y1="210" x2="410" y2="90"/>
+          <line x1="260" y1="210" x2="100" y2="330"/><line x1="260" y1="210" x2="420" y2="330"/>
+        </g>
+        <path d="M260 40 L260 150" stroke="var(--orchid)" stroke-width="2.5" stroke-dasharray="6 6" fill="none"/>
+        <g font-family="Instrument Sans, Arial, sans-serif" font-size="14" text-anchor="middle">
+          <rect x="196" y="12" width="128" height="34" rx="17" fill="var(--orchid-soft)"/>
+          <text x="260" y="34" fill="var(--orchid)" font-weight="600">Planner enquiry</text>
+          <circle cx="260" cy="210" r="58" fill="var(--orchid)"/>
+          <text x="260" y="206" fill="var(--orchid-ink)" font-weight="700" font-size="16">Your venue</text>
+          <text x="260" y="226" fill="var(--orchid-ink)" font-size="12">on Matchire</text>
+          <g fill="var(--card)" stroke="var(--line)" stroke-width="1.5">
+            <rect x="40" y="66" width="140" height="48" rx="12"/><rect x="340" y="66" width="140" height="48" rx="12"/>
+            <rect x="30" y="306" width="140" height="48" rx="12"/><rect x="350" y="306" width="140" height="48" rx="12"/>
+          </g>
+          <text x="110" y="95" fill="var(--ink)" font-weight="600">Photobooth</text>
+          <text x="410" y="95" fill="var(--ink)" font-weight="600">Caterer</text>
+          <text x="100" y="335" fill="var(--ink)" font-weight="600">AV &amp; sound</text>
+          <text x="420" y="335" fill="var(--ink)" font-weight="600">Emcee</text>
+          <text x="260" y="400" fill="var(--muted)" font-size="13">One reply, one bundled quote</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <section class="band" id="how">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Getting started</p>
+        <h2>Live in an afternoon</h2>
+      </div>
+      <div class="steps">
+        <div class="step"><span class="step-n">STEP 1</span><h3>Connect your channels</h3><p>Link your WhatsApp Business number, email inbox and website form. Your number stays the same.</p></div>
+        <div class="step"><span class="step-n">STEP 2</span><h3>Upload your price list</h3><p>Send us your packages as a PDF, spreadsheet or photo of your rate card. We set them up and you approve them.</p></div>
+        <div class="step"><span class="step-n">STEP 3</span><h3>Choose how hands-off to be</h3><p>Start with Matchire drafting replies for you to approve. Switch on auto-send for routine enquiries once you trust it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="pricing">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Pricing · SGD</p>
+        <h2>Pays for itself with one extra booking a month</h2>
+      </div>
+      <div class="pricing">
+        <div class="plan">
+          <div class="plan-top"><h3>Solo</h3></div>
+          <div class="price">79<small> /month</small></div>
+          <p class="for">Owner-operators handling their own enquiries.</p>
+          <ul><li>1 user</li><li>WhatsApp + email</li><li>Up to 150 enquiries a month</li><li>Instant quotes and holds</li></ul>
+          <a class="btn btn-ghost" href="#early-access">Join early access</a>
+        </div>
+        <div class="plan pop">
+          <div class="plan-top"><h3>Studio</h3><span class="badge">Most popular</span></div>
+          <div class="price">199<small> /month</small></div>
+          <p class="for">Growing teams with several booths, crews or rooms.</p>
+          <ul><li>Up to 5 users</li><li>All channels incl. Instagram and web form</li><li>Unlimited enquiries</li><li>Automatic follow-ups</li><li>Match partner network and bundle quotes</li></ul>
+          <a class="btn btn-primary" href="#early-access">Join early access</a>
+        </div>
+        <div class="plan">
+          <div class="plan-top"><h3>Venue</h3></div>
+          <div class="price">449<small> /month</small></div>
+          <p class="for">Venues and multi-brand event companies.</p>
+          <ul><li>Unlimited users</li><li>Multiple rooms, spaces or brands</li><li>Off-peak and minimum-spend rules</li><li>Pipeline reports</li><li>Priority onboarding</li></ul>
+          <a class="btn btn-ghost" href="#early-access">Join early access</a>
+        </div>
+      </div>
+      <p class="price-note">Launch pricing. Every plan starts with a 14-day free trial. Early-access members keep 30% off for their first year.</p>
+    </div>
+  </section>
+
+  <section class="band" id="faq">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">FAQ</p>
+        <h2>Questions vendors ask</h2>
+      </div>
+      <div class="faq">
+        <details><summary>Will my clients know they're talking to AI?</summary><p>Replies go out from your own number and in your tone. You decide whether to add a short note that replies are assisted, and you can step into any conversation at any time.</p></details>
+        <details><summary>What if it quotes the wrong price?</summary><p>Matchire only quotes from the packages and rules you approve. If an enquiry needs something outside your price list, it drafts a reply and waits for you instead of guessing.</p></details>
+        <details><summary>Do I need to change my WhatsApp number?</summary><p>No. You connect your existing WhatsApp Business number, and planners keep messaging you exactly as before.</p></details>
+        <details><summary>I'm a one-person business. Is this overkill?</summary><p>The Solo plan is built for owner-operators. If you miss enquiries while you're working an event, that's exactly the gap Matchire fills.</p></details>
+        <details><summary>How does the partner network work?</summary><p>You invite vendors you already work with, or accept requests from vendors in the network. When an enquiry needs something you don't offer, Matchire can include your partner's quote or pass on the lead, and you earn a referral fee when it books.</p></details>
+        <details><summary>Where is my data kept?</summary><p>Your client conversations and price lists belong to you. We use them only to run your account and never sell them or share them with other vendors.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="early-access">
+    <div class="wrap signup">
+      <div>
+        <p class="eyebrow">Early access</p>
+        <h2 style="margin-top:14px">Be one of our first 50 vendors in Singapore</h2>
+        <p class="lede" style="margin-top:16px">We're onboarding a small group of event vendors by hand. Tell us about your business and we'll be in touch on WhatsApp within two working days. Prefer to talk now? WhatsApp Giuseppe on <a href="https://wa.me/6592766722" target="_blank" rel="noopener" style="color:var(--orchid);font-weight:600">+65 9276 6722</a>.</p>
+        <ul class="perks">
+          <li><b>30%</b><span>off your plan for the first year</span></li>
+          <li><b>1:1</b><span>setup call: we load your price list for you</span></li>
+          <li><b>↗</b><span>a say in what we build next</span></li>
+        </ul>
+      </div>
+      <div class="form-card">
+        <form name="early-access" method="POST" action="/api/early-access" id="eaForm" class="form-grid">
+          <input type="hidden" name="form-name" value="early-access">
+          <p class="hp"><label>Leave this empty <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+          <div class="field"><label for="f-name">Your name</label><input id="f-name" name="name" required autocomplete="name"></div>
+          <div class="field"><label for="f-biz">Business name</label><input id="f-biz" name="business" required autocomplete="organization"></div>
+          <div class="field"><label for="f-type">What do you do?</label>
+            <select id="f-type" name="vendor_type" required>
+              <option value="">Choose one</option><option>Photobooth</option><option>Venue</option><option>Catering</option><option>AV &amp; sound</option><option>Décor / florist</option><option>Emcee / entertainment</option><option>Photography / video</option><option>Other</option>
+            </select></div>
+          <div class="field"><label for="f-vol">Enquiries per week</label>
+            <select id="f-vol" name="enquiries_per_week">
+              <option>Under 10</option><option selected>10–30</option><option>30–80</option><option>80+</option>
+            </select></div>
+          <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" required autocomplete="email"></div>
+          <div class="field"><label for="f-wa">WhatsApp number</label><input id="f-wa" name="whatsapp" type="tel" placeholder="+65" autocomplete="tel"></div>
+          <div class="form-foot">
+            <small>We'll only use your details to contact you about Matchire early access.</small>
+            <button class="btn btn-primary" type="submit" id="eaBtn">Request early access</button>
+          </div>
+          <p class="form-msg" id="eaMsg" role="status" hidden></p>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><b style="color:var(--ink)">Matchire.ai</b> · AI booking desk for event vendors · Singapore</span>
+    <span>Email <a href="mailto:giuseppe.mennella@matchire.ai">giuseppe.mennella@matchire.ai</a> · WhatsApp <a href="https://wa.me/6592766722" target="_blank" rel="noopener">+65 9276 6722</a> · © <span id="yr"></span> Matchire</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=n=>"SGD "+Math.round(n).toLocaleString("en-SG");
+  $("yr").textContent=new Date().getFullYear();
+
+  // Sample vendors with sample price lists (demo only)
+  const V={
+    photo:{biz:"Snapbox SG",kind:"photobooth",samples:[
+      "Hi! Looking for a photobooth for my daughter's 21st on Sat 15 Nov, evening, about 80 guests. 3 hours. Do you do custom print frames? Budget around $900",
+      "Hello, corporate D&D at a hotel ballroom early Dec, 250 pax. Interested in a 360 booth for 4 hrs. Can send quote?",
+      "hey do u have availability next tuesday afternoon? company family day, 2 hours"],
+      quote(b){const h=b.hours||3;const is360=/360/.test(b.raw);const base=is360?650:450;const L=[{k:(is360?"360 booth":"Classic booth")+" · first 2h",v:base}];if(h>2)L.push({k:`Extra ${h-2}h`,v:(h-2)*(is360?180:120)});if(/frame|custom|logo|brand/i.test(b.raw))L.push({k:"Custom print frame",v:80});L.push({k:"Setup & transport",v:60});return L;},
+      partner:b=>b.type==="party"||b.type==="wedding"?"<b>Partner suggestion:</b> Rempah Kitchen (caterer) can add a buffet for "+(b.pax||"your")+" guests. Include in the reply?":null},
+    venue:{biz:"The Loft, Telok Ayer",kind:"venue",cap:60,samples:[
+      "Hi, need a space for our team offsite next Tuesday afternoon, about 35 pax, 4 hours. Need projector. Budget about $3k",
+      "Looking for a venue for a 40th birthday party, Fri 28 Nov evening, 50 guests. Do you allow outside catering?",
+      "Hello, product launch for 120 people in December, evening. What's the min spend?"],
+      quote(b){const h=Math.max(3,b.hours||3);const op=b.offpeak;const full=280*h;const L=[{k:`Venue hire · ${h}h`,v:op?full*.75:full,full:op?full:null}];if(/projector|screen|slides|present/i.test(b.raw))L.push({k:"Projector & screen",v:0,note:"included"});L.push({k:"Cleaning",v:80});return L;},
+      partner:b=>"<b>Partner suggestion:</b> Snapbox SG photobooth from SGD 450, and Rempah Kitchen catering from SGD 32/pax. Add as options?"},
+    cater:{biz:"Rempah Kitchen",kind:"caterer",min:30,samples:[
+      "Hi, need halal buffet for 60 pax, office event next Thursday lunch at Raffles Place. Budget $2000",
+      "Wedding solemnisation Sun 7 Dec, 40 guests, mostly vegetarian. Do you do canapés?",
+      "Can you do bento for 25 people tomorrow morning?"],
+      quote(b){const pax=b.pax||30;const per=/canap/i.test(b.raw)?28:/bento/i.test(b.raw)?16:32;const L=[{k:`${/canap/i.test(b.raw)?"Canapés":/bento/i.test(b.raw)?"Bento sets":"Buffet"} · ${pax} pax × ${per}`,v:pax*per}];if(pax<30&&!/bento/i.test(b.raw))L.push({k:"Small-group surcharge",v:60});L.push({k:"Delivery & setup",v:60});return L;},
+      partner:b=>b.type==="wedding"||b.type==="party"?"<b>Partner suggestion:</b> The Loft, Telok Ayer has the date open. Offer the venue too?":null},
+    av:{biz:"Clearwave AV",kind:"AV",samples:[
+      "Need PA system and 2 wireless mics for a town hall, 150 pax, Wed 3 Dec morning at our office",
+      "Hi, wedding dinner Sat 13 Dec, need projector + screen for slideshow and mics for speeches",
+      "Product launch next month, 200 guests, need LED wall and sound. Budget 8k"],
+      quote(b){const L=[];if(/pa\b|sound|mic|speech/i.test(b.raw))L.push({k:"PA + 2 wireless mics",v:b.pax>120?420:280});if(/projector|screen|slide/i.test(b.raw))L.push({k:"Projector & screen",v:220});if(/led/i.test(b.raw))L.push({k:"LED wall 3×2m",v:3200});if(!L.length)L.push({k:"PA + 2 wireless mics",v:280});L.push({k:"Technician on site",v:180});return L;},
+      partner:b=>b.type==="wedding"||b.type==="launch"?"<b>Partner suggestion:</b> Snapbox SG photobooth pairs well with this event. Include it?":null}
+  };
+
+  const MONTHS="jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec";
+  function parse(t){
+    const raw=t, low=t.toLowerCase();
+    const b={raw};
+    const nums=[...low.matchAll(/(\d{1,4})\s*(?:pax|people|persons|ppl|guests|kids|adults|pp)\b/g)].map(m=>+m[1]);
+    b.pax=nums.length?Math.max(...nums):null;
+    const hm=low.match(/(\d{1,2})\s*(?:h|hr|hrs|hour|hours)\b/);b.hours=hm?+hm[1]:null;
+    const bm=low.match(/\$\s?(\d[\d,]*(?:\.\d+)?)\s?(k)?/)||low.match(/budget[^\d]{0,12}(\d[\d,]*(?:\.\d+)?)\s?(k)?/);
+    b.budget=bm?parseFloat(bm[1].replace(/,/g,""))*(bm[2]?1000:1):null;
+    const dm=low.match(new RegExp(`((?:next\\s+)?(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*\\.?(?:\\s+\\d{1,2}\\s+(?:${MONTHS})[a-z]*)?|\\d{1,2}\\s+(?:${MONTHS})[a-z]*|(?:early|mid|late)\\s+(?:${MONTHS})[a-z]*|(?:in\\s+)?(?:${MONTHS})[a-z]*\\b|tomorrow|next month)`));
+    b.date=dm?dm[1].replace(/^in\s+/,""):null;
+    b.slot=/morning|breakfast/.test(low)?"morning":/afternoon|lunch/.test(low)?"afternoon":/evening|night|dinner/.test(low)?"evening":null;
+    const wd=b.date&&b.date.match(/mon|tue|wed|thu/);
+    b.offpeak=!!(wd&&b.slot&&b.slot!=="evening");
+    b.type=/wedding|solemni/.test(low)?"wedding":/launch/.test(low)?"launch":/birthday|21st|40th|party|bday/.test(low)?"party":/offsite|town hall|corporate|office|company|d&d|family day/.test(low)?"corporate":null;
+    b.needs=[];
+    [["halal","Halal"],["vegetarian","Vegetarian"],["projector","Projector"],["360","360 booth"],["frame","Custom frame"],["led","LED wall"],["outside catering","Outside catering?"],["min spend","Min spend?"]].forEach(([k,l])=>{if(low.includes(k))b.needs.push(l)});
+    return b;
+  }
+
+  const TYPE={wedding:"Wedding",launch:"Launch",party:"Party",corporate:"Corporate"};
+  let cur="photo";
+
+  function render(){
+    const v=V[cur], b=parse($("enq").value);
+    $("bizName").textContent="to "+v.biz;
+    // extracted tags
+    const tags=[];
+    tags.push(b.date?`<span class="tag">📅 ${cap(b.date)}</span>`:`<span class="tag miss">Date missing</span>`);
+    tags.push(b.pax?`<span class="tag">${b.pax} pax</span>`:`<span class="tag miss">Headcount missing</span>`);
+    if(b.slot)tags.push(`<span class="tag">${cap(b.slot)}</span>`);
+    if(b.hours)tags.push(`<span class="tag">${b.hours}h</span>`);
+    if(b.budget)tags.push(`<span class="tag">Budget ${fmt(b.budget)}</span>`);
+    if(b.type)tags.push(`<span class="tag">${TYPE[b.type]}</span>`);
+    b.needs.forEach(n=>tags.push(`<span class="tag">${n}</span>`));
+    if(b.offpeak)tags.push(`<span class="tag">Off-peak slot</span>`);
+    $("extract").innerHTML=tags.join("");
+    // quote
+    const L=v.quote(b);const total=L.reduce((s,l)=>s+l.v,0);
+    $("quote").innerHTML=L.map(l=>`<div class="qline"><span>${l.k}</span><span class="mono">${l.full?`<span class="strike">${fmt(l.full)}</span>`:""}${l.note?l.note:fmt(l.v)}</span></div>`).join("")+`<div class="qtotal"><span>Quote total</span><span class="mono">${fmt(total)}</span></div>`;
+    // reply
+    const missing=[];if(!b.date)missing.push("your event date");if(!b.pax&&v.kind!=="AV")missing.push("the number of guests");if(!b.slot&&v.kind!=="caterer")missing.push("the start time");
+    const capWarn=v.cap&&b.pax&&b.pax>v.cap;
+    let r=`Hi! Thanks for reaching out to ${v.biz} 😊\n\n`;
+    if(capWarn)r+=`Our space fits up to ${v.cap} guests, so ${b.pax} would be too many for us. Happy to recommend a partner venue that fits!\n\n`;
+    else r+=`${b.date?`Good news, we're available ${b.date}${b.slot?" "+b.slot:""}. `:""}Here's your quote: ${fmt(total)} all-in${b.offpeak?", including our 25% weekday daytime rate":""}.\n\n`;
+    if(missing.length)r+=`Could you share ${missing.join(" and ")}? Then I'll confirm availability.\n\n`;
+    else if(!capWarn)r+=`I can hold the date for you for 48 hours. Shall I go ahead?\n\n`;
+    r+=`Thanks,\n${v.biz}`;
+    $("reply").textContent=r;
+    // lead score
+    const hot=b.date&&(b.pax||v.kind==="AV")&&(!b.budget||b.budget>=total*.9)&&!capWarn;
+    $("lead").className="lead"+(hot?"":" warm");$("lead").innerHTML=`<i></i>${hot?"Hot lead":"Needs info"}`;
+    // partner
+    const p=!capWarn&&v.partner(b);
+    $("partner").hidden=!p;if(p)$("partner").innerHTML=p;
+    $("sendMsg").textContent="";
+  }
+  function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+
+  function setVendor(k,i){
+    cur=k;
+    document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.v===k?"true":"false"));
+    const v=V[k];
+    $("samples").innerHTML=v.samples.map((s,n)=>`<button type="button" class="btn btn-ghost btn-sm" data-n="${n}">Sample ${n+1}</button>`).join("");
+    $("samples").querySelectorAll("button").forEach(btn=>btn.addEventListener("click",()=>{$("enq").value=v.samples[+btn.dataset.n];render();}));
+    $("enq").value=v.samples[i||0];render();
+  }
+  document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setVendor(t.dataset.v)));
+  $("enq").addEventListener("input",render);
+  $("sendBtn").addEventListener("click",()=>{$("sendMsg").textContent="Demo only: nothing was sent.";});
+  $("copyBtn").addEventListener("click",()=>{
+    const t=$("reply").textContent;
+    const ok=()=>{$("sendMsg").textContent="Reply copied.";};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(ok,()=>{$("sendMsg").textContent="Select the reply text to copy it.";});}
+    else $("sendMsg").textContent="Select the reply text to copy it.";
+  });
+  setVendor("photo");
+
+  // Early-access sign-ups are stored by the Matchire app (/api/early-access)
+  const form=$("eaForm"),msg=$("eaMsg"),btn=$("eaBtn");
+  form.addEventListener("submit",e=>{
+    e.preventDefault();
+    if(!form.checkValidity()){form.reportValidity();return;}
+    btn.disabled=true;btn.textContent="Sending…";
+    fetch("/api/early-access",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(new FormData(form)).toString()})
+      .then(r=>{if(!r.ok)throw new Error(r.status);
+        msg.className="form-msg ok";msg.textContent="Thanks! You're on the early-access list. We'll message you on WhatsApp within two working days.";msg.hidden=false;form.reset();})
+      .catch(()=>{msg.className="form-msg err";msg.textContent="That didn't go through. Please try again, or email giuseppe.mennella@matchire.ai or WhatsApp +65 9276 6722.";msg.hidden=false;})
+      .finally(()=>{btn.disabled=false;btn.textContent="Request early access";});
+  });
+})();
+</script>
+</body>
+</html>
