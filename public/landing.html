@@ -65,7 +65,9 @@ header.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--p
 .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line)}
 .btn-ghost:hover{border-color:var(--ink)}
 .btn-sm{padding:.45rem .85rem;font-size:.85rem}
-@media (max-width:860px){.nav-links{display:none}.nav .btn{margin-left:auto}}
+.nav-login{display:none}
+@media (max-width:860px){.nav-links{display:none}.nav-login{display:inline-flex;margin-left:auto}}
+@media (max-width:420px){.nav .wrap{gap:10px}.nav .btn{padding:.5rem .8rem;font-size:.85rem}.logo{font-size:1.3rem}}
 
 /* hero */
 .hero{padding-block:56px 72px}
@@ -73,7 +75,17 @@ header.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--p
 .hero h1{font-size:clamp(2.4rem,5.4vw,4.2rem);line-height:1;font-weight:800;letter-spacing:-.035em;margin-top:14px}
 .hero h1 em{font-style:normal;color:var(--glow)}
 .hero .lede{margin-top:20px}
-.hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+.hero-cta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:28px}
+.watch{display:inline-flex;align-items:center;gap:12px;padding:5px 16px 5px 5px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--ink);font:600 .95rem var(--f-body);cursor:pointer;text-decoration:none}
+.watch:hover{border-color:var(--glow)}
+.watch .thumb{position:relative;width:62px;height:36px;border-radius:999px;overflow:hidden;flex:none;background:#062f2d}
+.watch .thumb img{width:100%;height:100%;object-fit:cover;display:block;opacity:.8}
+.watch .thumb svg{position:absolute;inset:0;margin:auto;width:20px;height:20px}
+.watch small{display:block;font:500 .74rem var(--f-mono);color:var(--muted);letter-spacing:.02em}
+.vid-dlg{padding:0;border:0;background:transparent;width:min(1100px,94vw);max-width:none;overflow:visible}
+.vid-dlg::backdrop{background:rgba(2,22,21,.84);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.vid-dlg video{display:block;width:100%;aspect-ratio:16/9;border-radius:16px;background:#000;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.vid-close{position:absolute;top:-46px;right:0;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 1.3rem/1 var(--f-body);cursor:pointer}
 .vendors{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
 .chip{font-size:.85rem;padding:.38rem .75rem;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--muted)}
 @media (max-width:980px){.hero-grid{grid-template-columns:1fr;gap:36px}}
@@ -202,6 +214,7 @@ footer a{color:var(--ink)}
       <a href="#faq">FAQ</a>
       <a href="/login">Log in</a>
     </nav>
+    <a class="btn btn-ghost btn-sm nav-login" href="/login">Log in</a>
     <a class="btn btn-primary" href="/signup">Start free trial</a>
   </div>
 </header>
@@ -215,8 +228,11 @@ footer a{color:var(--ink)}
         <p class="lede">When a planner messages five photobooths, the first one to reply with a real price usually wins the booking. Matchire replies on WhatsApp and email in minutes, quotes from your own packages, checks your calendar and chases quiet leads, while you're busy running the last job.</p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="#early-access">Get early access</a>
+          <a class="watch" href="#video" id="watchBtn" aria-haspopup="dialog">
+            <span class="thumb"><img src="/explainer-thumb.jpg" alt="" width="62" height="36"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="#EF5439"/><path d="M8 6.2v7.6L14 10z" fill="#fff"/></svg></span>
+            <span>Watch how it works<small>30-second explainer</small></span>
+          </a>
           <a class="btn btn-ghost" href="#demo">Try the demo</a>
-          <a class="btn btn-ghost" href="/signup">Create an account</a>
         </div>
         <div class="vendors" aria-label="Built for">
           <span class="chip">Photobooths</span><span class="chip">Venues</span><span class="chip">Caterers</span><span class="chip">AV &amp; sound</span><span class="chip">Décor &amp; florists</span><span class="chip">Emcees</span>
@@ -453,6 +469,13 @@ footer a{color:var(--ink)}
   </section>
 </main>
 
+<dialog class="vid-dlg" id="videoDlg" aria-label="Matchire in 30 seconds">
+  <button class="vid-close" type="button" id="videoClose" aria-label="Close video">×</button>
+  <video id="explainer" controls playsinline preload="none" poster="/explainer-poster.jpg">
+    <source src="/matchire-explainer.mp4" type="video/mp4">
+  </video>
+</dialog>
+
 <footer>
   <div class="wrap">
     <span><b style="color:var(--ink)">Matchire.ai</b> · AI booking desk for event vendors · Singapore</span>
@@ -572,6 +595,18 @@ footer a{color:var(--ink)}
     else $("sendMsg").textContent="Select the reply text to copy it.";
   });
   setVendor("photo");
+
+  // Explainer video lightbox. matchire.ai/#video opens it directly.
+  const dlg=$("videoDlg"), vid=$("explainer");
+  const openVideo=(autoplay)=>{
+    if(!dlg.open)dlg.showModal();
+    if(autoplay){const p=vid.play();if(p&&p.catch)p.catch(()=>{});}
+  };
+  $("watchBtn").addEventListener("click",e=>{e.preventDefault();openVideo(true);});
+  $("videoClose").addEventListener("click",()=>dlg.close());
+  dlg.addEventListener("click",e=>{if(e.target===dlg)dlg.close();});
+  dlg.addEventListener("close",()=>{vid.pause();if(location.hash==="#video")history.replaceState(null,"",location.pathname);});
+  if(location.hash==="#video")openVideo(false);
 
   // Early-access sign-ups are stored by the Matchire app (/api/early-access)
   const form=$("eaForm"),msg=$("eaMsg"),btn=$("eaBtn");
