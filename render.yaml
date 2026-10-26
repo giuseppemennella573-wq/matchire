@@ -32,7 +32,7 @@ services:
       - key: SMTP_PASS
         sync: false
       - key: EMAIL_FROM
-        value: "Matchire <giuseppe.mennella@matchire.ai>"
+        value: "Matchire <hello@matchire.ai>" # alias of the SMTP mailbox; must be enabled under Gmail "Send mail as"
       - key: EARLY_ACCESS_NOTIFY_EMAIL
         value: giuseppe.mennella@matchire.ai
       - key: ADMIN_EMAILS
