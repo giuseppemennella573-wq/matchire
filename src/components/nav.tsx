@@ -12,7 +12,7 @@ const LINKS = [
   { href: "/app/settings", label: "Settings" },
 ];
 
-export function Nav({ attention }: { attention: number }) {
+export function Nav({ attention, admin }: { attention: number; admin: { waiting: number } | null }) {
   const path = usePathname();
   return (
     <nav className="nav" aria-label="Main">
@@ -25,6 +25,12 @@ export function Nav({ attention }: { attention: number }) {
           </Link>
         );
       })}
+      {admin && (
+        <Link href="/app/admin" aria-current={path.startsWith("/app/admin") ? "page" : undefined}>
+          Early access
+          {admin.waiting > 0 && <span className="count" aria-label={`${admin.waiting} waiting`}>{admin.waiting}</span>}
+        </Link>
+      )}
     </nav>
   );
 }

@@ -28,20 +28,27 @@ async function sendWhatsApp(v: Vendor, to: string, body: string): Promise<SendRe
   return { status: "failed", via: "WhatsApp", error: `WhatsApp API ${res.status}: ${err.slice(0, 300)}` };
 }
 
-async function sendEmail(v: Vendor, to: string, subject: string, body: string): Promise<SendResult> {
+/** Send a plain-text email through Resend. Returns an error message on failure. */
+export async function sendRawEmail(m: { to: string; subject: string; text: string; replyTo?: string | null }): Promise<string | null> {
+  if (!emailReady()) return "Outbound email isn't configured (RESEND_API_KEY is not set).";
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       from: process.env.EMAIL_FROM || "Matchire <bookings@matchire.ai>",
-      to: [to],
-      subject,
-      text: body,
-      reply_to: inboundAddress(v) ?? undefined,
+      to: [m.to],
+      subject: m.subject,
+      text: m.text,
+      reply_to: m.replyTo ?? undefined,
     }),
   });
-  if (res.ok) return { status: "sent", via: "email" };
-  return { status: "failed", via: "email", error: `Email API ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}` };
+  if (res.ok) return null;
+  return `Email API ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`;
+}
+
+async function sendEmail(v: Vendor, to: string, subject: string, body: string): Promise<SendResult> {
+  const error = await sendRawEmail({ to, subject, text: body, replyTo: inboundAddress(v) });
+  return error ? { status: "failed", via: "email", error } : { status: "sent", via: "email" };
 }
 
 /** The address planners' email replies should come back to, if an inbound domain is set up. */

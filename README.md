@@ -14,7 +14,7 @@ The AI booking desk for event vendors in Singapore. Matchire reads WhatsApp, ema
 | **Partner network** | Vendors invite partners by code. Quotes can mention partners and their starting prices, and enquiries a vendor can't take can be referred, with the referral fee tracked when the partner books. |
 | **Price-list import** | Paste a rate card or upload a PDF or photo; Claude turns it into items that stay hidden until the vendor approves them. |
 | **Overview** | Enquiries, median first-reply time, bookings, booked value, referral fees and a breakdown by channel. |
-| **Marketing site** | `public/landing.html` is served at `/`; early-access sign-ups are stored in the `early_access` table. |
+| **Marketing site** | `public/landing.html` is served at `/`. Early-access sign-ups are saved, emailed to `EARLY_ACCESS_NOTIFY_EMAIL` (default giuseppe.mennella@matchire.ai) via Resend, and listed on the admin page at `/app/admin`, with CSV export and a contacted flag. Admins are the logins in `ADMIN_EMAILS`, or the first account created if that's unset. |
 
 ## Running it
 

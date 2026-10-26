@@ -152,11 +152,27 @@ export function db(): DatabaseSync {
   const conn = new DatabaseSync(file);
   conn.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   conn.exec(SCHEMA);
+  migrate(conn);
   instance = conn;
   return conn;
 }
 
-type Param = string | number | bigint | null | Uint8Array;
+// Columns added after launch. CREATE TABLE IF NOT EXISTS leaves existing tables
+// alone, so new columns are added here for databases created before them.
+const COLUMNS: [table: string, column: string, definition: string][] = [
+  ["early_access", "notified_at", "TEXT"],
+  ["early_access", "notify_error", "TEXT"],
+  ["early_access", "contacted_at", "TEXT"],
+];
+
+function migrate(conn: DatabaseSync) {
+  for (const [table, column, definition] of COLUMNS) {
+    const cols = conn.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+    if (!cols.some((c) => c.name === column)) conn.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+type Param =string | number | bigint | null | Uint8Array;
 
 export function all<T>(sql: string, ...params: Param[]): T[] {
   return db().prepare(sql).all(...params) as T[];
