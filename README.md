@@ -14,7 +14,7 @@ The AI booking desk for event vendors in Singapore. Matchire reads WhatsApp, ema
 | **Partner network** | Vendors invite partners by code. Quotes can mention partners and their starting prices, and enquiries a vendor can't take can be referred, with the referral fee tracked when the partner books. |
 | **Price-list import** | Paste a rate card or upload a PDF or photo; Claude turns it into items that stay hidden until the vendor approves them. |
 | **Overview** | Enquiries, median first-reply time, bookings, booked value, referral fees and a breakdown by channel. |
-| **Marketing site** | `public/landing.html` is served at `/`. Early-access sign-ups are saved, emailed to `EARLY_ACCESS_NOTIFY_EMAIL` (default giuseppe.mennella@matchire.ai) via Resend, and listed on the admin page at `/app/admin`, with CSV export and a contacted flag. Admins are the logins in `ADMIN_EMAILS`, or the first account created if that's unset. |
+| **Marketing site** | `public/landing.html` is served at `/`. Early-access sign-ups are saved, emailed to `EARLY_ACCESS_NOTIFY_EMAIL` (default giuseppe.mennella@matchire.ai), and listed on the admin page at `/app/admin`, with CSV export and a contacted flag. Admins are the logins in `ADMIN_EMAILS`, or the first account created if that's unset. |
 
 ## Running it
 
@@ -38,7 +38,7 @@ npm run typecheck
 
 **WhatsApp (Meta WhatsApp Cloud API).** Create an app in Meta for Developers with the WhatsApp product. Set the webhook URL to `https://<your-domain>/api/webhooks/whatsapp` with the verify token from `WHATSAPP_VERIFY_TOKEN`, and subscribe to `messages`. Set `WHATSAPP_APP_SECRET` so webhook signatures are checked. Each vendor enters their phone number ID and access token under **Settings**. WhatsApp only allows free-form replies within 24 hours of the planner's last message; later replies fail with a clear error and need to be sent from the phone.
 
-**Email.** Point an inbound-email webhook (Postmark, SendGrid Inbound Parse, Mailgun routes) at the per-vendor URL shown in **Settings**: `https://<your-domain>/api/webhooks/email/<token>`. Outbound email uses [Resend](https://resend.com): set `RESEND_API_KEY` and `EMAIL_FROM`. Optionally set `INBOUND_EMAIL_DOMAIN` so replies come back to `<token>@<domain>`.
+**Email.** Point an inbound-email webhook (Postmark, SendGrid Inbound Parse, Mailgun routes) at the per-vendor URL shown in **Settings**: `https://<your-domain>/api/webhooks/email/<token>`. Outbound email goes over SMTP: for Google Workspace set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER` (the mailbox) and `SMTP_PASS` (an [app password](https://myaccount.google.com/apppasswords); needs 2-Step Verification). `EMAIL_FROM` must be that mailbox or one of its aliases. [Resend](https://resend.com) (`RESEND_API_KEY`) is supported as an alternative. Optionally set `INBOUND_EMAIL_DOMAIN` so replies come back to `<token>@<domain>`.
 
 **Web form.** Each vendor has a public form at `/e/<slug>`, embeddable as an iframe (`?embed=1`).
 
@@ -74,7 +74,7 @@ src/lib/pricing.ts     quote engine and the "never invent a price" guardrail
 src/lib/ai.ts          Claude calls (structured outputs, refusal fallback), validated before use
 src/lib/heuristics.ts  rules-based enquiry reader (no-key mode and fallback)
 src/lib/dates.ts       Singapore-time date parsing ("next tue", "15 Nov", "early Dec")
-src/lib/channels.ts    WhatsApp Cloud API and Resend delivery
+src/lib/channels.ts    WhatsApp Cloud API and email (SMTP or Resend) delivery
 src/lib/db.ts          SQLite schema
 src/app/app/*          the vendor app (server components + server actions)
 src/app/api/*          webhooks, cron, early-access

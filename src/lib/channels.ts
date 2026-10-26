@@ -1,7 +1,9 @@
+import { createTransport, type Transporter } from "nodemailer";
 import type { Enquiry, Vendor } from "./types.ts";
 
 // Outbound delivery. WhatsApp goes through the Meta WhatsApp Cloud API using
-// the vendor's own business number; email goes through Resend. Channels that
+// the vendor's own business number. Email goes out over SMTP (e.g. a Google
+// Workspace mailbox) when SMTP_* is set, otherwise through Resend. Channels that
 // have no API (Instagram DMs, manual entries) are marked for the vendor to
 // copy and send themselves.
 
@@ -12,9 +14,26 @@ const GRAPH = "https://graph.facebook.com/v21.0";
 export function whatsappReady(v: Vendor): boolean {
   return Boolean(v.wa_phone_number_id && v.wa_token);
 }
+const smtpReady = () => Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+
 export function emailReady(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
+  return smtpReady() || Boolean(process.env.RESEND_API_KEY);
 }
+
+let smtp: Transporter | null = null;
+function smtpTransport(): Transporter {
+  const port = Number(process.env.SMTP_PORT || 465);
+  smtp ??= createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure: port === 465,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+  return smtp;
+}
+
+/** Gmail rejects or rewrites a From address the account doesn't own, so default to the mailbox itself. */
+const fromAddress = () => process.env.EMAIL_FROM || (smtpReady() ? `Matchire <${process.env.SMTP_USER}>` : "Matchire <bookings@matchire.ai>");
 
 async function sendWhatsApp(v: Vendor, to: string, body: string): Promise<SendResult> {
   const res = await fetch(`${GRAPH}/${v.wa_phone_number_id}/messages`, {
@@ -28,14 +47,22 @@ async function sendWhatsApp(v: Vendor, to: string, body: string): Promise<SendRe
   return { status: "failed", via: "WhatsApp", error: `WhatsApp API ${res.status}: ${err.slice(0, 300)}` };
 }
 
-/** Send a plain-text email through Resend. Returns an error message on failure. */
+/** Send a plain-text email over SMTP or Resend. Returns an error message on failure. */
 export async function sendRawEmail(m: { to: string; subject: string; text: string; replyTo?: string | null }): Promise<string | null> {
-  if (!emailReady()) return "Outbound email isn't configured (RESEND_API_KEY is not set).";
+  if (!emailReady()) return "Outbound email isn't configured (set SMTP_HOST, SMTP_USER and SMTP_PASS).";
+  if (smtpReady()) {
+    try {
+      await smtpTransport().sendMail({ from: fromAddress(), to: m.to, subject: m.subject, text: m.text, replyTo: m.replyTo ?? undefined });
+      return null;
+    } catch (e) {
+      return `Email (SMTP) failed: ${e instanceof Error ? e.message : String(e)}`.slice(0, 400);
+    }
+  }
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: process.env.EMAIL_FROM || "Matchire <bookings@matchire.ai>",
+      from: fromAddress(),
       to: [m.to],
       subject: m.subject,
       text: m.text,

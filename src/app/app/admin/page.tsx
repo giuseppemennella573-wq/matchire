@@ -27,7 +27,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       {msg && <p className="alert alert-ok" role="status">{msg}</p>}
       {error && <p className="alert alert-err" role="alert">{error}</p>}
       {!emailReady() && (
-        <p className="alert alert-warn">Alert emails are off: set <code>RESEND_API_KEY</code> (and a verified <code>EMAIL_FROM</code> address) in Render. Sign-ups are still saved here.</p>
+        <p className="alert alert-warn">Alert emails are off: set <code>SMTP_HOST</code>, <code>SMTP_USER</code> and <code>SMTP_PASS</code> in Render (for Google Workspace: <code>smtp.gmail.com</code>, your address and an app password). Sign-ups are still saved here.</p>
       )}
 
       <section className="card card-flush">

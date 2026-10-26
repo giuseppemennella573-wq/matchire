@@ -22,7 +22,18 @@ services:
         generateValue: true
       - key: WHATSAPP_APP_SECRET
         sync: false
-      - key: RESEND_API_KEY
+      # Email goes out through the Google Workspace mailbox (needs an app password).
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USER
+        value: giuseppe.mennella@matchire.ai
+      - key: SMTP_PASS
         sync: false
       - key: EMAIL_FROM
-        value: "Matchire <bookings@matchire.ai>"
+        value: "Matchire <giuseppe.mennella@matchire.ai>"
+      - key: EARLY_ACCESS_NOTIFY_EMAIL
+        value: giuseppe.mennella@matchire.ai
+      - key: ADMIN_EMAILS
+        sync: false

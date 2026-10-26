@@ -6,6 +6,7 @@ import path from "node:path";
 
 process.env.MATCHIRE_DB = path.join(mkdtempSync(path.join(tmpdir(), "matchire-ea-")), "test.db");
 delete process.env.RESEND_API_KEY;
+delete process.env.SMTP_HOST;
 delete process.env.ADMIN_EMAILS;
 
 const EA = await import("../src/lib/early-access.ts");
@@ -15,7 +16,7 @@ const { get } = await import("../src/lib/db.ts");
 test("sign-up is saved and the alert failure is recorded, not lost", async () => {
   const id = EA.addSignup({ name: "Ana", business: "Snapbox", vendor_type: "Photobooth", enquiries_per_week: "10–30", email: "ana@snap.sg", whatsapp: "9123 4567" });
   const err = await EA.notifySignup(id);
-  assert.match(err!, /RESEND_API_KEY/);
+  assert.match(err!, /SMTP_HOST/);
   const row = get<{ notify_error: string | null; notified_at: string | null }>("SELECT * FROM early_access WHERE id = ?", id)!;
   assert.equal(row.notified_at, null);
   assert.ok(row.notify_error);
