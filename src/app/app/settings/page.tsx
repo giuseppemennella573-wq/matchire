@@ -76,7 +76,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             <label className="field"><span>Access token {v.wa_token ? "(saved; leave blank to keep)" : ""}</span><input name="wa_token" type="password" autoComplete="off" /></label>
           </div>
           <div className="row">
-            <span className={`badge ${whatsappReady(v) ? "badge-leaf" : ""}`}>{whatsappReady(v) ? "Connected" : "Not connected"}</span>
+            <span className={`badge ${whatsappReady(v) ? "badge-ok" : ""}`}>{whatsappReady(v) ? "Connected" : "Not connected"}</span>
             {whatsappReady(v) && <label className="check small"><input type="checkbox" name="wa_disconnect" /><span>Disconnect</span></label>}
           </div>
           <p className="small muted">WhatsApp only lets businesses send free-form replies within 24 hours of the planner&apos;s last message. Older conversations need you to reply from your phone.</p>
@@ -91,7 +91,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
         <Copyable value={`${url}/api/webhooks/email/${v.inbound_token}`} />
         {inbound && <p className="small">Or forward to <span className="code">{inbound}</span></p>}
         <div className="row">
-          <span className={`badge ${emailReady() ? "badge-leaf" : ""}`}>{emailReady() ? "Outbound email on" : "Outbound email off"}</span>
+          <span className={`badge ${emailReady() ? "badge-ok" : ""}`}>{emailReady() ? "Outbound email on" : "Outbound email off"}</span>
           <form action={rotateInboundTokenAction}><button className="btn btn-ghost btn-sm" type="submit">Generate a new address</button></form>
         </div>
       </section>

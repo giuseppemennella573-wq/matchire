@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { loginAction } from "../actions";
+import { Logo } from "@/components/logo";
 
 export const metadata = { title: "Log in" };
 
@@ -8,7 +9,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="auth">
       <div className="card stack-lg">
-        <a className="logo" href="/" style={{ padding: 0 }}><span className="logo-mark" aria-hidden="true" />Matchire<span>.ai</span></a>
+        <Logo href="/" style={{ padding: "8px 0 0" }} />
         <div className="stack">
           <h1>Welcome back</h1>
           <p className="muted">Your enquiries, quotes and holds are waiting.</p>

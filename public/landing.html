@@ -9,28 +9,27 @@
 <meta property="og:description" content="Every enquiry answered, quoted and followed up, even while you're working an event.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://matchire.ai/">
-<meta name="theme-color" content="#B4247A">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23B4247A'/%3E%3Ccircle cx='19' cy='16' r='6' fill='%23fff'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#073B39">
+<link rel="icon" href="/favicon.svg">
+<meta property="og:image" content="https://app.matchire.ai/logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
 /* Layout: thesis hero beside a live "enquiry → quote" console; quiet editorial sections; pricing and sign-up close the page */
 :root{
-  --paper:#F7F5F8; --card:#FFFFFF; --ink:#1D1A24; --muted:#6B6475; --line:#E2DDE6;
-  --orchid:#B4247A; --orchid-ink:#FFFFFF; --orchid-soft:#F6E3EF; --leaf:#1F6B4F; --leaf-soft:#E1F1E9;
-  --bubble:#E9F6EE; --bubble-out:#FFFFFF;
-  --shadow:0 1px 2px rgba(29,26,36,.06),0 10px 30px rgba(29,26,36,.07);
-  --f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
-  --f-body:"Instrument Sans","Helvetica Neue",Arial,system-ui,sans-serif;
+  /* "Night Event": deep teal like a venue with the lights down; the logo's flame glows on top */
+  --paper:#073B39; --card:#0C4B48; --ink:#EAF6F5; --muted:#A9CFCC; --line:#17625E;
+  --orchid:#EF5439; --orchid-ink:#FFFFFF; --orchid-soft:rgba(239,84,57,.18); --glow:#FFB37A;
+  --flame-grad:linear-gradient(90deg,#EF5439,#F28A3A);
+  --leaf:#7FE3D3; --leaf-soft:#0F5A55;
+  --bubble:#105451; --bubble-out:#0E4744;
+  --shadow:0 1px 2px rgba(0,0,0,.25),0 14px 36px rgba(0,0,0,.28);
+  --f-display:"Nunito","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --f-body:"Figtree","Helvetica Neue",Arial,system-ui,sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
-  --r:14px; color-scheme:light;
+  --r:14px; color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){:root{
-  --paper:#141118; --card:#1D1922; --ink:#EFEAF2; --muted:#A79FB0; --line:#2E2835;
-  --orchid:#E36AB0; --orchid-ink:#1A0F16; --orchid-soft:#3A1E30; --leaf:#5BC79B; --leaf-soft:#173328;
-  --bubble:#1C3328; --bubble-out:#262130;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.3); color-scheme:dark;}}
 
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -40,11 +39,11 @@ img{max-width:100%}
 [hidden]{display:none!important}
 a{color:inherit}
 .wrap{max-width:1160px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.02em}
+h1,h2,h3{font-family:var(--f-display);font-weight:900;text-wrap:balance;margin:0;letter-spacing:-.015em}
 h2{font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:1.08;font-weight:700}
 h3{font-size:1.15rem;font-weight:700;letter-spacing:-.01em}
 p{margin:0}
-.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--orchid);font-weight:600}
+.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--glow);font-weight:600}
 .lede{color:var(--muted);font-size:1.08rem;max-width:58ch}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 :focus-visible{outline:2.5px solid var(--orchid);outline-offset:2px;border-radius:6px}
@@ -52,17 +51,17 @@ p{margin:0}
 /* nav */
 header.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .nav .wrap{display:flex;align-items:center;gap:24px;min-height:64px}
-.logo{font-family:var(--f-display);font-weight:800;font-size:1.35rem;text-decoration:none;letter-spacing:-.03em;display:flex;align-items:center;gap:8px}
-.logo-mark{width:26px;height:26px;border-radius:50%;background:var(--orchid);position:relative;flex:none}
-.logo-mark::after{content:"";position:absolute;inset:7px 7px 7px 13px;border-radius:50%;background:var(--paper)}
-.logo span{color:var(--orchid)}
+.logo{font-family:var(--f-display);font-weight:900;font-size:1.45rem;line-height:1;text-decoration:none;letter-spacing:-.01em;color:#fff;display:inline-flex;align-items:flex-end;padding-top:8px}
+.logo .ai{color:var(--glow)}
+.logo-i{position:relative;display:inline-block}
+.logo-i svg{position:absolute;left:50%;bottom:70%;width:.48em;height:.68em;transform:translateX(-50%)}
 .nav-links{display:flex;gap:22px;margin-left:auto;font-size:.95rem}
 .nav-links a{text-decoration:none;color:var(--muted)}
 .nav-links a:hover{color:var(--ink)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 .95rem var(--f-body);padding:.72rem 1.15rem;border-radius:999px;border:1.5px solid transparent;cursor:pointer;text-decoration:none;transition:transform .15s ease,background .15s ease}
 .btn:active{transform:translateY(1px)}
-.btn-primary{background:var(--orchid);color:var(--orchid-ink)}
-.btn-primary:hover{background:color-mix(in srgb,var(--orchid) 88%,var(--ink))}
+.btn-primary{background:var(--flame-grad);color:#fff;box-shadow:0 6px 18px rgba(239,84,57,.32)}
+.btn-primary:hover{filter:brightness(1.06)}
 .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line)}
 .btn-ghost:hover{border-color:var(--ink)}
 .btn-sm{padding:.45rem .85rem;font-size:.85rem}
@@ -72,7 +71,7 @@ header.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--p
 .hero{padding-block:56px 72px}
 .hero-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:48px;align-items:start}
 .hero h1{font-size:clamp(2.4rem,5.4vw,4.2rem);line-height:1;font-weight:800;letter-spacing:-.035em;margin-top:14px}
-.hero h1 em{font-style:normal;color:var(--orchid)}
+.hero h1 em{font-style:normal;color:var(--glow)}
 .hero .lede{margin-top:20px}
 .hero-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
 .vendors{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
@@ -195,7 +194,7 @@ footer a{color:var(--ink)}
 
 <header class="nav">
   <div class="wrap">
-    <a class="logo" href="#top" aria-label="Matchire.ai home"><span class="logo-mark" aria-hidden="true"></span>Matchire<span>.ai</span></a>
+    <a class="logo" href="#top" aria-label="Matchire.ai home"><span aria-hidden="true">Match<span class="logo-i">ı<svg viewBox="0 0 10 14" aria-hidden="true"><path d="M5 0C6.5 3 9.5 5 9.5 9a4.5 4.5 0 0 1-9 0C.5 6.5 2.5 5 3 2.5 4 4 4.3 4.6 5 5.2 5.2 3.4 5.3 1.8 5 0z" fill="#EF5439"/><path d="M5 6.5c1 1.2 2 2 2 3.4a2 2 0 0 1-4 0c0-1.1.9-1.9 2-3.4z" fill="#F7C9A0"/></svg></span>re<span class="ai">.ai</span></span></a>
     <nav class="nav-links" aria-label="Main">
       <a href="#features">Features</a>
       <a href="#network">Partner network</a>

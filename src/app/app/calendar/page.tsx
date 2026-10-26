@@ -80,7 +80,7 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
                     <tr key={h.id}>
                       <td className="mono small">{formatDate(h.date)}</td>
                       <td>{h.enquiry_id ? <Link href={`/app/inbox/${h.enquiry_id}`}>{h.contact_name || h.note}</Link> : h.note}</td>
-                      <td>{h.kind === "booking" ? <span className="badge badge-leaf">Booked</span> : h.kind === "hold" ? <span className="badge badge-amber">Until {formatDateTime(h.expires_at)}</span> : <span className="badge">Blocked</span>}</td>
+                      <td>{h.kind === "booking" ? <span className="badge badge-ok">Booked</span> : h.kind === "hold" ? <span className="badge badge-amber">Until {formatDateTime(h.expires_at)}</span> : <span className="badge">Blocked</span>}</td>
                       <td>
                         {h.kind !== "booking" && (
                           <form action={releaseHoldAction}><input type="hidden" name="holdId" value={h.id} /><button className="btn btn-ghost btn-sm" type="submit">Release</button></form>

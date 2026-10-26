@@ -1,3 +1,4 @@
+import { Logo } from "@/components/logo";
 export const metadata = { title: "Privacy policy" };
 
 const UPDATED = "26 October 2026";
@@ -5,7 +6,7 @@ const UPDATED = "26 October 2026";
 export default function Privacy() {
   return (
     <main className="public stack-lg" style={{ maxWidth: 760 }}>
-      <a className="logo" href="/" style={{ padding: 0 }}><span className="logo-mark" aria-hidden="true" />Matchire<span>.ai</span></a>
+      <Logo href="/" style={{ padding: "8px 0 0" }} />
       <div className="stack" style={{ gap: 6 }}>
         <h1>Privacy policy</h1>
         <p className="muted">Last updated {UPDATED}</p>

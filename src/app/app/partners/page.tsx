@@ -107,7 +107,7 @@ export default async function Partners({ searchParams }: { searchParams: Promise
                     <td className="small">{formatDateTime(r.created_at)}</td>
                     <td><Link href={`/app/inbox/${r.dir === "out" ? r.source_enquiry : r.target_enquiry}`}>{r.contact || "Enquiry"}</Link></td>
                     <td>{r.dir === "out" ? `To ${r.partner}` : `From ${r.partner}`}</td>
-                    <td><span className={`badge ${r.status === "won" ? "badge-leaf" : ""}`}>{r.status === "won" ? "Booked" : r.status === "lost" ? "Lost" : "Open"}</span></td>
+                    <td><span className={`badge ${r.status === "won" ? "badge-ok" : ""}`}>{r.status === "won" ? "Booked" : r.status === "lost" ? "Lost" : "Open"}</span></td>
                     <td className="mono small">{r.fee_amount != null ? `${r.dir === "out" ? "+" : "−"}${fmtMoney(r.fee_amount)}` : "–"}</td>
                   </tr>
                 ))}

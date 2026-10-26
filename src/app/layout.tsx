@@ -4,12 +4,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: { default: "Matchire.ai", template: "%s · Matchire.ai" },
   description: "The AI booking desk for event vendors in Singapore.",
-  icons: {
-    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23B4247A'/%3E%3Ccircle cx='19' cy='16' r='6' fill='%23fff'/%3E%3C/svg%3E",
-  },
+  icons: { icon: "/favicon.svg" },
+  openGraph: { images: ["/logo.jpg"] },
 };
 
-export const viewport: Viewport = { themeColor: "#B4247A", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#087370", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -20,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
         />
       </head>
       <body>{children}</body>

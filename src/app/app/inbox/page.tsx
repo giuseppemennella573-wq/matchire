@@ -19,7 +19,7 @@ const FILTERS = [
 ] as const;
 
 const STATUS_BADGE: Record<EnquiryStatus, string> = {
-  new: "badge-orchid", awaiting_info: "badge-amber", quoted: "", won: "badge-leaf", lost: "", referred: "", expired: "",
+  new: "badge-brand", awaiting_info: "badge-amber", quoted: "", won: "badge-ok", lost: "", referred: "", expired: "",
 };
 
 export default async function Inbox({ searchParams }: { searchParams: Promise<{ filter?: string; error?: string; msg?: string }> }) {
@@ -62,7 +62,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
                 <div className="row">
                   <b>{e.contact_name || e.contact_handle || `Enquiry #${e.id}`}</b>
                   <span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span>
-                  {e.has_draft ? <span className="badge badge-orchid">Reply ready</span> : null}
+                  {e.has_draft ? <span className="badge badge-brand">Reply ready</span> : null}
                   <span className="badge">{CHANNEL_LABEL[e.channel as Channel]}</span>
                 </div>
                 <p className="preview">{e.last}</p>

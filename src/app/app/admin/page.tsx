@@ -50,7 +50,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                         {r.whatsapp && <div>{wa ? <a href={wa} target="_blank" rel="noopener">{r.whatsapp}</a> : r.whatsapp}</div>}
                       </td>
                       <td className="small">
-                        {r.notified_at ? <span className="badge badge-leaf">Emailed</span>
+                        {r.notified_at ? <span className="badge badge-ok">Emailed</span>
                           : r.notify_error ? <span className="badge badge-red" title={r.notify_error}>Failed</span>
                           : <span className="badge">Not sent</span>}
                         {!r.notified_at && emailReady() && (

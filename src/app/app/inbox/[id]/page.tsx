@@ -83,7 +83,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
               <input type="hidden" name="messageId" value={draft.id} />
               <input type="hidden" name="enquiryId" value={e.id} />
               <div className="row between">
-                <h2>Drafted reply <span className="badge badge-orchid">{PURPOSE_LABEL[draft.purpose ?? "quote"]}</span></h2>
+                <h2>Drafted reply <span className="badge badge-brand">{PURPOSE_LABEL[draft.purpose ?? "quote"]}</span></h2>
                 <span className="small muted">Edit freely before sending</span>
               </div>
               {e.owner_reason && <p className="alert alert-warn">{e.owner_reason}</p>}

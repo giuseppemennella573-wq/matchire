@@ -4,6 +4,7 @@ import { Nav } from "@/components/nav";
 import { logoutAction } from "../(auth)/actions";
 import { aiEnabled } from "@/lib/ai";
 import { countUncontacted, isAdmin } from "@/lib/early-access";
+import { Logo } from "@/components/logo";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="shell">
       <aside className="side">
-        <a className="logo" href="/app"><span className="logo-mark" aria-hidden="true" />Matchire<span>.ai</span></a>
+        <Logo href="/app" />
         <Nav attention={attention} admin={isAdmin(user) ? { waiting: countUncontacted() } : null} />
         <div className="side-foot">
           <b style={{ color: "var(--ink)" }}>{vendor.name}</b>

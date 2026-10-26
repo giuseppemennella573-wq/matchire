@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signupAction } from "../actions";
 import { VENDOR_KINDS } from "@/lib/types";
+import { Logo } from "@/components/logo";
 
 export const metadata = { title: "Create your account" };
 
@@ -9,7 +10,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   return (
     <main className="auth">
       <div className="card stack-lg">
-        <a className="logo" href="/" style={{ padding: 0 }}><span className="logo-mark" aria-hidden="true" />Matchire<span>.ai</span></a>
+        <Logo href="/" style={{ padding: "8px 0 0" }} />
         <div className="stack">
           <h1>Set up your booking desk</h1>
           <p className="muted">Takes two minutes. You can connect WhatsApp and email afterwards.</p>

@@ -98,7 +98,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
                     <tr key={h.id}>
                       <td className="mono small">{formatDate(h.date)}</td>
                       <td>{h.enquiry_id ? <Link href={`/app/inbox/${h.enquiry_id}`}>{h.contact_name || h.note}</Link> : h.note}</td>
-                      <td>{h.kind === "booking" ? <span className="badge badge-leaf">Booked</span> : <span className="badge badge-amber">Held until {formatDateTime(h.expires_at)}</span>}</td>
+                      <td>{h.kind === "booking" ? <span className="badge badge-ok">Booked</span> : <span className="badge badge-amber">Held until {formatDateTime(h.expires_at)}</span>}</td>
                     </tr>
                   ))}
                 </tbody>
