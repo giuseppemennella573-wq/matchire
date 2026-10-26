@@ -108,3 +108,21 @@ test("vendors can't touch each other's enquiries", async () => {
   assert.equal(E.getEnquiry(venue, a.enquiryId), undefined);
   await assert.rejects(() => E.processEnquiry(venue, a.enquiryId));
 });
+
+test("deleting an enquiry removes its messages, holds and referral link but not the partner's copy", async () => {
+  const date = addDays(sgToday(), 50);
+  const [, m, d] = date.split("-");
+  const mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+m - 1];
+  const { enquiryId } = E.ingest({ vendorId: venue, channel: "web", email: "del@test.sg", text: `Birthday on ${+d} ${mon} evening, 30 guests, 4 hours` });
+  await E.processEnquiry(venue, enquiryId);
+  E.markDraftSentManually(venue, E.pendingDraft(enquiryId)!.id);
+  assert.ok(get("SELECT 1 FROM holds WHERE enquiry_id = ?", enquiryId));
+  const target = await E.referToPartner(venue, enquiryId, booth);
+  E.deleteEnquiry(venue, enquiryId);
+  assert.equal(E.getEnquiry(venue, enquiryId), undefined);
+  assert.equal(get("SELECT 1 FROM messages WHERE enquiry_id = ?", enquiryId), undefined);
+  assert.equal(get("SELECT 1 FROM holds WHERE enquiry_id = ?", enquiryId), undefined);
+  assert.equal(get("SELECT 1 FROM referrals WHERE source_enquiry = ?", enquiryId), undefined);
+  assert.ok(E.getEnquiry(booth, target), "partner keeps the referred copy");
+  assert.throws(() => E.deleteEnquiry(booth, enquiryId));
+});

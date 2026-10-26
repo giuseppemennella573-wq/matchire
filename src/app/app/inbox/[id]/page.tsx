@@ -6,9 +6,10 @@ import * as E from "@/lib/engine";
 import { fmtMoney } from "@/lib/pricing";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { CHANNEL_LABEL, STATUS_LABEL, type Hold, type Vendor } from "@/lib/types";
-import { draftAction, noteAction, outcomeAction, plannerReplyAction, referAction, releaseHoldAction } from "../../actions";
+import { deleteEnquiryAction, draftAction, noteAction, outcomeAction, plannerReplyAction, referAction, releaseHoldAction } from "../../actions";
 import { CopyButton } from "@/components/copy-button";
 import { Submit } from "@/components/submit";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 
 export const metadata = { title: "Enquiry" };
 
@@ -221,6 +222,15 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
               <input type="hidden" name="enquiryId" value={e.id} />
               <textarea name="body" rows={2} required placeholder="Only your team sees this" />
               <div><button className="btn btn-ghost btn-sm" type="submit">Add note</button></div>
+            </form>
+          </section>
+
+          <section className="card stack">
+            <h2>Delete</h2>
+            <p className="small muted">Removes this conversation, its quote and any held date for good. Use it for spam, tests, or when someone asks you to delete their data.</p>
+            <form action={deleteEnquiryAction}>
+              <input type="hidden" name="enquiryId" value={e.id} />
+              <ConfirmSubmit message={`Delete the conversation with ${e.contact_name || e.contact_handle || "this planner"}? This can't be undone.`}>Delete enquiry</ConfirmSubmit>
             </form>
           </section>
         </aside>

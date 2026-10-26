@@ -77,6 +77,10 @@ export async function notifySignup(id: number): Promise<string | null> {
 export const listSignups = () => all<Signup>("SELECT * FROM early_access ORDER BY id DESC");
 export const countUncontacted = () => get<{ n: number }>("SELECT COUNT(*) n FROM early_access WHERE contacted_at IS NULL")?.n ?? 0;
 
+export function deleteSignup(id: number) {
+  run("DELETE FROM early_access WHERE id = ?", id);
+}
+
 export function setContacted(id: number, contacted: boolean) {
   run("UPDATE early_access SET contacted_at = ? WHERE id = ?", contacted ? nowIso() : null, id);
 }

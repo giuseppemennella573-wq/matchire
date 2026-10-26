@@ -430,6 +430,16 @@ export function markLost(vendorId: number, enquiryId: number) {
   });
 }
 
+/**
+ * Permanently delete an enquiry. Its messages, quote, date holds and referral
+ * links go with it (ON DELETE CASCADE). A copy referred to a partner stays in
+ * the partner's inbox: it's their record now.
+ */
+export function deleteEnquiry(vendorId: number, enquiryId: number) {
+  if (!getEnquiry(vendorId, enquiryId)) throw new Error("Enquiry not found");
+  run("DELETE FROM enquiries WHERE id = ? AND vendor_id = ?", enquiryId, vendorId);
+}
+
 export function reopen(vendorId: number, enquiryId: number) {
   if (!getEnquiry(vendorId, enquiryId)) throw new Error("Enquiry not found");
   run("UPDATE enquiries SET status = 'quoted', updated_at = ? WHERE id = ?", nowIso(), enquiryId);

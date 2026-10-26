@@ -94,6 +94,13 @@ export async function outcomeAction(form: FormData) {
   redirect(`/app/inbox/${eid}`);
 }
 
+export async function deleteEnquiryAction(form: FormData) {
+  const { vendor } = await requireVendor();
+  E.deleteEnquiry(vendor.id, id(form, "enquiryId"));
+  revalidatePath("/app", "layout");
+  back("/app/inbox?filter=all", "Enquiry deleted.");
+}
+
 export async function noteAction(form: FormData) {
   const { vendor } = await requireVendor();
   const eid = id(form, "enquiryId");

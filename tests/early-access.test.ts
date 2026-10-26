@@ -51,3 +51,9 @@ test("the first account is admin unless ADMIN_EMAILS is set", () => {
   assert.equal(EA.isAdmin({ id: owner.userId, email: "owner@m.sg" }), false);
   delete process.env.ADMIN_EMAILS;
 });
+
+test("sign-ups can be deleted", () => {
+  const id = EA.addSignup({ name: "Del", business: null, vendor_type: null, enquiries_per_week: null, email: "d@d.sg", whatsapp: null });
+  EA.deleteSignup(id);
+  assert.equal(get("SELECT 1 FROM early_access WHERE id = ?", id), undefined);
+});

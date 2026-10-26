@@ -3,7 +3,8 @@ import { requireVendor } from "@/lib/auth";
 import { ALERT_TO, isAdmin, listSignups, whatsappLink } from "@/lib/early-access";
 import { emailReady } from "@/lib/channels";
 import { formatDateTime } from "@/lib/dates";
-import { resendAlertAction, toggleContactedAction } from "./actions";
+import { deleteSignupAction, resendAlertAction, toggleContactedAction } from "./actions";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 
 export const metadata = { title: "Early access" };
 
@@ -34,7 +35,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         {rows.length === 0 ? <p className="empty">No sign-ups yet. They appear here as soon as someone submits the form on the landing page.</p> : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Received</th><th>Who</th><th>Business</th><th>Enquiries/wk</th><th>Contact</th><th>Alert</th><th>Status</th></tr></thead>
+              <thead><tr><th>Received</th><th>Who</th><th>Business</th><th>Enquiries/wk</th><th>Contact</th><th>Alert</th><th>Status</th><th /></tr></thead>
               <tbody>
                 {rows.map((r) => {
                   const wa = whatsappLink(r.whatsapp);
@@ -66,6 +67,12 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                           <button className={`btn btn-sm ${r.contacted_at ? "btn-ghost" : "btn-primary"}`} type="submit">
                             {r.contacted_at ? "Contacted ✓" : "Mark contacted"}
                           </button>
+                        </form>
+                      </td>
+                      <td>
+                        <form action={deleteSignupAction}>
+                          <input type="hidden" name="id" value={r.id} />
+                          <ConfirmSubmit message={`Delete ${r.name || "this sign-up"}${r.business ? ` (${r.business})` : ""}? This can't be undone.`}>Delete</ConfirmSubmit>
                         </form>
                       </td>
                     </tr>

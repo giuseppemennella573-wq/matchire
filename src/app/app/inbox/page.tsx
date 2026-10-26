@@ -22,9 +22,9 @@ const STATUS_BADGE: Record<EnquiryStatus, string> = {
   new: "badge-orchid", awaiting_info: "badge-amber", quoted: "", won: "badge-leaf", lost: "", referred: "", expired: "",
 };
 
-export default async function Inbox({ searchParams }: { searchParams: Promise<{ filter?: string; error?: string }> }) {
+export default async function Inbox({ searchParams }: { searchParams: Promise<{ filter?: string; error?: string; msg?: string }> }) {
   const { vendor } = await requireVendor();
-  const { filter = "open", error } = await searchParams;
+  const { filter = "open", error, msg } = await searchParams;
   const where =
     filter === "attention" ? "AND EXISTS (SELECT 1 FROM messages d WHERE d.enquiry_id = e.id AND d.status = 'draft')"
     : filter === "won" ? "AND e.status = 'won'"
@@ -46,6 +46,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
           {FILTERS.map((f) => <Link key={f.key} href={`/app/inbox?filter=${f.key}`} aria-current={filter === f.key ? "page" : undefined}>{f.label}</Link>)}
         </nav>
       </div>
+      {msg && <p className="alert alert-ok" role="status">{msg}</p>}
       {error && <p className="alert alert-err" role="alert">{error}</p>}
 
       <section className="card card-flush">

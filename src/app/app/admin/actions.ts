@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireVendor } from "@/lib/auth";
-import { isAdmin, notifySignup, setContacted } from "@/lib/early-access";
+import { deleteSignup, isAdmin, notifySignup, setContacted } from "@/lib/early-access";
 
 async function requireAdmin() {
   const { user } = await requireVendor();
@@ -21,6 +21,13 @@ export async function toggleContactedAction(form: FormData) {
   setContacted(signupId(form), form.get("contacted") === "1");
   revalidatePath("/app", "layout");
   redirect("/app/admin");
+}
+
+export async function deleteSignupAction(form: FormData) {
+  await requireAdmin();
+  deleteSignup(signupId(form));
+  revalidatePath("/app", "layout");
+  redirect(`/app/admin?msg=${encodeURIComponent("Sign-up deleted.")}`);
 }
 
 export async function resendAlertAction(form: FormData) {
