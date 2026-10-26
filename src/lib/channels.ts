@@ -43,6 +43,7 @@ async function sendWhatsApp(v: Vendor, to: string, body: string): Promise<SendRe
   });
   if (res.ok) return { status: "sent", via: "WhatsApp" };
   const err = await res.text().catch(() => "");
+  console.warn(`[whatsapp] send failed ${res.status}: ${err.slice(0, 300)}`);
   // 131047: outside the 24-hour customer service window; a template message is required.
   return { status: "failed", via: "WhatsApp", error: `WhatsApp API ${res.status}: ${err.slice(0, 300)}` };
 }
