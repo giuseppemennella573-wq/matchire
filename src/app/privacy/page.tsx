@@ -14,7 +14,7 @@ export default function Privacy() {
 
       <section className="stack">
         <p>
-          Matchire Pte. Ltd. (&quot;Matchire&quot;, &quot;we&quot;) runs Matchire.ai, a booking assistant for event vendors in Singapore.
+          Matchire.ai Pte. Ltd. (&quot;Matchire&quot;, &quot;we&quot;) runs Matchire.ai, a booking assistant for event vendors in Singapore.
           This policy explains what personal data we handle, why, and the choices you have. We handle personal data in line with
           Singapore&apos;s Personal Data Protection Act 2012 (PDPA).
         </p>
@@ -95,7 +95,7 @@ export default function Privacy() {
       <section className="stack">
         <h2>Contact</h2>
         <p>
-          Matchire Pte. Ltd., Singapore<br />
+          Matchire.ai Pte. Ltd., Singapore<br />
           Data protection contact: Giuseppe Mennella, <a href="mailto:hello@matchire.ai">hello@matchire.ai</a>
         </p>
         <p className="small muted">We may update this policy; the date at the top shows the latest version.</p>
