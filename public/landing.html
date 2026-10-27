@@ -171,6 +171,7 @@ section.band{padding-block:84px;border-top:1px solid var(--line)}
 .net-list{list-style:none;padding:0;margin:24px 0 0;display:grid;gap:14px}
 .net-list li{display:grid;gap:2px;padding-left:16px;border-left:2px solid var(--orchid)}
 .net-list p{color:var(--muted)}
+.net-note{margin-top:18px;color:var(--muted);font-size:.85rem}
 
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
 .step{display:grid;gap:10px;align-content:start;padding-top:20px;border-top:2px solid var(--ink)}
@@ -231,8 +232,8 @@ footer a{color:var(--ink)}
   <div class="wrap">
     <a class="logo" href="#top" aria-label="Matchire.ai home"><span aria-hidden="true">Match<span class="logo-i">ı<svg viewBox="0 0 10 14" aria-hidden="true"><path d="M5 0C6.5 3 9.5 5 9.5 9a4.5 4.5 0 0 1-9 0C.5 6.5 2.5 5 3 2.5 4 4 4.3 4.6 5 5.2 5.2 3.4 5.3 1.8 5 0z" fill="#EF5439"/><path d="M5 6.5c1 1.2 2 2 2 3.4a2 2 0 0 1-4 0c0-1.1.9-1.9 2-3.4z" fill="#F7C9A0"/></svg></span>re<span class="ai">.ai</span></span></a>
     <nav class="nav-links" aria-label="Main">
+      <a href="#network">Earn from referrals</a>
       <a href="#features">Features</a>
-      <a href="#network">Partner network</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
       <a href="/login">Log in</a>
@@ -337,11 +338,51 @@ footer a{color:var(--ink)}
     </div>
   </section>
 
+  <section class="band" id="network">
+    <div class="wrap network">
+      <div>
+        <p class="eyebrow">The Match network</p>
+        <h2 style="margin-top:14px">Fully booked? Get paid anyway.</h2>
+        <p class="lede" style="margin-top:16px">A wedding needs a venue, a caterer, a photobooth and an emcee. Matchire connects vendors who trust each other, so enquiries you can't take become referral income, and enquiries you can take grow into bundles.</p>
+        <ul class="net-list">
+          <li><h3>Pass on dates you can't take</h3><p>Fully booked? Refer the enquiry to a partner instead of saying no, and earn a referral fee when they book.</p></li>
+          <li><h3>Bundle quotes</h3><p>A planner asks your venue about a party. Your reply includes your partner photobooth, already priced.</p></li>
+          <li><h3>Only partners you choose</h3><p>You pick who joins your network. Nobody gets recommended to your clients without your say.</p></li>
+        </ul>
+        <p class="net-note">You earn the referral fee when your partner confirms the booking. Fees are agreed between partners.</p>
+      </div>
+      <svg class="net-svg" viewBox="0 0 520 420" role="img" aria-label="Diagram: a planner's enquiry reaches your photobooth, which brings in partner vendors">
+        <g stroke="var(--line)" stroke-width="2" fill="none">
+          <line x1="260" y1="210" x2="110" y2="90"/><line x1="260" y1="210" x2="410" y2="90"/>
+          <line x1="260" y1="210" x2="100" y2="330"/><line x1="260" y1="210" x2="420" y2="330"/>
+        </g>
+        <path d="M260 40 L260 150" stroke="var(--orchid)" stroke-width="2.5" stroke-dasharray="6 6" fill="none"/>
+        <g font-family="Instrument Sans, Arial, sans-serif" font-size="14" text-anchor="middle">
+          <rect x="196" y="12" width="128" height="34" rx="17" fill="var(--orchid-soft)"/>
+          <text x="260" y="34" fill="var(--orchid)" font-weight="600">Planner enquiry</text>
+          <circle cx="260" cy="210" r="58" fill="var(--orchid)"/>
+          <text x="260" y="198" fill="var(--orchid-ink)" font-weight="700" font-size="15">Your</text>
+          <text x="260" y="216" fill="var(--orchid-ink)" font-weight="700" font-size="15">photobooth</text>
+          <text x="260" y="234" fill="var(--orchid-ink)" font-size="11">on Matchire</text>
+          <g fill="var(--card)" stroke="var(--line)" stroke-width="1.5">
+            <rect x="40" y="66" width="140" height="48" rx="12"/><rect x="340" y="66" width="140" height="48" rx="12"/>
+            <rect x="30" y="306" width="140" height="48" rx="12"/><rect x="350" y="306" width="140" height="48" rx="12"/>
+          </g>
+          <text x="110" y="95" fill="var(--ink)" font-weight="600">Venue</text>
+          <text x="410" y="95" fill="var(--ink)" font-weight="600">Caterer</text>
+          <text x="100" y="335" fill="var(--ink)" font-weight="600">AV &amp; sound</text>
+          <text x="420" y="335" fill="var(--ink)" font-weight="600">Emcee</text>
+          <text x="260" y="400" fill="var(--muted)" font-size="13">One reply, one bundled quote</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
   <section class="band" id="features">
     <div class="wrap">
       <div class="sec-head">
         <p class="eyebrow">Features</p>
-        <h2>Your sales desk, without hiring one</h2>
+        <h2>Everything that wins the booking</h2>
         <p class="lede">Matchire sits on top of the channels you already use. Planners keep messaging you on WhatsApp; they just get answers faster.</p>
       </div>
       <div class="feat-grid">
@@ -387,44 +428,6 @@ footer a{color:var(--ink)}
     </div>
   </section>
 
-  <section class="band" id="network">
-    <div class="wrap network">
-      <div>
-        <p class="eyebrow">The Match network</p>
-        <h2 style="margin-top:14px">Planners need more than you. Match them with partners you trust.</h2>
-        <p class="lede" style="margin-top:16px">A wedding needs a venue, a caterer, a photobooth and an emcee. Matchire connects vendors who work well together, so every enquiry can grow into a bundle.</p>
-        <ul class="net-list">
-          <li><h3>Bundle quotes</h3><p>A planner asks your venue about a party. Your reply includes your partner photobooth, already priced.</p></li>
-          <li><h3>Pass on dates you can't take</h3><p>Fully booked? Refer the enquiry to a partner instead of saying no, and earn a referral fee when they book.</p></li>
-          <li><h3>Only partners you choose</h3><p>You pick who joins your network. Nobody gets recommended to your clients without your say.</p></li>
-        </ul>
-      </div>
-      <svg class="net-svg" viewBox="0 0 520 420" role="img" aria-label="Diagram: a planner's enquiry reaches a venue, which brings in partner vendors">
-        <g stroke="var(--line)" stroke-width="2" fill="none">
-          <line x1="260" y1="210" x2="110" y2="90"/><line x1="260" y1="210" x2="410" y2="90"/>
-          <line x1="260" y1="210" x2="100" y2="330"/><line x1="260" y1="210" x2="420" y2="330"/>
-        </g>
-        <path d="M260 40 L260 150" stroke="var(--orchid)" stroke-width="2.5" stroke-dasharray="6 6" fill="none"/>
-        <g font-family="Instrument Sans, Arial, sans-serif" font-size="14" text-anchor="middle">
-          <rect x="196" y="12" width="128" height="34" rx="17" fill="var(--orchid-soft)"/>
-          <text x="260" y="34" fill="var(--orchid)" font-weight="600">Planner enquiry</text>
-          <circle cx="260" cy="210" r="58" fill="var(--orchid)"/>
-          <text x="260" y="206" fill="var(--orchid-ink)" font-weight="700" font-size="16">Your venue</text>
-          <text x="260" y="226" fill="var(--orchid-ink)" font-size="12">on Matchire</text>
-          <g fill="var(--card)" stroke="var(--line)" stroke-width="1.5">
-            <rect x="40" y="66" width="140" height="48" rx="12"/><rect x="340" y="66" width="140" height="48" rx="12"/>
-            <rect x="30" y="306" width="140" height="48" rx="12"/><rect x="350" y="306" width="140" height="48" rx="12"/>
-          </g>
-          <text x="110" y="95" fill="var(--ink)" font-weight="600">Photobooth</text>
-          <text x="410" y="95" fill="var(--ink)" font-weight="600">Caterer</text>
-          <text x="100" y="335" fill="var(--ink)" font-weight="600">AV &amp; sound</text>
-          <text x="420" y="335" fill="var(--ink)" font-weight="600">Emcee</text>
-          <text x="260" y="400" fill="var(--muted)" font-size="13">One reply, one bundled quote</text>
-        </g>
-      </svg>
-    </div>
-  </section>
-
   <section class="band" id="how">
     <div class="wrap">
       <div class="sec-head">
@@ -450,7 +453,7 @@ footer a{color:var(--ink)}
           <div class="plan-top"><h3>Solo</h3></div>
           <div class="price">79<small> /month</small></div>
           <p class="for">Owner-operators handling their own enquiries.</p>
-          <ul><li>1 user</li><li>WhatsApp + email</li><li>Up to 150 enquiries a month</li><li>Instant quotes and holds</li></ul>
+          <ul><li>1 user</li><li>WhatsApp + email</li><li>Up to 150 enquiries a month</li><li>Instant quotes and holds</li><li>Send &amp; receive partner referrals</li></ul>
           <a class="btn btn-ghost" href="#early-access">Join early access</a>
         </div>
         <div class="plan pop">
@@ -464,7 +467,7 @@ footer a{color:var(--ink)}
           <div class="plan-top"><h3>Venue</h3></div>
           <div class="price">449<small> /month</small></div>
           <p class="for">Venues and multi-brand event companies.</p>
-          <ul><li>Unlimited users</li><li>Multiple rooms, spaces or brands</li><li>Off-peak and minimum-spend rules</li><li>Pipeline reports</li><li>Priority onboarding</li></ul>
+          <ul><li>Unlimited users</li><li>Multiple rooms, spaces or brands</li><li>Off-peak and minimum-spend rules</li><li>Pipeline reports</li><li>Send &amp; receive partner referrals</li><li>Priority onboarding</li></ul>
           <a class="btn btn-ghost" href="#early-access">Join early access</a>
         </div>
       </div>

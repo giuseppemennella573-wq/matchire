@@ -31,3 +31,4 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 
 ## Decision log
 - 2026-10-27: Shift messaging from speed/features to revenue + partner network. Photobooths as beachhead.
+- 2026-10-27: Referrals included on all plans (Giuseppe approved).
