@@ -78,6 +78,8 @@ header.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--p
 .hero-cta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:28px}
 .watch{display:inline-flex;align-items:center;gap:12px;padding:5px 16px 5px 5px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--ink);font:600 .95rem var(--f-body);cursor:pointer;text-decoration:none}
 .watch:hover{border-color:var(--glow)}
+.text-link{font:600 .95rem var(--f-body);color:var(--ink);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:4px;padding:.4rem .2rem;white-space:nowrap}
+.text-link:hover{text-decoration-color:var(--glow)}
 .watch .thumb{position:relative;width:62px;height:36px;border-radius:999px;overflow:hidden;flex:none;background:#062f2d}
 .watch .thumb img{width:100%;height:100%;object-fit:cover;display:block;opacity:.8}
 .watch .thumb svg{position:absolute;inset:0;margin:auto;width:20px;height:20px}
@@ -88,6 +90,7 @@ header.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--p
 .vid-close{position:absolute;top:-46px;right:0;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 1.3rem/1 var(--f-body);cursor:pointer}
 .vendors{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
 .chip{font-size:.85rem;padding:.38rem .75rem;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--muted)}
+.chip-on{background:var(--orchid-soft);border-color:var(--orchid);color:var(--glow);font-weight:600}
 @media (max-width:980px){.hero-grid{grid-template-columns:1fr;gap:36px}}
 
 /* console */
@@ -223,19 +226,19 @@ footer a{color:var(--ink)}
   <section class="hero">
     <div class="wrap hero-grid">
       <div>
-        <p class="eyebrow">AI booking desk for event vendors</p>
-        <h1>Every enquiry answered, quoted and followed up, <em>even mid-event.</em></h1>
-        <p class="lede">When a planner messages five photobooths, the first one to reply with a real price usually wins the booking. Matchire replies on WhatsApp and email in minutes, quotes from your own packages, checks your calendar and chases quiet leads, while you're busy running the last job.</p>
+        <p class="eyebrow">AI booking desk for event vendors · Singapore</p>
+        <h1>Win the bookings you're losing to <em>slow replies.</em></h1>
+        <p class="lede">When a planner messages five photobooths, the first real price usually wins. Matchire answers your WhatsApp and email enquiries in minutes with a quote from your own packages, holds the date and follows up, even while you're running an event. Can't take the date? Pass it to a partner and earn a referral fee.</p>
         <div class="hero-cta">
-          <a class="btn btn-primary" href="#early-access">Get early access</a>
+          <a class="btn btn-primary" href="#calculator">See what you're missing</a>
           <a class="watch" href="#video" id="watchBtn" aria-haspopup="dialog">
             <span class="thumb"><img src="/explainer-thumb.jpg" alt="" width="62" height="36"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="#EF5439"/><path d="M8 6.2v7.6L14 10z" fill="#fff"/></svg></span>
             <span>Watch how it works<small>30-second explainer</small></span>
           </a>
-          <a class="btn btn-ghost" href="#demo">Try the demo</a>
+          <a class="text-link" href="#demo">Try the demo →</a>
         </div>
         <div class="vendors" aria-label="Built for">
-          <span class="chip">Photobooths</span><span class="chip">Venues</span><span class="chip">Caterers</span><span class="chip">AV &amp; sound</span><span class="chip">Décor &amp; florists</span><span class="chip">Emcees</span>
+          <span class="chip chip-on">Photobooths</span><span class="chip">Venues</span><span class="chip">Caterers</span><span class="chip">AV &amp; sound</span><span class="chip">Décor &amp; florists</span><span class="chip">Emcees</span>
         </div>
       </div>
 
@@ -517,7 +520,9 @@ footer a{color:var(--ink)}
       partner:b=>b.type==="wedding"||b.type==="launch"?"<b>Partner suggestion:</b> Snapbox SG photobooth pairs well with this event. Include it?":null}
   };
 
-  const MONTHS="jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec";
+  const MONTHS="january|february|march|april|may|june|july|august|september|sept|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec";
+  const MONTHS_NOT_MAY=MONTHS.replace("may|","");
+  const WEEKDAYS="monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thu|friday|fri|saturday|sat|sunday|sun";
   function parse(t){
     const raw=t, low=t.toLowerCase();
     const b={raw};
@@ -526,7 +531,9 @@ footer a{color:var(--ink)}
     const hm=low.match(/(\d{1,2})\s*(?:h|hr|hrs|hour|hours)\b/);b.hours=hm?+hm[1]:null;
     const bm=low.match(/\$\s?(\d[\d,]*(?:\.\d+)?)\s?(k)?/)||low.match(/budget[^\d]{0,12}(\d[\d,]*(?:\.\d+)?)\s?(k)?/);
     b.budget=bm?parseFloat(bm[1].replace(/,/g,""))*(bm[2]?1000:1):null;
-    const dm=low.match(new RegExp(`((?:next\\s+)?(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*\\.?(?:\\s+\\d{1,2}\\s+(?:${MONTHS})[a-z]*)?|\\d{1,2}\\s+(?:${MONTHS})[a-z]*|(?:early|mid|late)\\s+(?:${MONTHS})[a-z]*|(?:in\\s+)?(?:${MONTHS})[a-z]*\\b|tomorrow|next month)`));
+    // Whole words only, so "daughter" isn't August and "wedding" isn't Wednesday.
+    // A bare "may" is usually the verb, so May needs a day or "in"/"early" before it.
+    const dm=low.match(new RegExp(`\\b((?:next\\s+)?(?:${WEEKDAYS})\\b\\.?(?:,?\\s+\\d{1,2}(?:st|nd|rd|th)?\\s+(?:${MONTHS})\\b)?|\\d{1,2}(?:st|nd|rd|th)?\\s+(?:${MONTHS})\\b|(?:early|mid|late|in)\\s+(?:${MONTHS})\\b|(?:${MONTHS_NOT_MAY})\\b|tomorrow|next month)`));
     b.date=dm?dm[1].replace(/^in\s+/,""):null;
     b.slot=/morning|breakfast/.test(low)?"morning":/afternoon|lunch/.test(low)?"afternoon":/evening|night|dinner/.test(low)?"evening":null;
     const wd=b.date&&b.date.match(/mon|tue|wed|thu/);
@@ -545,7 +552,7 @@ footer a{color:var(--ink)}
     $("bizName").textContent="to "+v.biz;
     // extracted tags
     const tags=[];
-    tags.push(b.date?`<span class="tag">📅 ${cap(b.date)}</span>`:`<span class="tag miss">Date missing</span>`);
+    tags.push(b.date?`<span class="tag">📅 ${cap(niceDate(b.date))}</span>`:`<span class="tag miss">Date missing</span>`);
     tags.push(b.pax?`<span class="tag">${b.pax} pax</span>`:`<span class="tag miss">Headcount missing</span>`);
     if(b.slot)tags.push(`<span class="tag">${cap(b.slot)}</span>`);
     if(b.hours)tags.push(`<span class="tag">${b.hours}h</span>`);
@@ -562,7 +569,7 @@ footer a{color:var(--ink)}
     const capWarn=v.cap&&b.pax&&b.pax>v.cap;
     let r=`Hi! Thanks for reaching out to ${v.biz} 😊\n\n`;
     if(capWarn)r+=`Our space fits up to ${v.cap} guests, so ${b.pax} would be too many for us. Happy to recommend a partner venue that fits!\n\n`;
-    else r+=`${b.date?`Good news, we're available ${b.date}${b.slot?" "+b.slot:""}. `:""}Here's your quote: ${fmt(total)} all-in${b.offpeak?", including our 25% weekday daytime rate":""}.\n\n`;
+    else r+=`${b.date?`Good news, we're available ${niceDate(b.date)}${b.slot?" "+b.slot:""}. `:""}Here's your quote: ${fmt(total)} all-in${b.offpeak?", including our 25% weekday daytime rate":""}.\n\n`;
     if(missing.length)r+=`Could you share ${missing.join(" and ")}? Then I'll confirm availability.\n\n`;
     else if(!capWarn)r+=`I can hold the date for you for 48 hours. Shall I go ahead?\n\n`;
     r+=`Thanks,\n${v.biz}`;
@@ -576,6 +583,8 @@ footer a{color:var(--ink)}
     $("sendMsg").textContent="";
   }
   function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+  // "sat 15 nov" → "Sat 15 Nov", "next tuesday" → "next Tuesday"
+  function niceDate(s){return s.replace(new RegExp(`\\b(?:${WEEKDAYS}|${MONTHS})\\b`,"g"),cap)}
 
   function setVendor(k,i){
     cur=k;
