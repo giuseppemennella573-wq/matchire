@@ -129,6 +129,26 @@ textarea:focus{outline:none;border-color:var(--orchid)}
 .reply-actions small{color:var(--muted);font-size:.78rem}
 @media (max-width:640px){.console-body{grid-template-columns:1fr}.pane+.pane{border-left:0;border-top:1px dashed var(--line)}}
 
+/* calculator */
+.calc{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:stretch}
+@media (max-width:900px){.calc{grid-template-columns:1fr}}
+.calc-inputs,.calc-out{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:24px;min-width:0}
+.calc-inputs{display:grid;gap:22px}
+.calc-field{display:grid;gap:8px}
+.calc-field .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.calc-field label{font-weight:600;font-size:.95rem}
+.calc-field output{font:600 1rem var(--f-mono);color:var(--glow);white-space:nowrap;font-variant-numeric:tabular-nums}
+.calc input[type=range]{width:100%;accent-color:var(--orchid);height:28px;cursor:pointer;background:transparent}
+.calc input[type=range]:focus-visible{outline:2.5px solid var(--glow);outline-offset:4px}
+.calc-out{display:flex;flex-direction:column;gap:16px;border-color:var(--orchid);box-shadow:var(--shadow)}
+.calc-stat{display:grid;gap:2px}
+.calc-stat span{color:var(--muted);font-size:.9rem}
+.calc-stat b{font:800 2.6rem/1.05 var(--f-display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.calc-stat.big b{font-size:clamp(2.6rem,6vw,3.4rem);color:var(--glow)}
+.calc-back{font-size:1rem;font-weight:600}
+.calc-note{color:var(--muted);font-size:.8rem;margin-top:auto}
+.calc-out .btn{align-self:flex-start}
+
 /* sections */
 section.band{padding-block:84px;border-top:1px solid var(--line)}
 .sec-head{display:grid;gap:14px;margin-bottom:40px;max-width:720px}
@@ -276,6 +296,42 @@ footer a{color:var(--ink)}
               <small id="sendMsg"></small>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="calculator">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Quick maths</p>
+        <h2>How much are slow replies costing you?</h2>
+      </div>
+      <div class="calc">
+        <form class="calc-inputs" id="calcForm" aria-label="Your numbers">
+          <div class="calc-field">
+            <div class="row"><label for="c-enq">Enquiries per week</label><output for="c-enq" id="c-enq-out">15</output></div>
+            <input type="range" id="c-enq" min="1" max="50" step="1" value="15">
+          </div>
+          <div class="calc-field">
+            <div class="row"><label for="c-late">Share you reply to late (more than 1 hour) or miss</label><output for="c-late" id="c-late-out">30%</output></div>
+            <input type="range" id="c-late" min="0" max="100" step="1" value="30">
+          </div>
+          <div class="calc-field">
+            <div class="row"><label for="c-value">Average booking value (SGD)</label><output for="c-value" id="c-value-out">S$600</output></div>
+            <input type="range" id="c-value" min="100" max="5000" step="50" value="600">
+          </div>
+          <div class="calc-field">
+            <div class="row"><label for="c-win">Your win rate when you reply fast</label><output for="c-win" id="c-win-out">25%</output></div>
+            <input type="range" id="c-win" min="5" max="80" step="1" value="25">
+          </div>
+        </form>
+        <div class="calc-out" aria-live="polite">
+          <div class="calc-stat"><span>Bookings lost per month</span><b id="c-lost">4.9</b></div>
+          <div class="calc-stat big"><span>Revenue lost per month</span><b id="c-rev">S$2,920</b></div>
+          <p class="calc-back" id="c-back">Matchire Solo is S$79/month. That's 37× back.</p>
+          <a class="btn btn-primary" href="#early-access">Get early access</a>
+          <p class="calc-note">Estimate based on your inputs. Your results will vary.</p>
         </div>
       </div>
     </div>
@@ -604,6 +660,34 @@ footer a{color:var(--ink)}
     else $("sendMsg").textContent="Select the reply text to copy it.";
   });
   setVendor("photo");
+
+  // "How much are slow replies costing you?" calculator. Estimates only, from the visitor's own inputs.
+  const SOLO_PRICE=79; // keep in step with the Solo plan in #pricing
+  const money=n=>"S$"+Math.round(n).toLocaleString("en-SG");
+  const calcInputs={enq:$("c-enq"),late:$("c-late"),value:$("c-value"),win:$("c-win")};
+  const calcShow={enq:v=>String(v),late:v=>v+"%",value:v=>money(v),win:v=>v+"%"};
+  function calc(){
+    const v={};
+    for(const k in calcInputs){
+      v[k]=Number(calcInputs[k].value);
+      const shown=calcShow[k](v[k]);
+      $("c-"+k+"-out").textContent=shown;
+      calcInputs[k].setAttribute("aria-valuetext",shown);
+    }
+    const lost=v.enq*4.33*(v.late/100)*(v.win/100);
+    const revenue=Math.round(lost*v.value/10)*10;
+    $("c-lost").textContent=lost.toFixed(1);
+    $("c-rev").textContent=money(revenue);
+    const x=Math.round(revenue/SOLO_PRICE);
+    // Below 1× back, say exactly how long one saved booking pays for Solo instead.
+    const months=Math.floor(v.value/SOLO_PRICE);
+    $("c-back").textContent=revenue/SOLO_PRICE<1
+      ? `One saved ${money(v.value)} booking covers Matchire Solo for ${months} month${months===1?"":"s"}.`
+      : `Matchire Solo is S$${SOLO_PRICE}/month. That's ${x.toLocaleString("en-SG")}× back.`;
+  }
+  Object.values(calcInputs).forEach(el=>el.addEventListener("input",calc));
+  $("calcForm").addEventListener("submit",e=>e.preventDefault());
+  calc();
 
   // Explainer video lightbox. matchire.ai/#video opens it directly.
   const dlg=$("videoDlg"), vid=$("explainer");
