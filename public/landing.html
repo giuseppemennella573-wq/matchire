@@ -149,6 +149,16 @@ textarea:focus{outline:none;border-color:var(--orchid)}
 .calc-note{color:var(--muted);font-size:.8rem;margin-top:auto}
 .calc-out .btn{align-self:flex-start}
 
+/* proof (hidden until real, approved vendor data exists) */
+.proof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:900px){.proof-grid{grid-template-columns:1fr}}
+.proof-card{margin:0;padding:24px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);display:flex;flex-direction:column;gap:10px}
+.proof-metric{font:800 2.6rem/1 var(--f-display);color:var(--glow);letter-spacing:-.02em}
+.proof-label{color:var(--muted);font-size:.9rem}
+.proof-card blockquote{margin:6px 0 0;font-size:1rem}
+.proof-card figcaption{margin-top:auto;color:var(--muted);font-size:.88rem}
+.proof-card figcaption b{color:var(--ink)}
+
 /* sections */
 section.band{padding-block:84px;border-top:1px solid var(--line)}
 .sec-head{display:grid;gap:14px;margin-bottom:40px;max-width:720px}
@@ -346,7 +356,7 @@ footer a{color:var(--ink)}
         <p class="lede" style="margin-top:16px">A wedding needs a venue, a caterer, a photobooth and an emcee. Matchire connects vendors who trust each other, so enquiries you can't take become referral income, and enquiries you can take grow into bundles.</p>
         <ul class="net-list">
           <li><h3>Pass on dates you can't take</h3><p>Fully booked? Refer the enquiry to a partner instead of saying no, and earn a referral fee when they book.</p></li>
-          <li><h3>Bundle quotes</h3><p>A planner asks your venue about a party. Your reply includes your partner photobooth, already priced.</p></li>
+          <li><h3>Bundle quotes</h3><p>A planner asks your photobooth about a wedding. Your reply includes your partner venue and caterer, already priced.</p></li>
           <li><h3>Only partners you choose</h3><p>You pick who joins your network. Nobody gets recommended to your clients without your say.</p></li>
         </ul>
         <p class="net-note">You earn the referral fee when your partner confirms the booking. Fees are agreed between partners.</p>
@@ -438,6 +448,35 @@ footer a{color:var(--ink)}
         <div class="step"><span class="step-n">STEP 1</span><h3>Connect your channels</h3><p>Link your WhatsApp Business number, email inbox and website form. Your number stays the same.</p></div>
         <div class="step"><span class="step-n">STEP 2</span><h3>Upload your price list</h3><p>Send us your packages as a PDF, spreadsheet or photo of your rate card. We set them up and you approve them.</p></div>
         <div class="step"><span class="step-n">STEP 3</span><h3>Choose how hands-off to be</h3><p>Start with Matchire drafting replies for you to approve. Switch on auto-send for routine enquiries once you trust it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Remove `hidden` only when real, approved vendor data is filled in. See docs/positioning.md -->
+  <section class="band" id="proof" hidden>
+    <div class="wrap">
+      <div class="sec-head">
+        <h2>Vendors already winning more bookings</h2>
+      </div>
+      <div class="proof-grid">
+          <figure class="proof-card">
+            <p class="proof-metric">[METRIC]</p>
+            <p class="proof-label">[METRIC LABEL]</p>
+            <blockquote>&ldquo;[QUOTE]&rdquo;</blockquote>
+            <figcaption><b>[VENDOR NAME]</b> · [BUSINESS TYPE]</figcaption>
+          </figure>
+          <figure class="proof-card">
+            <p class="proof-metric">[METRIC]</p>
+            <p class="proof-label">[METRIC LABEL]</p>
+            <blockquote>&ldquo;[QUOTE]&rdquo;</blockquote>
+            <figcaption><b>[VENDOR NAME]</b> · [BUSINESS TYPE]</figcaption>
+          </figure>
+          <figure class="proof-card">
+            <p class="proof-metric">[METRIC]</p>
+            <p class="proof-label">[METRIC LABEL]</p>
+            <blockquote>&ldquo;[QUOTE]&rdquo;</blockquote>
+            <figcaption><b>[VENDOR NAME]</b> · [BUSINESS TYPE]</figcaption>
+          </figure>
       </div>
     </div>
   </section>
