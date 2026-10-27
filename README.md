@@ -66,6 +66,28 @@ docker run -p 3000:3000 -v matchire-data:/data --env-file .env matchire
 
 Follow-ups and hold expiry run in-process every minute. On hosts that sleep idle apps, also call `GET /api/cron` with `Authorization: Bearer $CRON_SECRET` from an external scheduler.
 
+## Backups
+
+Every day at 3 am Singapore time the scheduler takes a clean copy of the database (SQLite `VACUUM INTO`, gzip-compressed), keeps the last 14 in `backups/` next to the database, and emails it to `BACKUP_EMAIL` (default: `EARLY_ACCESS_NOTIFY_EMAIL`, then giuseppe.mennella@matchire.ai) as the off-site copy. Admins can take one on demand and download any of them at `/app/admin/backups`. Render's own daily disk snapshots (kept at least 7 days) are a last resort on top.
+
+### Restoring a backup
+
+Restoring replaces all data with the backup's contents; anything since then is lost.
+
+1. Pick the backup on `/app/admin/backups` and note its file name, e.g. `matchire-2026-10-27T19-00-00Z.db.gz`.
+2. In Render, open the service's **Shell** and run, with that file name:
+   ```bash
+   cd /data
+   gunzip -c backups/matchire-2026-10-27T19-00-00Z.db.gz > restore.db
+   mv matchire.db matchire-before-restore.db
+   rm -f matchire.db-wal matchire.db-shm
+   mv restore.db matchire.db
+   ```
+3. Straight away, choose **Manual Deploy → Restart service** so the app opens the restored file.
+4. Check the app. The previous database is kept as `matchire-before-restore.db` until you delete it.
+
+To restore from an emailed copy, upload the `.db.gz` to the server first (or ask for an upload-and-restore button).
+
 ## Code map
 
 ```
@@ -75,6 +97,7 @@ src/lib/ai.ts          Claude calls (structured outputs, refusal fallback), vali
 src/lib/heuristics.ts  rules-based enquiry reader (no-key mode and fallback)
 src/lib/dates.ts       Singapore-time date parsing ("next tue", "15 Nov", "early Dec")
 src/lib/channels.ts    WhatsApp Cloud API and email (SMTP or Resend) delivery
+src/lib/backup.ts      daily database backups, kept 14 days and emailed off-site
 src/lib/db.ts          SQLite schema
 src/app/app/*          the vendor app (server components + server actions)
 src/app/api/*          webhooks, cron, early-access

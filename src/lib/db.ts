@@ -134,6 +134,17 @@ CREATE TABLE IF NOT EXISTS referrals (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
+CREATE TABLE IF NOT EXISTS backups (
+  id INTEGER PRIMARY KEY,
+  file TEXT NOT NULL,
+  bytes INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  sg_date TEXT NOT NULL,
+  emailed_at TEXT,
+  email_error TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
 CREATE TABLE IF NOT EXISTS early_access (
   id INTEGER PRIMARY KEY,
   name TEXT, business TEXT, vendor_type TEXT, enquiries_per_week TEXT,
@@ -144,11 +155,15 @@ CREATE TABLE IF NOT EXISTS early_access (
 
 let instance: DatabaseSync | null = null;
 
+/** Where the database file lives. Backups go in a "backups" folder beside it. */
+export function dbPath(): string {
+  return process.env.MATCHIRE_DB || path.join(process.env.DATA_DIR || path.join(process.cwd(), "data"), "matchire.db");
+}
+
 export function db(): DatabaseSync {
   if (instance) return instance;
-  const dir = process.env.DATA_DIR || path.join(process.cwd(), "data");
-  mkdirSync(dir, { recursive: true });
-  const file = process.env.MATCHIRE_DB || path.join(dir, "matchire.db");
+  const file = dbPath();
+  mkdirSync(path.dirname(file), { recursive: true });
   const conn = new DatabaseSync(file);
   conn.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   conn.exec(SCHEMA);

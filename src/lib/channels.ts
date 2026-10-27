@@ -49,11 +49,13 @@ async function sendWhatsApp(v: Vendor, to: string, body: string): Promise<SendRe
 }
 
 /** Send a plain-text email over SMTP or Resend. Returns an error message on failure. */
-export async function sendRawEmail(m: { to: string; subject: string; text: string; replyTo?: string | null }): Promise<string | null> {
+export interface Attachment { filename: string; content: Buffer; contentType: string }
+
+export async function sendRawEmail(m: { to: string; subject: string; text: string; replyTo?: string | null; attachments?: Attachment[] }): Promise<string | null> {
   if (!emailReady()) return "Outbound email isn't configured (set SMTP_HOST, SMTP_USER and SMTP_PASS).";
   if (smtpReady()) {
     try {
-      await smtpTransport().sendMail({ from: fromAddress(), to: m.to, subject: m.subject, text: m.text, replyTo: m.replyTo ?? undefined });
+      await smtpTransport().sendMail({ from: fromAddress(), to: m.to, subject: m.subject, text: m.text, replyTo: m.replyTo ?? undefined, attachments: m.attachments });
       return null;
     } catch (e) {
       return `Email (SMTP) failed: ${e instanceof Error ? e.message : String(e)}`.slice(0, 400);
@@ -68,6 +70,7 @@ export async function sendRawEmail(m: { to: string; subject: string; text: strin
       subject: m.subject,
       text: m.text,
       reply_to: m.replyTo ?? undefined,
+      attachments: m.attachments?.map((a) => ({ filename: a.filename, content: a.content.toString("base64") })),
     }),
   });
   if (res.ok) return null;

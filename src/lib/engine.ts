@@ -6,6 +6,7 @@ import { parseEnquiry } from "./heuristics.ts";
 import { aiEnabled, aiExtract, aiDraft, type DraftFacts } from "./ai.ts";
 import { formatDate, sgToday } from "./dates.ts";
 import { deliver } from "./channels.ts";
+import { maybeDailyBackup } from "./backup.ts";
 
 // The booking desk. An enquiry flows: ingest → understand → quote → draft →
 // (approve) → send → hold the date → follow up → booked / lost / expired.
@@ -517,7 +518,7 @@ let ticking = false;
 
 /** Expire stale holds and queue follow-ups. Runs every minute in-process and via /api/cron. */
 export async function tick(now: string = nowIso()) {
-  if (ticking) return { expired: 0, followups: 0 };
+  if (ticking) return { expired: 0, followups: 0, backup: null };
   ticking = true;
   try {
     const expired = all<Hold>("SELECT * FROM holds WHERE kind = 'hold' AND status = 'active' AND expires_at IS NOT NULL AND expires_at <= ?", now);
@@ -550,7 +551,13 @@ export async function tick(now: string = nowIso()) {
       if (vendor.auto_send) await sendDraft(vendor.id, id).catch(() => null);
       else run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", purpose === "followup" ? "Follow-up ready: the planner hasn't replied." : "Last call before the hold expires.", e.id);
     }
-    return { expired: expired.length, followups };
+    // The day's backup, once it's past 3 am in Singapore.
+    const backup = await maybeDailyBackup(new Date(now)).catch((e) => {
+      console.error("Daily backup failed", e);
+      return null;
+    });
+    if (backup?.email_error) console.warn(`[backup] ${backup.file} saved, but not emailed: ${backup.email_error}`);
+    return { expired: expired.length, followups, backup: backup?.file ?? null };
   } finally {
     ticking = false;
   }

@@ -23,7 +23,10 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           <h1>Early-access sign-ups</h1>
           <p className="muted">{rows.length} total · {waiting} waiting for a reply. New sign-ups are emailed to <b>{ALERT_TO()}</b>.</p>
         </div>
-        {rows.length > 0 && <a className="btn btn-ghost" href="/app/admin/csv">Download CSV</a>}
+        <div className="row">
+          <a className="btn btn-ghost" href="/app/admin/backups">Backups</a>
+          {rows.length > 0 && <a className="btn btn-ghost" href="/app/admin/csv">Download CSV</a>}
+        </div>
       </div>
       {msg && <p className="alert alert-ok" role="status">{msg}</p>}
       {error && <p className="alert alert-err" role="alert">{error}</p>}

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireVendor } from "@/lib/auth";
 import { deleteSignup, isAdmin, notifySignup, setContacted } from "@/lib/early-access";
+import { createBackup } from "@/lib/backup";
+import { emailReady } from "@/lib/channels";
 
 async function requireAdmin() {
   const { user } = await requireVendor();
@@ -28,6 +30,21 @@ export async function deleteSignupAction(form: FormData) {
   deleteSignup(signupId(form));
   revalidatePath("/app", "layout");
   redirect(`/app/admin?msg=${encodeURIComponent("Sign-up deleted.")}`);
+}
+
+export async function backupNowAction() {
+  await requireAdmin();
+  let msg: string, kind = "msg";
+  try {
+    const b = await createBackup("manual");
+    if (b.emailed_at) msg = "Backup taken and emailed.";
+    else if (!emailReady()) msg = "Backup taken and saved here.";
+    else { msg = `Backup taken and saved here, but not emailed: ${b.email_error}`; kind = "error"; }
+  } catch (e) {
+    msg = `Backup failed: ${e instanceof Error ? e.message : String(e)}`;
+    kind = "error";
+  }
+  redirect(`/app/admin/backups?${kind}=${encodeURIComponent(msg)}`);
 }
 
 export async function resendAlertAction(form: FormData) {
