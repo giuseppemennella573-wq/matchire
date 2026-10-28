@@ -74,6 +74,59 @@ export async function notifySignup(id: number): Promise<string | null> {
   return error;
 }
 
+// ---------- App accounts ----------
+// Vendors can also create an account straight from /signup. They aren't
+// early-access rows, so they're listed (and alerted) separately.
+
+export interface Account {
+  id: number;
+  email: string;
+  name: string;
+  business: string;
+  kind: string;
+  created_at: string;
+  enquiries: number;
+  live_items: number;
+}
+
+export const listAccounts = () =>
+  all<Account>(
+    `SELECT u.id, u.email, u.name, v.name business, v.kind, u.created_at,
+            (SELECT COUNT(*) FROM enquiries e WHERE e.vendor_id = v.id) enquiries,
+            (SELECT COUNT(*) FROM items i WHERE i.vendor_id = v.id AND i.active = 1) live_items
+     FROM users u JOIN vendors v ON v.id = u.vendor_id ORDER BY u.id DESC`,
+  );
+
+/** Email the team that someone created an app account. Returns an error message on failure. */
+export async function notifyNewAccount(userId: number): Promise<string | null> {
+  const a = get<Account>(
+    "SELECT u.id, u.email, u.name, v.name business, v.kind, u.created_at, 0 enquiries, 0 live_items FROM users u JOIN vendors v ON v.id = u.vendor_id WHERE u.id = ?",
+    userId,
+  );
+  if (!a) return "Account not found";
+  const appUrl = (process.env.APP_URL || "").replace(/\/$/, "");
+  try {
+    return await sendRawEmail({
+      to: ALERT_TO(),
+      subject: `New account: ${a.business} (${a.kind})`,
+      replyTo: a.email,
+      text: [
+        "Someone created a Matchire account at /signup.",
+        "",
+        `Name:      ${a.name}`,
+        `Business:  ${a.business}`,
+        `Type:      ${a.kind}`,
+        `Email:     ${a.email}`,
+        `Created:   ${formatDateTime(a.created_at)} SGT`,
+        "",
+        appUrl ? `All accounts: ${appUrl}/app/admin#accounts` : "",
+      ].join("\n").trim(),
+    });
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
 export const listSignups = () => all<Signup>("SELECT * FROM early_access ORDER BY id DESC");
 export const countUncontacted = () => get<{ n: number }>("SELECT COUNT(*) n FROM early_access WHERE contacted_at IS NULL")?.n ?? 0;
 

@@ -57,3 +57,13 @@ test("sign-ups can be deleted", () => {
   EA.deleteSignup(id);
   assert.equal(get("SELECT 1 FROM early_access WHERE id = ?", id), undefined);
 });
+
+test("app accounts are listed for admins, and the new-account alert is attempted", async () => {
+  const { userId } = createAccount({ email: "yes-mummy@hotmail.com", password: "password1", name: "Mum", business: "Yes Mummy", kind: "caterer" });
+  const row = EA.listAccounts().find((a) => a.id === userId)!;
+  assert.equal(row.email, "yes-mummy@hotmail.com");
+  assert.equal(row.business, "Yes Mummy");
+  assert.equal(row.enquiries, 0);
+  // Email isn't configured in tests, so the alert reports why it wasn't sent.
+  assert.match((await EA.notifyNewAccount(userId))!, /SMTP_HOST/);
+});

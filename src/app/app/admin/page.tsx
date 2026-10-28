@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireVendor } from "@/lib/auth";
-import { ALERT_TO, isAdmin, listSignups, whatsappLink } from "@/lib/early-access";
+import { ALERT_TO, isAdmin, listAccounts, listSignups, whatsappLink } from "@/lib/early-access";
+import { kindLabel } from "@/lib/engine";
 import { emailReady } from "@/lib/channels";
 import { formatDateTime } from "@/lib/dates";
 import { deleteSignupAction, resendAlertAction, toggleContactedAction } from "./actions";
@@ -13,6 +14,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   if (!isAdmin(user)) redirect("/app");
   const { msg, error } = await searchParams;
   const rows = listSignups();
+  const accounts = listAccounts();
   const waiting = rows.filter((r) => !r.contacted_at).length;
 
   return (
@@ -81,6 +83,32 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="card card-flush" id="accounts">
+        <div className="card-head">
+          <h2>App accounts</h2>
+          <span className="small muted">{accounts.length} total · created at /signup, not through the early-access form. New ones are emailed to {ALERT_TO()}.</span>
+        </div>
+        {accounts.length === 0 ? <p className="empty">No accounts yet.</p> : (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Created</th><th>Who</th><th>Business</th><th>Email</th><th>Price list</th><th>Enquiries</th></tr></thead>
+              <tbody>
+                {accounts.map((a) => (
+                  <tr key={a.id}>
+                    <td className="small">{formatDateTime(a.created_at)}</td>
+                    <td><b>{a.name}</b></td>
+                    <td>{a.business}<div className="small muted">{kindLabel(a.kind)}</div></td>
+                    <td className="small"><a href={`mailto:${a.email}`}>{a.email}</a></td>
+                    <td className="small">{a.live_items ? `${a.live_items} live items` : <span className="muted">Not set up</span>}</td>
+                    <td className="small mono">{a.enquiries}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

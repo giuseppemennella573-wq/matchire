@@ -1,10 +1,12 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { createAccount, createSession, deleteSession, login } from "@/lib/accounts";
 import { SESSION_COOKIE, setSessionCookie } from "@/lib/auth";
 import type { VendorKind } from "@/lib/types";
+import { notifyNewAccount } from "@/lib/early-access";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 
@@ -30,6 +32,11 @@ export async function signupAction(form: FormData) {
   } catch (e) {
     redirect(`/signup?error=${encodeURIComponent(e instanceof Error ? e.message : "Couldn't create the account.")}`);
   }
+  const newUser = userId;
+  after(async () => {
+    const error = await notifyNewAccount(newUser);
+    if (error) console.warn(`[signup] new-account alert not sent: ${error}`);
+  });
   const s = createSession(userId);
   await setSessionCookie(s.token, s.expires);
   redirect("/app?welcome=1");
