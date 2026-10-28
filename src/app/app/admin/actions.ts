@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireVendor } from "@/lib/auth";
-import { deleteSignup, isAdmin, notifySignup, setAccountContacted, setContacted } from "@/lib/early-access";
+import { deleteAccount, deleteSignup, isAdmin, notifySignup, setAccountContacted, setContacted } from "@/lib/early-access";
 import { createBackup } from "@/lib/backup";
 import { emailReady } from "@/lib/channels";
 
@@ -30,6 +30,19 @@ export async function toggleAccountContactedAction(form: FormData) {
   setAccountContacted(signupId(form), form.get("contacted") === "1");
   revalidatePath("/app", "layout");
   redirect("/app/admin#accounts");
+}
+
+export async function deleteAccountAction(form: FormData) {
+  await requireAdmin();
+  let msg: string, kind = "msg";
+  try {
+    msg = `${deleteAccount(signupId(form)).business} deleted. Their logins no longer work.`;
+  } catch (e) {
+    msg = e instanceof Error ? e.message : String(e);
+    kind = "error";
+  }
+  revalidatePath("/app", "layout");
+  redirect(`/app/admin?${kind}=${encodeURIComponent(msg)}#accounts`);
 }
 
 export async function deleteSignupAction(form: FormData) {

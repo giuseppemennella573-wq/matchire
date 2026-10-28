@@ -4,7 +4,7 @@ import { accountsWaiting, ALERT_TO, isAdmin, listAccounts, listSignups, whatsapp
 import { kindLabel } from "@/lib/engine";
 import { emailReady } from "@/lib/channels";
 import { formatDateTime } from "@/lib/dates";
-import { deleteSignupAction, resendAlertAction, toggleAccountContactedAction, toggleContactedAction } from "./actions";
+import { deleteAccountAction, deleteSignupAction, resendAlertAction, toggleAccountContactedAction, toggleContactedAction } from "./actions";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 
 export const metadata = { title: "Sign-ups" };
@@ -102,7 +102,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         {accounts.length === 0 ? <p className="empty">No accounts yet.</p> : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Created</th><th>Who</th><th>Business</th><th>Email</th><th>Price list</th><th>Enquiries</th><th>Status</th></tr></thead>
+              <thead><tr><th>Created</th><th>Who</th><th>Business</th><th>Email</th><th>Price list</th><th>Enquiries</th><th>Status</th><th /></tr></thead>
               <tbody>
                 {accounts.map((a) => (
                   <tr key={a.id} style={newAccounts.has(a.id) ? undefined : { opacity: 0.6 }}>
@@ -120,6 +120,14 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                           <button className={`btn btn-sm ${a.admin_contacted_at ? "btn-ghost" : "btn-primary"}`} type="submit">
                             {a.admin_contacted_at ? "Contacted ✓" : "Mark contacted"}
                           </button>
+                        </form>
+                      )}
+                    </td>
+                    <td>
+                      {!isAdmin(a) && (
+                        <form action={deleteAccountAction}>
+                          <input type="hidden" name="id" value={a.id} />
+                          <ConfirmSubmit message={`Delete ${a.business} (${a.email})? This removes the account and everything in it: price list, enquiries, calendar, partners and referrals. Their login stops working. This can't be undone.`}>Delete</ConfirmSubmit>
                         </form>
                       )}
                     </td>

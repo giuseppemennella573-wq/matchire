@@ -79,3 +79,24 @@ test("new app accounts are flagged for the admin until marked contacted", () => 
   const admin = EA.listAccounts().find((a) => EA.isAdmin(a))!;
   assert.ok(!EA.accountsWaiting().some((a) => a.id === admin.id));
 });
+
+test("an admin can delete an account and everything in it, but not an admin login", async () => {
+  const E = await import("../src/lib/engine.ts");
+  const gone = createAccount({ email: "gone@vendor.sg", password: "password1", name: "G", business: "Gone Co", kind: "photobooth", samplePrices: true });
+  const partner = createAccount({ email: "stays@vendor.sg", password: "password1", name: "S", business: "Stays Co", kind: "venue", samplePrices: true });
+  const { run: exec } = await import("../src/lib/db.ts");
+  exec("INSERT INTO partnerships (requester_id, partner_id, status) VALUES (?, ?, 'accepted')", gone.vendorId, partner.vendorId);
+  const { enquiryId } = E.ingest({ vendorId: gone.vendorId, channel: "web", name: "Ann", email: "ann@x.sg", text: "Venue for 30 guests please" });
+  const copy = await E.referToPartner(gone.vendorId, enquiryId, partner.vendorId);
+
+  assert.equal(EA.deleteAccount(gone.userId).business, "Gone Co");
+  assert.equal(get("SELECT 1 FROM users WHERE id = ?", gone.userId), undefined);
+  assert.equal(get("SELECT 1 FROM vendors WHERE id = ?", gone.vendorId), undefined);
+  assert.equal(get("SELECT 1 FROM items WHERE vendor_id = ?", gone.vendorId), undefined);
+  assert.equal(get("SELECT 1 FROM enquiries WHERE vendor_id = ?", gone.vendorId), undefined);
+  // The partner keeps the enquiry that was referred to them.
+  assert.ok(get("SELECT 1 FROM enquiries WHERE id = ? AND vendor_id = ?", copy, partner.vendorId));
+
+  const admin = EA.listAccounts().find((a) => EA.isAdmin(a))!;
+  assert.throws(() => EA.deleteAccount(admin.id), /Admin/);
+});

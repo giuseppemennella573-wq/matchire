@@ -1,4 +1,4 @@
-import { all, get, run, nowIso } from "./db.ts";
+import { all, get, run, nowIso, tx } from "./db.ts";
 import { sendRawEmail } from "./channels.ts";
 import { formatDateTime } from "./dates.ts";
 
@@ -133,6 +133,26 @@ export const accountsWaiting = (accounts = listAccounts()) => accounts.filter((a
 
 export function setAccountContacted(userId: number, contacted: boolean) {
   run("UPDATE users SET admin_contacted_at = ? WHERE id = ?", contacted ? nowIso() : null, userId);
+}
+
+/**
+ * Terminate an account: the business and everything in it (logins and sessions,
+ * price list, enquiries and messages, calendar, partnerships and referrals).
+ * Copies of enquiries it referred to partners stay in the partners' inboxes.
+ * Admin logins can't be deleted here.
+ */
+export function deleteAccount(userId: number): { business: string } {
+  const a = get<{ id: number; email: string; vendor_id: number; business: string }>(
+    "SELECT u.id, u.email, u.vendor_id, v.name business FROM users u JOIN vendors v ON v.id = u.vendor_id WHERE u.id = ?",
+    userId,
+  );
+  if (!a) throw new Error("Account not found");
+  if (isAdmin(a)) throw new Error("Admin accounts can't be deleted from here.");
+  tx(() => {
+    run("UPDATE enquiries SET referred_from = NULL WHERE referred_from = ?", a.vendor_id);
+    run("DELETE FROM vendors WHERE id = ?", a.vendor_id);
+  });
+  return { business: a.business };
 }
 
 export const listSignups = () => all<Signup>("SELECT * FROM early_access ORDER BY id DESC");
