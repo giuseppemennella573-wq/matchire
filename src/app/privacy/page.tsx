@@ -96,7 +96,7 @@ export default function Privacy() {
         <h2>Contact</h2>
         <p>
           Matchire.ai Pte. Ltd., Singapore<br />
-          Data protection contact: Giuseppe Mennella, <a href="mailto:hello@matchire.ai">hello@matchire.ai</a>
+          Data protection contact: Sales department, <a href="mailto:hello@matchire.ai">hello@matchire.ai</a>
         </p>
         <p className="small muted">We may update this policy; the date at the top shows the latest version.</p>
       </section>

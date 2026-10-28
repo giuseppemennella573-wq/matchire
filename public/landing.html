@@ -540,7 +540,7 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
       <div>
         <p class="eyebrow">Early access</p>
         <h2 style="margin-top:14px">Be one of our first 50 vendors in Singapore</h2>
-        <p class="lede" style="margin-top:16px">We're onboarding a small group of event vendors by hand. Tell us about your business and we'll be in touch on WhatsApp within two working days. Prefer to talk now? WhatsApp Giuseppe on <a href="https://wa.me/6592766722" target="_blank" rel="noopener" style="color:var(--orchid);font-weight:600">+65 9276 6722</a>.</p>
+        <p class="lede" style="margin-top:16px">We're onboarding a small group of event vendors by hand. Tell us about your business and we'll be in touch on WhatsApp within two working days. Prefer to talk now? WhatsApp our sales department on <a href="https://wa.me/6596472283" target="_blank" rel="noopener" style="color:var(--orchid);font-weight:600">+65 9647 2283</a>.</p>
         <ul class="perks">
           <li><b>30%</b><span>off your plan for the first year</span></li>
           <li><b>1:1</b><span>setup call: we load your price list for you</span></li>
@@ -584,7 +584,7 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
 <footer>
   <div class="wrap">
     <span><b style="color:var(--ink)">Matchire.ai</b> · AI booking desk for event vendors · Singapore<span class="tagline">Match. Hire. Booked.</span></span>
-    <span><a href="/privacy">Privacy</a> · Email <a href="mailto:giuseppe.mennella@matchire.ai">giuseppe.mennella@matchire.ai</a> · WhatsApp <a href="https://wa.me/6592766722" target="_blank" rel="noopener">+65 9276 6722</a> · © <span id="yr"></span> Matchire</span>
+    <span><a href="/privacy">Privacy</a> · Email <a href="mailto:hello@matchire.ai">hello@matchire.ai</a> · WhatsApp <a href="https://wa.me/6596472283" target="_blank" rel="noopener">+65 9647 2283</a> · © <span id="yr"></span> Matchire</span>
   </div>
 </footer>
 
@@ -756,7 +756,7 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     fetch("/api/early-access",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(new FormData(form)).toString()})
       .then(r=>{if(!r.ok)throw new Error(r.status);
         msg.className="form-msg ok";msg.textContent="Thanks! You're on the early-access list. We'll message you on WhatsApp within two working days.";msg.hidden=false;form.reset();})
-      .catch(()=>{msg.className="form-msg err";msg.textContent="That didn't go through. Please try again, or email giuseppe.mennella@matchire.ai or WhatsApp +65 9276 6722.";msg.hidden=false;})
+      .catch(()=>{msg.className="form-msg err";msg.textContent="That didn't go through. Please try again, or email hello@matchire.ai or WhatsApp +65 9647 2283.";msg.hidden=false;})
       .finally(()=>{btn.disabled=false;btn.textContent="Request early access";});
   });
 })();
