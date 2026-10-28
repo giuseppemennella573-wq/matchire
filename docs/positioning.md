@@ -24,6 +24,24 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 - Any ROI number shown must be labelled as an estimate and computed from the visitor's own inputs.
 - Do not change prices, plan limits, trial length or the early-access offer without Giuseppe's sign-off.
 - Keep the early-access form (/api/early-access) and its field names working exactly as they are.
+- Every feature claim on the site must match the product today. If a feature is not fully built, label it "Coming soon" or remove it. Keep the table below updated whenever a feature ships.
+
+## Feature status (update when things ship)
+| Feature | Status | Site wording |
+|---|---|---|
+| Quotes from your packages | Live | Claim freely |
+| Date holds (auto-release) | Live | Claim freely |
+| Referrals (pass on, fee tracked) | Live, basic | Claim pass-on + tracked fee. Don't claim payouts. |
+| Bundle quotes | Partly built | "Your reply can suggest partner vendors with their starting prices." No "combined/already priced quote". |
+| Automatic follow-ups | Live on email; WhatsApp being fixed | Claim it (bug fix in Step 3) |
+| Instagram DMs | Not built | Coming soon |
+| Multiple users / team logins | Not built | Coming soon |
+| Multiple rooms, spaces or brands | Not built | Coming soon |
+| Spreadsheet rate-card upload | Not built (PDF, photo, text work) | List PDF, photo, text; spreadsheet = coming soon |
+| Connect existing WhatsApp number | Assisted setup, not self-serve | "We set it up with you" |
+| Email inbox | Assisted setup | "We set it up with you" |
+| "Replies are assisted" note | No setting | Say "add it to your sign-off" |
+| Billing / plan limits / trial | Not enforced (early access) | OK to show plans; free during early access |
 
 ## Open decisions (ask Giuseppe before acting)
 - Money-back / "extra booking or next month free" guarantee: not approved yet.
