@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import type { Details, Item, Message, Quote, Vendor } from "./types.ts";
+import type { Details, Item, Message, PartnerView, Quote, Vendor } from "./types.ts";
 import { EMPTY_DETAILS } from "./types.ts";
 import { isValidIsoDate } from "./dates.ts";
 
@@ -139,7 +139,7 @@ export interface DraftFacts {
   available: boolean | null;
   missing: string[];
   holdHours: number | null;
-  partnerSuggestions: string[];
+  partnerSuggestions: PartnerView[];
   referredTo: string | null;
   depositNote: string;
 }
@@ -156,7 +156,8 @@ Voice: ${vendor.tone}
 Sign off as: ${vendor.signoff || vendor.name}
 
 Rules:
-- Use only the facts provided. Every price you mention must appear in the quote or price list given; never estimate, round or invent a price, discount or availability.
+- Use only the facts provided. Every price you mention must appear in the quote or price list given (or be a partner's from_price); never estimate, round or invent a price, discount or availability.
+- Partners: if partnerSuggestions is not empty, you may suggest them by name and category. Mention a partner's price only when its from_price is given, exactly as written; otherwise say they can quote the planner directly. You know nothing else about partners' prices.
 - If the facts list missing details, ask for them in one friendly line.
 - Answer the planner's questions only from the price list and business notes. If you can't answer one, say the owner will confirm, and set needs_owner.
 - Keep it short and scannable: this is a chat message, not a letter. No markdown headings; simple line breaks and a short itemised quote are fine.

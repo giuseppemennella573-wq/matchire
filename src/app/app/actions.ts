@@ -234,7 +234,7 @@ export async function saveSettingsAction(form: FormData) {
   const n = (k: string, fallback: number, min = 0) => Math.max(min, num(form, k) ?? fallback);
   run(
     `UPDATE vendors SET name = ?, kind = ?, tone = ?, signoff = ?, notes = ?, deposit_note = ?, capacity = ?, jobs_per_day = ?, min_spend = ?,
-     offpeak_discount = ?, auto_send = ?, hold_hours = ?, followup_days = ?, bundle_suggestions = ?, referral_fee_pct = ?,
+     offpeak_discount = ?, auto_send = ?, hold_hours = ?, followup_days = ?, bundle_suggestions = ?, share_from_price = ?, referral_fee_pct = ?,
      wa_phone_number_id = ?, wa_token = COALESCE(NULLIF(?, ''), wa_token), wa_templates_approved = ? WHERE id = ?`,
     str(form, "name") || vendor.name,
     (str(form, "kind") || vendor.kind) as VendorKind,
@@ -250,6 +250,7 @@ export async function saveSettingsAction(form: FormData) {
     n("hold_hours", 48, 1),
     n("followup_days", 2, 0.5),
     form.get("bundle_suggestions") === "on" ? 1 : 0,
+    form.get("share_from_price") === "on" ? 1 : 0,
     Math.min(50, n("referral_fee_pct", 10)),
     str(form, "wa_phone_number_id") || null,
     str(form, "wa_token"),

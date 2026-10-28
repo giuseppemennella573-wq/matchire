@@ -27,6 +27,8 @@ export interface Vendor {
   followup_days: number;
   bundle_suggestions: number;
   referral_fee_pct: number;
+  /** Partners may see (and mention to their clients) this vendor's lowest live package price. Off by default. */
+  share_from_price: number;
   deposit_note: string;
   notes: string;
   wa_phone_number_id: string | null;
@@ -208,4 +210,11 @@ export interface Hold {
   note: string;
   expires_at: string | null;
   created_at: string;
+}
+
+/** All another business ever learns about a partner's prices: at most one "from" price, and only if the partner opted in. */
+export interface PartnerView {
+  name: string;
+  category: string;
+  from_price: string | null;
 }

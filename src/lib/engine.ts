@@ -1,5 +1,5 @@
 import { all, get, run, tx, nowIso } from "./db.ts";
-import type { Channel, Details, Enquiry, Hold, Item, Message, Quote, Vendor } from "./types.ts";
+import type { Channel, Details, Enquiry, Hold, Item, Message, PartnerView, Quote, Vendor } from "./types.ts";
 import { EMPTY_DETAILS, OPEN_STATUSES, VENDOR_KINDS } from "./types.ts";
 import { buildQuote, allowedAmounts, unknownAmounts, fmtMoney } from "./pricing.ts";
 import { parseEnquiry } from "./heuristics.ts";
@@ -47,10 +47,28 @@ export function acceptedPartners(vendorId: number): Vendor[] {
   );
 }
 
-/** A partner's cheapest live package, with its unit ("/pax", "/hour"). */
-function fromPrice(vendorId: number): { price: number; unit: string } | null {
-  const r = get<{ price: number; pricing: string }>("SELECT price, pricing FROM items WHERE vendor_id = ? AND kind = 'package' AND active = 1 ORDER BY price LIMIT 1", vendorId);
+// ---------- Rate privacy ----------
+// A vendor's price list is private to their account. The only price another
+// business can ever see is a partner's lowest live package, and only when that
+// partner has turned on "Share my starting price with partners". Everything
+// that shows partners to another vendor or their clients goes through here.
+
+/** A partner's cheapest live package with its unit ("/pax", "/hour"), or null unless they share it. */
+export function sharedFromPrice(partner: Pick<Vendor, "id" | "share_from_price">): { price: number; unit: string } | null {
+  if (!partner.share_from_price) return null;
+  const r = get<{ price: number; pricing: string }>("SELECT price, pricing FROM items WHERE vendor_id = ? AND kind = 'package' AND active = 1 ORDER BY price LIMIT 1", partner.id);
   return r ? { price: r.price, unit: r.pricing === "per_pax" ? "/pax" : r.pricing === "per_hour" ? "/hour" : "" } : null;
+}
+
+/** "Catering" → "catering", but "AV & sound" stays as it is. */
+const categoryOf = (kind: string) => {
+  const label = kindLabel(kind);
+  return /^.[a-z]/.test(label) ? label.toLowerCase() : label;
+};
+
+export function partnerView(partner: Vendor): { view: PartnerView; price: number | null } {
+  const fp = sharedFromPrice(partner);
+  return { view: { name: partner.name, category: categoryOf(partner.kind), from_price: fp ? `${fmtMoney(fp.price)}${fp.unit}` : null }, price: fp?.price ?? null };
 }
 
 // ---------- Intake ----------
@@ -133,6 +151,9 @@ function quoteText(q: Quote): string {
 }
 
 /** Deterministic reply used without an API key, and whenever a model draft fails a check. */
+const partnerLine = (p: PartnerView) =>
+  `Our partner ${p.name} (${p.category}) ${p.from_price ? `starts from ${p.from_price} and ` : ""}can quote you directly.`;
+
 export function templateDraft(vendor: Vendor, f: DraftFacts): string {
   const d = f.details;
   const hi = `Hi${d.contact_name ? ` ${d.contact_name}` : ""}! `;
@@ -160,7 +181,7 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
       if (f.available && when && !d.date_is_approximate) r += `Good news, we're available ${when}. `;
       if (f.quote && f.quote.lines.length) r += `Here's your quote:\n${quoteText(f.quote)}`;
       if (f.quote?.offpeak) r += `\n(includes our weekday daytime rate)`;
-      if (f.partnerSuggestions.length) r += `\n\nPlanning the rest of the event? Our partners ${f.partnerSuggestions.join(" and ")}.`;
+      if (f.partnerSuggestions.length) r += `\n\nPlanning the rest of the event? ${f.partnerSuggestions.map(partnerLine).join(" ")}`;
       r += ask;
       if (!f.missing.length && f.holdHours) r += `\n\nI've pencilled in the date for you for ${f.holdHours} hours. Shall I go ahead and confirm?`;
       if (d.questions.length && f.purpose === "answer") r += `\n\nI'll check on your question and get back to you shortly.`;
@@ -237,11 +258,9 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   const partners = vendor.bundle_suggestions && purpose === "quote" && details.event_type && details.event_type !== "other"
     ? acceptedPartners(vendorId).filter((p) => p.kind !== vendor.kind).slice(0, 2)
     : [];
-  const partnerPrices = partners.map((p) => fromPrice(p.id));
-  const partnerSuggestions = partners.map((p, i) => {
-    const fp = partnerPrices[i];
-    return `${p.name} (${kindLabel(p.kind).toLowerCase()}${fp ? `, from ${fmtMoney(fp.price)}${fp.unit}` : ""})`;
-  });
+  const shared = partners.map(partnerView);
+  const partnerSuggestions = shared.map((s) => s.view);
+  const partnerPrices = shared.flatMap((s) => (s.price != null ? [s.price] : []));
 
   const willHold = purpose === "quote" && available === true && !details.date_is_approximate && missing.length === 0;
   const facts: DraftFacts = {
@@ -264,7 +283,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   if (usedAI) {
     try {
       const draft = await aiDraft({ vendor, items, messages: msgs, facts });
-      const allowed = allowedAmounts(quote, items, [...partnerPrices.flatMap((p) => (p ? [p.price] : [])), details.budget ?? 0, vendor.min_spend]);
+      const allowed = allowedAmounts(quote, items, [...partnerPrices, details.budget ?? 0, vendor.min_spend]);
       const bad = unknownAmounts(draft.reply, allowed);
       if (bad.length) {
         reasons.push(`The AI draft mentioned prices not on your list (${bad.map(fmtMoney).join(", ")}), so Matchire used the standard template instead.`);

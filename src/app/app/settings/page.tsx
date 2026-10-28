@@ -59,7 +59,11 @@ export default async function Settings({ searchParams }: { searchParams: Promise
           </label>
           <label className="check">
             <input type="checkbox" name="bundle_suggestions" defaultChecked={!!v.bundle_suggestions} />
-            <span><b>Suggest partners in quotes.</b> <span className="muted">Mention a partner vendor and their starting price when an event needs more than you offer.</span></span>
+            <span><b>Suggest partners in quotes.</b> <span className="muted">Mention a partner vendor (and their starting price, if they share it) when an event needs more than you offer.</span></span>
+          </label>
+          <label className="check">
+            <input type="checkbox" name="share_from_price" defaultChecked={!!v.share_from_price} />
+            <span><b>Share my starting price with partners.</b> <span className="muted">Partners see your lowest live package price and can mention it when they suggest you to their clients. They never see your price list. Off: they only see your name and category.</span></span>
           </label>
           <label className="field" style={{ maxWidth: 260 }}><span>Referral fee you charge partners (%)</span><input name="referral_fee_pct" type="number" min="0" max="50" defaultValue={v.referral_fee_pct} /></label>
         </section>

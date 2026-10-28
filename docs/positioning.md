@@ -32,7 +32,8 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 | Quotes from your packages | Live | Claim freely |
 | Date holds (auto-release) | Live | Claim freely |
 | Referrals (pass on, fee tracked) | Live, basic | Claim pass-on + tracked fee. Don't claim payouts. |
-| Bundle quotes | Partly built | "Your reply can suggest partner vendors with their starting prices." No "combined/already priced quote". |
+| Bundle quotes | Partly built | "Your reply can suggest partner vendors, who can quote the planner directly." A starting price only if that partner shares it. No "combined/already priced quote". |
+| Rate privacy | Live | Each vendor's rates are private to their account. Partners only see name and category, plus one starting price if the vendor turns on "Share my starting price with partners" (off by default). Never the full rate card. |
 | Automatic follow-ups | Live on email and WhatsApp (WhatsApp follow-ups after 24h need the vendor's templates approved in Meta) | Claim it |
 | Instagram DMs | Not built | Coming soon |
 | Multiple users / team logins | Not built | Coming soon |
@@ -53,4 +54,5 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 - 2026-10-28: Guarantee, shown under the pricing note: "Our guarantee: when paid plans start, if Matchire doesn't win you a booking in your first 30 days, your next month is free." Applies only once paid plans start. No money-back guarantee. (Approved by Giuseppe, 2026-10-28.)
 - 2026-10-28: Tagline "Match. Hire. Booked." in the footer under the name and in the page <title> after "Matchire.ai". The hero headline stays as it is. (Approved by Giuseppe, 2026-10-28.)
 - 2026-10-28: Venue plan adds "Partner suggestions in replies", just above "Send & receive partner referrals". (Approved by Giuseppe, 2026-10-28.)
+- 2026-10-28: Rates are private per business. "Share my starting price with partners" setting, default off (existing accounts off too); when on, partners see one "from" price, never the rate card. Partner suggestions without it read "Our partner X (category) can quote you directly." Site copy no longer promises partner prices. (Approved by Giuseppe, 2026-10-28.)
 - 2026-10-28: Nav button "Start free trial" renamed "Join early access" to match the pricing note; no "trial" wording left on the site. (Approved by Giuseppe, 2026-10-28.)

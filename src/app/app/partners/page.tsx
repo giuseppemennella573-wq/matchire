@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireVendor } from "@/lib/auth";
 import { all } from "@/lib/db";
-import { kindLabel } from "@/lib/engine";
+import { kindLabel, sharedFromPrice } from "@/lib/engine";
 import { fmtMoney } from "@/lib/pricing";
 import { formatDateTime } from "@/lib/dates";
 import { invitePartnerAction, respondPartnerAction } from "../actions";
@@ -12,14 +12,14 @@ export const metadata = { title: "Partners" };
 export default async function Partners({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string }> }) {
   const { vendor } = await requireVendor();
   const { msg, error } = await searchParams;
-  const rows = all<{ id: number; status: string; requester_id: number; vid: number; name: string; kind: string; from_price: number | null }>(
-    `SELECT p.id, p.status, p.requester_id, v.id vid, v.name, v.kind,
-            (SELECT MIN(price) FROM items i WHERE i.vendor_id = v.id AND i.kind = 'package' AND i.active = 1) from_price
+  const rows = all<{ id: number; status: string; requester_id: number; vid: number; name: string; kind: string; share_from_price: number }>(
+    `SELECT p.id, p.status, p.requester_id, v.id vid, v.name, v.kind, v.share_from_price
      FROM partnerships p JOIN vendors v ON v.id = CASE WHEN p.requester_id = ? THEN p.partner_id ELSE p.requester_id END
      WHERE (p.requester_id = ? OR p.partner_id = ?) AND p.status != 'declined' ORDER BY p.status, v.name`,
     vendor.id, vendor.id, vendor.id,
   );
-  const accepted = rows.filter((r) => r.status === "accepted");
+  // Only a starting price the partner chose to share; never their price list.
+  const accepted = rows.filter((r) => r.status === "accepted").map((r) => ({ ...r, from: sharedFromPrice({ id: r.vid, share_from_price: r.share_from_price }) }));
   const incoming = rows.filter((r) => r.status === "pending" && r.requester_id !== vendor.id);
   const outgoing = rows.filter((r) => r.status === "pending" && r.requester_id === vendor.id);
   const referrals = all<{ id: number; status: string; fee_amount: number | null; created_at: string; dir: string; partner: string; source_enquiry: number; target_enquiry: number; contact: string | null }>(
@@ -53,7 +53,7 @@ export default async function Partners({ searchParams }: { searchParams: Promise
                   <tr key={p.id}>
                     <td><b>{p.name}</b></td>
                     <td>{kindLabel(p.kind)}</td>
-                    <td className="mono small">{p.from_price != null ? fmtMoney(p.from_price) : "–"}</td>
+                    <td className={p.from ? "mono small" : "small muted"}>{p.from ? `${fmtMoney(p.from.price)}${p.from.unit}` : "Not shared"}</td>
                     <td><form action={respondPartnerAction}><input type="hidden" name="id" value={p.id} /><button className="btn btn-ghost btn-sm" name="intent" value="remove" type="submit">Remove</button></form></td>
                   </tr>
                 ))}
