@@ -44,10 +44,12 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 | Billing / plan limits / trial | Not enforced (early access) | OK to show plans; free during early access |
 
 ## Open decisions (ask Giuseppe before acting)
-- Money-back / "extra booking or next month free" guarantee: not approved yet.
-- Name tagline playing on "hire" = rental (e.g. "Match. Hire. Booked."): not approved yet.
+- None right now.
 
 ## Decision log
 - 2026-10-27: Shift messaging from speed/features to revenue + partner network. Photobooths as beachhead.
 - 2026-10-27: Referrals included on all plans (Giuseppe approved).
 - 2026-10-28: "14-day free trial" replaced with "Free during early access" on the site; prices unchanged (Giuseppe approved).
+- 2026-10-28: Tagline "Match. Hire. Booked." approved; used in the hero eyebrow (Giuseppe approved).
+- 2026-10-28: Venue plan lists "Match partner network and partner suggestions" (not "bundle quotes", see feature table) (Giuseppe approved).
+- 2026-10-28: Booking guarantee: "If Matchire doesn't win you at least one extra booking in your first 90 days of paid use, your next month is free." Shown under pricing. No money-back guarantee (Giuseppe approved).
