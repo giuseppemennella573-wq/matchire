@@ -84,10 +84,10 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
               <input type="hidden" name="enquiryId" value={e.id} />
               <div className="row between">
                 <h2>Drafted reply <span className="badge badge-brand">{PURPOSE_LABEL[draft.purpose ?? "quote"]}</span></h2>
-                <span className="small muted">Edit freely before sending</span>
+                <span className="small muted">{draft.template ? "WhatsApp template: sent exactly as approved" : "Edit freely before sending"}</span>
               </div>
               {e.owner_reason && <p className="alert alert-warn">{e.owner_reason}</p>}
-              <label className="field"><span className="hide">Reply</span><textarea id="draft-body" name="body" defaultValue={draft.body} /></label>
+              <label className="field"><span className="hide">Reply</span><textarea id="draft-body" name="body" defaultValue={draft.body} readOnly={!!draft.template} /></label>
               <div className="row">
                 {draft.purpose === "confirm" ? (
                   <Submit name="intent" value="send_book" pending="Sending…">Send &amp; mark booked</Submit>

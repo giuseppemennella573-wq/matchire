@@ -79,7 +79,15 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             <span className={`badge ${whatsappReady(v) ? "badge-ok" : ""}`}>{whatsappReady(v) ? "Connected" : "Not connected"}</span>
             {whatsappReady(v) && <label className="check small"><input type="checkbox" name="wa_disconnect" /><span>Disconnect</span></label>}
           </div>
-          <p className="small muted">WhatsApp only lets businesses send free-form replies within 24 hours of the planner&apos;s last message. Older conversations need you to reply from your phone.</p>
+          <p className="small muted">WhatsApp only lets businesses send free-form replies within 24 hours of the planner&apos;s last message. Matchire times follow-ups to land inside that window where it can; later ones go out as message templates, which Meta must approve first.</p>
+          <label className="check">
+            <input type="checkbox" name="wa_templates_approved" defaultChecked={!!v.wa_templates_approved} />
+            <span><b>My follow-up templates are approved in Meta.</b> <span className="muted">In WhatsApp Manager, submit <code>quote_nudge</code> and <code>quote_last_call</code> (category Utility, language English) with exactly this wording. Until they&apos;re approved, late follow-ups wait for you instead of being sent.</span></span>
+          </label>
+          <ul className="small muted">
+            <li><code>quote_nudge</code>: Hi {"{{1}}"}, just checking you saw our quote for {"{{2}}"}. Happy to answer any questions. Reply here anytime.</li>
+            <li><code>quote_last_call</code>: Hi {"{{1}}"}, we&apos;re holding {"{{2}}"} for you until {"{{3}}"}. Reply here if you&apos;d like to confirm.</li>
+          </ul>
         </section>
 
         <div><button className="btn btn-primary" type="submit">Save settings</button></div>

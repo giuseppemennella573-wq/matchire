@@ -4,8 +4,8 @@ import { EMPTY_DETAILS, OPEN_STATUSES, VENDOR_KINDS } from "./types.ts";
 import { buildQuote, allowedAmounts, unknownAmounts, fmtMoney } from "./pricing.ts";
 import { parseEnquiry } from "./heuristics.ts";
 import { aiEnabled, aiExtract, aiDraft, type DraftFacts } from "./ai.ts";
-import { formatDate, sgToday } from "./dates.ts";
-import { deliver } from "./channels.ts";
+import { formatDate, formatDateTime, sgToday } from "./dates.ts";
+import { deliver, deliverTemplate, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
 import { maybeDailyBackup } from "./backup.ts";
 
 // The booking desk. An enquiry flows: ingest → understand → quote → draft →
@@ -308,7 +308,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
 
 // ---------- Sending ----------
 
-export async function sendDraft(vendorId: number, messageId: number, opts: { body?: string; markBooked?: boolean } = {}) {
+export async function sendDraft(vendorId: number, messageId: number, opts: { body?: string; markBooked?: boolean; now?: string } = {}) {
   const m = get<Message & { vendor_id: number }>(
     "SELECT m.*, e.vendor_id FROM messages m JOIN enquiries e ON e.id = m.enquiry_id WHERE m.id = ?",
     messageId,
@@ -317,9 +317,30 @@ export async function sendDraft(vendorId: number, messageId: number, opts: { bod
   if (m.status !== "draft") throw new Error("This reply was already handled");
   const vendor = getVendor(vendorId)!;
   const e = getEnquiry(vendorId, m.enquiry_id)!;
-  const body = (opts.body ?? m.body).trim();
-  const result = await deliver(vendor, e, body);
-  const now = nowIso();
+  const now = opts.now ?? nowIso();
+  let body = (opts.body ?? m.body).trim();
+
+  // Follow-ups after WhatsApp's 24-hour window can only go out as approved templates.
+  let template: Template | null = m.template ? JSON.parse(m.template) : null;
+  if (!template) {
+    const route = followupRoute(vendor, e, m.purpose ?? "", now, 0);
+    if (route.kind === "closed") {
+      run("UPDATE messages SET body = ? WHERE id = ?", body, messageId);
+      run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", route.reason, e.id);
+      return { status: "manual", via: "WhatsApp", error: route.reason } satisfies SendResult;
+    }
+    if (route.kind === "template") template = route.template;
+  }
+  if (template) {
+    body = template.body;
+    const blocked = templateBlocked(vendor, e, template);
+    if (blocked) {
+      run("UPDATE messages SET body = ?, template = ? WHERE id = ?", body, JSON.stringify(template), messageId);
+      run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", blocked, e.id);
+      return { status: "manual", via: "WhatsApp", error: blocked } satisfies SendResult;
+    }
+  }
+  const result = template ? await deliverTemplate(vendor, e, template) : await deliver(vendor, e, body);
 
   if (result.status === "manual") {
     // Nothing went out. Keep the draft (with any edits) so the vendor can copy it and confirm.
@@ -328,7 +349,7 @@ export async function sendDraft(vendorId: number, messageId: number, opts: { bod
     return result;
   }
   tx(() => {
-    run("UPDATE messages SET body = ?, status = ?, error = ?, sent_at = ? WHERE id = ?", body, result.status, result.error ?? null, result.status === "failed" ? null : now, messageId);
+    run("UPDATE messages SET body = ?, template = ?, status = ?, error = ?, sent_at = ? WHERE id = ?", body, template ? JSON.stringify(template) : null, result.status, result.error ?? null, result.status === "failed" ? null : now, messageId);
     if (result.status === "failed") return;
     run("UPDATE enquiries SET first_response_at = COALESCE(first_response_at, ?), last_outbound_at = ?, owner_reason = NULL, updated_at = ? WHERE id = ?", now, now, now, e.id);
     afterSend(vendor, e, m.purpose ?? "quote", now);
@@ -338,6 +359,71 @@ export async function sendDraft(vendorId: number, messageId: number, opts: { bod
 }
 
 const hoursFrom = (iso: string, h: number) => new Date(new Date(iso).getTime() + h * 3600_000).toISOString();
+
+// ---------- WhatsApp 24-hour window ----------
+// WhatsApp only accepts free-form messages within 24 hours of the planner's
+// last message. Follow-ups are timed to land inside that window where they
+// can; otherwise they go out as pre-approved templates (see README).
+
+export const NEEDS_TEMPLATE_APPROVAL = "Follow-up needs template approval";
+
+/** Exactly as submitted to Meta (category UTILITY, language en). */
+const FOLLOWUP_TEMPLATES: Record<string, { name: string; text: string }> = {
+  followup: { name: "quote_nudge", text: "Hi {{1}}, just checking you saw our quote for {{2}}. Happy to answer any questions. Reply here anytime." },
+  last_call: { name: "quote_last_call", text: "Hi {{1}}, we're holding {{2}} for you until {{3}}. Reply here if you'd like to confirm." },
+};
+
+type Template = WaTemplate & { body: string };
+type Route = { kind: "text" } | { kind: "template"; template: Template } | { kind: "closed"; reason: string };
+
+/** When free-form replies stop being allowed, or null if this enquiry isn't sent through the WhatsApp API. */
+export function whatsappWindowEnd(vendor: Vendor, e: Enquiry): string | null {
+  if (!viaWhatsAppApi(vendor, e)) return null;
+  return hoursFrom(e.last_inbound_at ?? e.created_at, 24);
+}
+
+/** A nudge due after the window closes moves to an hour before it closes, if that's still at least 4h after the quote. */
+function nudgeTime(vendor: Vendor, e: Enquiry, sentAt: string, due: string): string {
+  const end = whatsappWindowEnd(vendor, e);
+  if (!end) return due;
+  const latest = hoursFrom(end, -1);
+  if (due <= latest) return due;
+  return latest >= hoursFrom(sentAt, 4) ? latest : due;
+}
+
+function followupTemplate(e: Enquiry, purpose: string): Template | null {
+  const spec = FOLLOWUP_TEMPLATES[purpose];
+  if (!spec || e.status !== "quoted") return null;
+  const d = parseDetails(e);
+  const first = (e.contact_name || d.contact_name || "").trim().split(/\s+/)[0] || "there";
+  let params: string[];
+  if (purpose === "followup") {
+    params = [first, d.event_date && !d.date_is_approximate ? formatDate(d.event_date) : "your event"];
+  } else {
+    const hold = get<Hold>("SELECT * FROM holds WHERE enquiry_id = ? AND kind = 'hold' ORDER BY id DESC LIMIT 1", e.id);
+    if (!hold?.expires_at) return null;
+    params = [first, formatDate(hold.date), formatDateTime(hold.expires_at)];
+  }
+  return { name: spec.name, params, body: spec.text.replace(/\{\{(\d)\}\}/g, (_, i) => params[Number(i) - 1]) };
+}
+
+/** How a follow-up can go out at `now`. `marginHours` keeps a buffer before the window closes. A draft that waits
+ *  for approval is checked again when it's sent, so a free-form draft sent too late still goes out as a template. */
+function followupRoute(vendor: Vendor, e: Enquiry, purpose: string, now: string, marginHours: number): Route {
+  if (purpose !== "followup" && purpose !== "last_call") return { kind: "text" };
+  const end = whatsappWindowEnd(vendor, e);
+  if (!end || now < hoursFrom(end, -marginHours)) return { kind: "text" };
+  const template = followupTemplate(e, purpose);
+  if (!template) return { kind: "closed", reason: "WhatsApp's 24-hour window has closed. Send this follow-up from your phone." };
+  return { kind: "template", template };
+}
+
+/** The reason a template can't go out yet, or null if the vendor has it approved. */
+function templateBlocked(vendor: Vendor, e: Enquiry, t: Template): string | null {
+  if (vendor.wa_templates_approved) return null;
+  console.warn(`[whatsapp] follow-up for enquiry ${e.id} not sent: template ${t.name} isn't marked approved for vendor ${vendor.id}`);
+  return `${NEEDS_TEMPLATE_APPROVAL}. WhatsApp's 24-hour window has closed, so this goes out as the ${t.name} template. Once Meta approves it, tick "My follow-up templates are approved" in Settings and send.`;
+}
 
 function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string) {
   const d = parseDetails(e);
@@ -353,11 +439,11 @@ function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string) {
         // Nudge while the date is still held, so the planner can still act on it.
         nudge = hoursFrom(now, Math.min(vendor.followup_days * 24, vendor.hold_hours / 2));
       }
-      run("UPDATE enquiries SET status = 'quoted', followup_stage = 0, next_followup_at = ? WHERE id = ?", nudge, e.id);
+      run("UPDATE enquiries SET status = 'quoted', followup_stage = 0, next_followup_at = ? WHERE id = ?", nudgeTime(vendor, e, now, nudge), e.id);
       break;
     }
     case "ask_info":
-      run("UPDATE enquiries SET status = 'awaiting_info', followup_stage = 0, next_followup_at = ? WHERE id = ?", followup, e.id);
+      run("UPDATE enquiries SET status = 'awaiting_info', followup_stage = 0, next_followup_at = ? WHERE id = ?", nudgeTime(vendor, e, now, followup), e.id);
       break;
     case "answer":
       if (e.status === "new") run("UPDATE enquiries SET status = 'awaiting_info' WHERE id = ?", e.id);
@@ -542,13 +628,17 @@ export async function tick(now: string = nowIso()) {
       const purpose = e.followup_stage === 0 ? "followup" : "last_call";
       const hasHold = get<{ id: number }>("SELECT id FROM holds WHERE enquiry_id = ? AND status = 'active' AND kind = 'hold'", e.id);
       if (purpose === "last_call" && !hasHold) continue;
-      const body = templateDraft(vendor, {
+      const route = followupRoute(vendor, e, purpose, now, 5 / 60);
+      const template = route.kind === "template" ? route.template : null;
+      const body = template?.body ?? templateDraft(vendor, {
         purpose, details: parseDetails(e), quote: parseQuote(e), available: null, missing: [], holdHours: null,
         partnerSuggestions: [], referredTo: null, depositNote: "",
       });
-      const id = run("INSERT INTO messages (enquiry_id, direction, body, status, purpose) VALUES (?, 'out', ?, 'draft', ?)", e.id, body, purpose);
+      const id = run("INSERT INTO messages (enquiry_id, direction, body, status, purpose, template) VALUES (?, 'out', ?, 'draft', ?, ?)", e.id, body, purpose, template ? JSON.stringify(template) : null);
       followups++;
-      if (vendor.auto_send) await sendDraft(vendor.id, id).catch(() => null);
+      const blocked = route.kind === "closed" ? route.reason : template ? templateBlocked(vendor, e, template) : null;
+      if (blocked) run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", blocked, e.id);
+      else if (vendor.auto_send) await sendDraft(vendor.id, id, { now }).catch(() => null);
       else run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", purpose === "followup" ? "Follow-up ready: the planner hasn't replied." : "Last call before the hold expires.", e.id);
     }
     // The day's backup, once it's past 3 am in Singapore.

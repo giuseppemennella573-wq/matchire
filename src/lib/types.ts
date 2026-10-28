@@ -31,6 +31,8 @@ export interface Vendor {
   notes: string;
   wa_phone_number_id: string | null;
   wa_token: string | null;
+  /** The vendor has quote_nudge and quote_last_call approved in their WhatsApp Business account. */
+  wa_templates_approved: number;
   inbound_token: string;
   created_at: string;
 }
@@ -190,6 +192,8 @@ export interface Message {
   status: "draft" | "sent" | "manual" | "failed" | "discarded";
   purpose: string | null;
   error: string | null;
+  /** JSON WaTemplate when this reply goes out as a WhatsApp template. */
+  template: string | null;
   created_at: string;
   sent_at: string | null;
 }

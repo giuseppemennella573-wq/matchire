@@ -10,7 +10,7 @@ The AI booking desk for event vendors in Singapore. Matchire reads WhatsApp, ema
 | **Quotes** | Built only from the vendor's packages, add-ons, extra-hour rates, per-guest minimums, minimum spend and off-peak discount. The AI chooses *which* items fit; the code does the maths. AI drafts that mention any amount not on the quote or price list are thrown out and replaced with the standard template. |
 | **Approval or auto-send** | Drafts wait for approval by default. With auto-send on, routine replies go straight out, but booking confirmations, unusual requests, anything off the price list, and capacity or availability problems still wait for the owner. |
 | **Calendar holds** | Checks availability (jobs per day, blocked dates) before quoting, holds the date when a quote goes out, and releases it automatically when the hold expires. |
-| **Follow-ups** | One nudge while the date is still held, then a last call shortly before the hold expires. Stops as soon as the planner replies. |
+| **Follow-ups** | One nudge while the date is still held, then a last call shortly before the hold expires. Stops as soon as the planner replies. On WhatsApp they respect the 24-hour window (see below). |
 | **Partner network** | Vendors invite partners by code. Quotes can mention partners and their starting prices, and enquiries a vendor can't take can be referred, with the referral fee tracked when the partner books. |
 | **Price-list import** | Paste a rate card or upload a PDF or photo; Claude turns it into items that stay hidden until the vendor approves them. |
 | **Overview** | Enquiries, median first-reply time, bookings, booked value, referral fees and a breakdown by channel. |
@@ -37,6 +37,23 @@ npm run typecheck
 ## Connecting channels
 
 **WhatsApp (Meta WhatsApp Cloud API).** Create an app in Meta for Developers with the WhatsApp product. Set the webhook URL to `https://<your-domain>/api/webhooks/whatsapp` with the verify token from `WHATSAPP_VERIFY_TOKEN`, and subscribe to `messages`. Set `WHATSAPP_APP_SECRET` so webhook signatures are checked. Each vendor enters their phone number ID and access token under **Settings**. WhatsApp only allows free-form replies within 24 hours of the planner's last message; later replies fail with a clear error and need to be sent from the phone.
+
+**WhatsApp follow-ups and the 24-hour window.** The window runs from the planner's *last inbound* message. For each follow-up:
+
+1. If it's due at least an hour before the window closes, it goes out as normal free-form text.
+2. If it would be due later, the nudge is pulled forward to an hour before the window closes, as long as that's still at least 4 hours after the quote went out. (The last call is never moved earlier.)
+3. Otherwise it goes out as a pre-approved **template**. The draft shows the exact template text and can't be edited.
+
+A draft that waits for approval is checked again when it's sent, so one approved after the window closed still goes out as a template. If the vendor hasn't ticked **My follow-up templates are approved in Meta** in Settings, nothing is sent: the server logs `[whatsapp] follow-up … not sent`, and the enquiry shows **Follow-up needs template approval** under *Needs you*. Follow-ups after a request for details (no quote) have no template, so outside the window they're flagged for the vendor to send from their phone. Email follow-ups are unaffected.
+
+Each vendor submits these in **WhatsApp Manager → Message templates** on their own WhatsApp Business account, category **Utility**, language **English (`en`)**, with exactly this wording (the language code is set in `src/lib/channels.ts` and must match):
+
+| Name | Body | Sample values |
+| --- | --- | --- |
+| `quote_nudge` | Hi {{1}}, just checking you saw our quote for {{2}}. Happy to answer any questions. Reply here anytime. | `Mei`, `Sat, 15 Nov` |
+| `quote_last_call` | Hi {{1}}, we're holding {{2}} for you until {{3}}. Reply here if you'd like to confirm. | `Mei`, `Sat, 15 Nov`, `13 Nov, 06:00 pm` |
+
+{{1}} is the planner's first name (or "there"), {{2}} the event date (or "your event" if there's no exact date), {{3}} when the hold ends. Meta usually reviews Utility templates within a day. Once both show **Active**, tick the box in Settings.
 
 **Email.** Point an inbound-email webhook (Postmark, SendGrid Inbound Parse, Mailgun routes) at the per-vendor URL shown in **Settings**: `https://<your-domain>/api/webhooks/email/<token>`. Outbound email goes over SMTP: for Google Workspace set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, `SMTP_USER` (the mailbox) and `SMTP_PASS` (an [app password](https://myaccount.google.com/apppasswords); needs 2-Step Verification). `EMAIL_FROM` must be that mailbox or one of its aliases. [Resend](https://resend.com) (`RESEND_API_KEY`) is supported as an alternative. Optionally set `INBOUND_EMAIL_DOMAIN` so replies come back to `<token>@<domain>`.
 

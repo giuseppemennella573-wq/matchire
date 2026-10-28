@@ -35,17 +35,44 @@ function smtpTransport(): Transporter {
 /** Gmail rejects or rewrites a From address the account doesn't own, so default to the mailbox itself. */
 const fromAddress = () => process.env.EMAIL_FROM || (smtpReady() ? `Matchire <${process.env.SMTP_USER}>` : "Matchire <bookings@matchire.ai>");
 
-async function sendWhatsApp(v: Vendor, to: string, body: string): Promise<SendResult> {
+async function postWhatsApp(v: Vendor, to: string, message: object): Promise<SendResult> {
   const res = await fetch(`${GRAPH}/${v.wa_phone_number_id}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${v.wa_token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", to: to.replace(/[^\d]/g, ""), type: "text", text: { body, preview_url: false } }),
+    body: JSON.stringify({ messaging_product: "whatsapp", to: to.replace(/[^\d]/g, ""), ...message }),
   });
   if (res.ok) return { status: "sent", via: "WhatsApp" };
   const err = await res.text().catch(() => "");
   console.warn(`[whatsapp] send failed ${res.status}: ${err.slice(0, 300)}`);
   // 131047: outside the 24-hour customer service window; a template message is required.
   return { status: "failed", via: "WhatsApp", error: `WhatsApp API ${res.status}: ${err.slice(0, 300)}` };
+}
+
+const sendWhatsApp = (v: Vendor, to: string, body: string) => postWhatsApp(v, to, { type: "text", text: { body, preview_url: false } });
+
+/** A pre-approved WhatsApp template, the only kind of message allowed outside the 24-hour window. */
+export interface WaTemplate { name: string; params: string[] }
+
+/** Must match the language chosen when the template was submitted in WhatsApp Manager. */
+const TEMPLATE_LANGUAGE = "en";
+
+const phoneOf = (e: Enquiry) => (e.contact_handle && /^\+?\d[\d\s-]{6,}$/.test(e.contact_handle) ? e.contact_handle : null);
+
+/** True when replies to this enquiry go out through the WhatsApp Cloud API (and so are bound by its 24-hour window). */
+export function viaWhatsAppApi(v: Vendor, e: Enquiry): boolean {
+  return e.channel === "whatsapp" && phoneOf(e) !== null && whatsappReady(v);
+}
+
+export async function deliverTemplate(v: Vendor, e: Enquiry, t: WaTemplate): Promise<SendResult> {
+  if (!viaWhatsAppApi(v, e)) return { status: "manual", via: "WhatsApp", error: "WhatsApp isn't connected yet. Copy the reply and send it from your phone." };
+  try {
+    return await postWhatsApp(v, phoneOf(e)!, {
+      type: "template",
+      template: { name: t.name, language: { code: TEMPLATE_LANGUAGE }, components: [{ type: "body", parameters: t.params.map((text) => ({ type: "text", text })) }] },
+    });
+  } catch (err) {
+    return { status: "failed", via: "WhatsApp", error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /** Send a plain-text email over SMTP or Resend. Returns an error message on failure. */
@@ -90,7 +117,7 @@ export function inboundAddress(v: Vendor): string | null {
 
 export async function deliver(v: Vendor, e: Enquiry, body: string): Promise<SendResult> {
   try {
-    const phone = e.contact_handle && /^\+?\d[\d\s-]{6,}$/.test(e.contact_handle) ? e.contact_handle : null;
+    const phone = phoneOf(e);
     const email = e.contact_email || (e.contact_handle?.includes("@") ? e.contact_handle : null);
     const subject = `Re: your enquiry with ${v.name}`;
 

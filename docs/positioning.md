@@ -33,7 +33,7 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 | Date holds (auto-release) | Live | Claim freely |
 | Referrals (pass on, fee tracked) | Live, basic | Claim pass-on + tracked fee. Don't claim payouts. |
 | Bundle quotes | Partly built | "Your reply can suggest partner vendors with their starting prices." No "combined/already priced quote". |
-| Automatic follow-ups | Live on email; WhatsApp being fixed | Claim it (bug fix in Step 3) |
+| Automatic follow-ups | Live on email and WhatsApp (WhatsApp follow-ups after 24h need the vendor's templates approved in Meta) | Claim it |
 | Instagram DMs | Not built | Coming soon |
 | Multiple users / team logins | Not built | Coming soon |
 | Multiple rooms, spaces or brands | Not built | Coming soon |
