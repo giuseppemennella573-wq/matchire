@@ -27,7 +27,7 @@ export function Nav({ attention, admin }: { attention: number; admin: { waiting:
       })}
       {admin && (
         <Link href="/app/admin" aria-current={path.startsWith("/app/admin") ? "page" : undefined}>
-          Early access
+          Sign-ups
           {admin.waiting > 0 && <span className="count" aria-label={`${admin.waiting} waiting`}>{admin.waiting}</span>}
         </Link>
       )}

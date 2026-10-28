@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import { requireVendor } from "@/lib/auth";
-import { ALERT_TO, isAdmin, listAccounts, listSignups, whatsappLink } from "@/lib/early-access";
+import { accountsWaiting, ALERT_TO, isAdmin, listAccounts, listSignups, whatsappLink } from "@/lib/early-access";
 import { kindLabel } from "@/lib/engine";
 import { emailReady } from "@/lib/channels";
 import { formatDateTime } from "@/lib/dates";
-import { deleteSignupAction, resendAlertAction, toggleContactedAction } from "./actions";
+import { deleteSignupAction, resendAlertAction, toggleAccountContactedAction, toggleContactedAction } from "./actions";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 
-export const metadata = { title: "Early access" };
+export const metadata = { title: "Sign-ups" };
 
 export default async function Admin({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string }> }) {
   const { user } = await requireVendor();
@@ -15,6 +15,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const { msg, error } = await searchParams;
   const rows = listSignups();
   const accounts = listAccounts();
+  const newAccounts = new Set(accountsWaiting(accounts).map((a) => a.id));
   const waiting = rows.filter((r) => !r.contacted_at).length;
 
   return (
@@ -22,8 +23,11 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       <div className="page-head">
         <div className="stack" style={{ gap: 6 }}>
           <p className="eyebrow">Admin</p>
-          <h1>Early-access sign-ups</h1>
-          <p className="muted">{rows.length} total · {waiting} waiting for a reply. New sign-ups are emailed to <b>{ALERT_TO()}</b>.</p>
+          <h1>Sign-ups</h1>
+          <p className="muted">
+            <b>{waiting}</b> early-access {waiting === 1 ? "request" : "requests"} and <b>{newAccounts.size}</b> new app {newAccounts.size === 1 ? "account" : "accounts"} waiting for you.
+            Both are emailed to <b>{ALERT_TO()}</b>.
+          </p>
         </div>
         <div className="row">
           <a className="btn btn-ghost" href="/app/admin/backups">Backups</a>
@@ -37,6 +41,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       )}
 
       <section className="card card-flush">
+        <div className="card-head"><h2>Early-access requests</h2><span className="small muted">{rows.length} total · {waiting} waiting · from the form on the landing page</span></div>
         {rows.length === 0 ? <p className="empty">No sign-ups yet. They appear here as soon as someone submits the form on the landing page.</p> : (
           <div className="table-wrap">
             <table>
@@ -47,7 +52,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                   return (
                     <tr key={r.id} style={r.contacted_at ? { opacity: 0.6 } : undefined}>
                       <td className="small">{formatDateTime(r.created_at)}</td>
-                      <td><b>{r.name}</b></td>
+                      <td><b>{r.name}</b>{!r.contacted_at && <> <span className="badge badge-brand">New</span></>}</td>
                       <td>{r.business}<div className="small muted">{r.vendor_type}</div></td>
                       <td className="small">{r.enquiries_per_week}</td>
                       <td className="small">
@@ -92,21 +97,32 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       <section className="card card-flush" id="accounts">
         <div className="card-head">
           <h2>App accounts</h2>
-          <span className="small muted">{accounts.length} total · created at /signup, not through the early-access form. New ones are emailed to {ALERT_TO()}.</span>
+          <span className="small muted">{accounts.length} total · {newAccounts.size} waiting · created at /signup, not through the early-access form</span>
         </div>
         {accounts.length === 0 ? <p className="empty">No accounts yet.</p> : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Created</th><th>Who</th><th>Business</th><th>Email</th><th>Price list</th><th>Enquiries</th></tr></thead>
+              <thead><tr><th>Created</th><th>Who</th><th>Business</th><th>Email</th><th>Price list</th><th>Enquiries</th><th>Status</th></tr></thead>
               <tbody>
                 {accounts.map((a) => (
-                  <tr key={a.id}>
+                  <tr key={a.id} style={newAccounts.has(a.id) ? undefined : { opacity: 0.6 }}>
                     <td className="small">{formatDateTime(a.created_at)}</td>
-                    <td><b>{a.name}</b></td>
+                    <td><b>{a.name}</b>{newAccounts.has(a.id) && <> <span className="badge badge-brand">New</span></>}</td>
                     <td>{a.business}<div className="small muted">{kindLabel(a.kind)}</div></td>
                     <td className="small"><a href={`mailto:${a.email}`}>{a.email}</a></td>
                     <td className="small">{a.live_items ? `${a.live_items} live items` : <span className="muted">Not set up</span>}</td>
                     <td className="small mono">{a.enquiries}</td>
+                    <td>
+                      {isAdmin(a) ? <span className="small muted">Admin</span> : (
+                        <form action={toggleAccountContactedAction}>
+                          <input type="hidden" name="id" value={a.id} />
+                          <input type="hidden" name="contacted" value={a.admin_contacted_at ? "0" : "1"} />
+                          <button className={`btn btn-sm ${a.admin_contacted_at ? "btn-ghost" : "btn-primary"}`} type="submit">
+                            {a.admin_contacted_at ? "Contacted ✓" : "Mark contacted"}
+                          </button>
+                        </form>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -181,6 +181,7 @@ const COLUMNS: [table: string, column: string, definition: string][] = [
   ["vendors", "wa_templates_approved", "INTEGER NOT NULL DEFAULT 0"],
   ["messages", "template", "TEXT"],
   ["vendors", "share_from_price", "INTEGER NOT NULL DEFAULT 0"],
+  ["users", "admin_contacted_at", "TEXT"],
 ];
 
 function migrate(conn: DatabaseSync) {

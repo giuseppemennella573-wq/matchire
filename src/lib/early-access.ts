@@ -87,11 +87,12 @@ export interface Account {
   created_at: string;
   enquiries: number;
   live_items: number;
+  admin_contacted_at: string | null;
 }
 
 export const listAccounts = () =>
   all<Account>(
-    `SELECT u.id, u.email, u.name, v.name business, v.kind, u.created_at,
+    `SELECT u.id, u.email, u.name, v.name business, v.kind, u.created_at, u.admin_contacted_at,
             (SELECT COUNT(*) FROM enquiries e WHERE e.vendor_id = v.id) enquiries,
             (SELECT COUNT(*) FROM items i WHERE i.vendor_id = v.id AND i.active = 1) live_items
      FROM users u JOIN vendors v ON v.id = u.vendor_id ORDER BY u.id DESC`,
@@ -100,7 +101,7 @@ export const listAccounts = () =>
 /** Email the team that someone created an app account. Returns an error message on failure. */
 export async function notifyNewAccount(userId: number): Promise<string | null> {
   const a = get<Account>(
-    "SELECT u.id, u.email, u.name, v.name business, v.kind, u.created_at, 0 enquiries, 0 live_items FROM users u JOIN vendors v ON v.id = u.vendor_id WHERE u.id = ?",
+    "SELECT u.id, u.email, u.name, v.name business, v.kind, u.created_at, u.admin_contacted_at, 0 enquiries, 0 live_items FROM users u JOIN vendors v ON v.id = u.vendor_id WHERE u.id = ?",
     userId,
   );
   if (!a) return "Account not found";
@@ -127,8 +128,17 @@ export async function notifyNewAccount(userId: number): Promise<string | null> {
   }
 }
 
+/** New accounts the admin hasn't followed up yet. Admins' own logins are never flagged. */
+export const accountsWaiting = (accounts = listAccounts()) => accounts.filter((a) => !a.admin_contacted_at && !isAdmin(a));
+
+export function setAccountContacted(userId: number, contacted: boolean) {
+  run("UPDATE users SET admin_contacted_at = ? WHERE id = ?", contacted ? nowIso() : null, userId);
+}
+
 export const listSignups = () => all<Signup>("SELECT * FROM early_access ORDER BY id DESC");
-export const countUncontacted = () => get<{ n: number }>("SELECT COUNT(*) n FROM early_access WHERE contacted_at IS NULL")?.n ?? 0;
+/** Everything waiting for the admin: early-access requests and new app accounts not yet marked contacted. */
+export const countUncontacted = () =>
+  (get<{ n: number }>("SELECT COUNT(*) n FROM early_access WHERE contacted_at IS NULL")?.n ?? 0) + accountsWaiting().length;
 
 export function deleteSignup(id: number) {
   run("DELETE FROM early_access WHERE id = ?", id);

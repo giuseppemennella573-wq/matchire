@@ -67,3 +67,15 @@ test("app accounts are listed for admins, and the new-account alert is attempted
   // Email isn't configured in tests, so the alert reports why it wasn't sent.
   assert.match((await EA.notifyNewAccount(userId))!, /SMTP_HOST/);
 });
+
+test("new app accounts are flagged for the admin until marked contacted", () => {
+  const before = EA.countUncontacted();
+  const { userId } = createAccount({ email: "new@vendor.sg", password: "password1", name: "N", business: "New Co", kind: "other" });
+  assert.equal(EA.countUncontacted(), before + 1);
+  assert.ok(EA.accountsWaiting().some((a) => a.id === userId));
+  EA.setAccountContacted(userId, true);
+  assert.equal(EA.countUncontacted(), before);
+  // The admin's own login is never flagged.
+  const admin = EA.listAccounts().find((a) => EA.isAdmin(a))!;
+  assert.ok(!EA.accountsWaiting().some((a) => a.id === admin.id));
+});
