@@ -50,6 +50,7 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 - 2026-10-27: Shift messaging from speed/features to revenue + partner network. Photobooths as beachhead.
 - 2026-10-27: Referrals included on all plans (Giuseppe approved).
 - 2026-10-28: "14-day free trial" replaced with "Free during early access" on the site; prices unchanged (Giuseppe approved).
-- 2026-10-28: Tagline "Match. Hire. Booked." approved; used in the hero eyebrow (Giuseppe approved).
-- 2026-10-28: Venue plan lists "Match partner network and partner suggestions" (not "bundle quotes", see feature table) (Giuseppe approved).
-- 2026-10-28: Booking guarantee: "If Matchire doesn't win you at least one extra booking in your first 90 days of paid use, your next month is free." Shown under pricing. No money-back guarantee (Giuseppe approved).
+- 2026-10-28: Guarantee, shown under the pricing note: "Our guarantee: when paid plans start, if Matchire doesn't win you a booking in your first 30 days, your next month is free." Applies only once paid plans start. No money-back guarantee. (Approved by Giuseppe, 2026-10-28.)
+- 2026-10-28: Tagline "Match. Hire. Booked." in the footer under the name and in the page <title> after "Matchire.ai". The hero headline stays as it is. (Approved by Giuseppe, 2026-10-28.)
+- 2026-10-28: Venue plan adds "Partner suggestions in replies", just above "Send & receive partner referrals". (Approved by Giuseppe, 2026-10-28.)
+- 2026-10-28: Nav button "Start free trial" renamed "Join early access" to match the pricing note; no "trial" wording left on the site. (Approved by Giuseppe, 2026-10-28.)
