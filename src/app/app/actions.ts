@@ -158,7 +158,7 @@ export async function activateImportedAction() {
 
 export async function importPriceListAction(form: FormData) {
   const { vendor } = await requireVendor();
-  if (!aiEnabled()) back("/app/prices", "Importing a rate card needs a Claude API key (ANTHROPIC_API_KEY).", "error");
+  if (!aiEnabled()) back("/app/prices", "Importing a rate card needs AI to be switched on.", "error");
   const text = str(form, "text");
   const file = form.get("file");
   let upload: { mediaType: string; base64: string } | undefined;

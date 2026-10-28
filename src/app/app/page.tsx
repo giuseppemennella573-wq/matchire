@@ -36,7 +36,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     { done: items.some((i) => i.active), label: "Load your price list", href: "/app/prices" },
     { done: whatsappReady(vendor), label: "Connect WhatsApp Business", href: "/app/settings#channels" },
     { done: s.enquiries > 0, label: "Share your enquiry form or paste a first enquiry", href: "/app/inbox" },
-    { done: aiEnabled(), label: "Turn on AI drafting (Claude API key)", href: "/app/settings#ai" },
+    { done: aiEnabled(), label: "Turn on AI drafting", href: "/app/settings#ai" },
   ];
 
   return (

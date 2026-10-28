@@ -119,9 +119,9 @@ export default async function Settings({ searchParams }: { searchParams: Promise
       <section className="card stack" id="ai">
         <h2>AI</h2>
         {aiEnabled() ? (
-          <p>Claude reads enquiries and drafts replies in your tone. Prices still come only from your price list, and drafts that mention any other amount are replaced with the standard template.</p>
+          <p>AI reads enquiries and drafts replies in your tone. Prices still come only from your price list, and drafts that mention any other amount are replaced with the standard template.</p>
         ) : (
-          <p className="muted">Matchire is in rules mode: it reads enquiries with built-in rules and replies from templates. Set <code>ANTHROPIC_API_KEY</code> on the server to turn on AI reading, drafting and rate-card import.</p>
+          <p className="muted">Matchire is in rules mode: it reads enquiries with built-in rules and replies from templates. AI reading, drafting and rate-card import are switched off on this server.</p>
         )}
       </section>
     </div>

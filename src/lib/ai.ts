@@ -42,9 +42,9 @@ async function structured<T>(opts: {
     messages: [{ role: "user", content: opts.content }],
     output_config: { effort: opts.effort ?? "low", format: betaZodOutputFormat(opts.schema) },
   });
-  if (res.stop_reason === "refusal") throw new Error("Claude declined this request");
-  if (res.stop_reason === "max_tokens") throw new Error("Claude's response was cut off");
-  if (!res.parsed_output) throw new Error("Claude returned no structured output");
+  if (res.stop_reason === "refusal") throw new Error("The AI declined this request");
+  if (res.stop_reason === "max_tokens") throw new Error("The AI's response was cut off");
+  if (!res.parsed_output) throw new Error("The AI returned no structured output");
   return res.parsed_output as T;
 }
 

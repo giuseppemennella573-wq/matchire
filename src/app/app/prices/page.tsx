@@ -104,7 +104,7 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
           <h2>Import a rate card</h2>
           <p className="small muted">Paste your price list, or upload a PDF or a photo of your rate card. Matchire sets up the items for you to check; nothing goes live until you approve it.</p>
         </div>
-        {!aiEnabled() && <p className="alert alert-warn small">Importing needs AI. Add an ANTHROPIC_API_KEY to the server environment.</p>}
+        {!aiEnabled() && <p className="alert alert-warn small">Importing needs AI, which is switched off on this server.</p>}
         <form action={importPriceListAction} className="stack">
           <textarea name="text" rows={4} placeholder={"Classic booth 2h $450, extra hour $120\n360 booth 2h $650, extra hour $180\nCustom frame $80"} />
           <input type="file" name="file" accept="application/pdf,image/png,image/jpeg,image/webp" />
