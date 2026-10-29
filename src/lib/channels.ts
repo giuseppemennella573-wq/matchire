@@ -1,5 +1,6 @@
 import { createTransport, type Transporter } from "nodemailer";
 import type { Enquiry, Vendor } from "./types.ts";
+import { get, run } from "./db.ts";
 
 // Outbound delivery. WhatsApp goes through the Meta WhatsApp Cloud API using
 // the vendor's own business number. Email goes out over SMTP (e.g. a Google
@@ -80,6 +81,35 @@ export interface Attachment { filename: string; content: Buffer; contentType: st
 
 export async function sendRawEmail(m: { to: string; subject: string; text: string; replyTo?: string | null; attachments?: Attachment[] }): Promise<string | null> {
   if (!emailReady()) return "Outbound email isn't configured (set SMTP_HOST, SMTP_USER and SMTP_PASS).";
+  const error = await sendViaProvider(m).catch((e) => (e instanceof Error ? e.message : String(e)));
+  recordEmailResult(error);
+  return error;
+}
+
+// ---------- Email health ----------
+// The outcome of the latest send, so admins see a warning on every page when
+// email stops working (e.g. a revoked Gmail app password), not days later.
+
+export interface EmailHealth { ok: boolean; error: string | null; since: string | null }
+
+function recordEmailResult(error: string | null) {
+  const now = new Date().toISOString();
+  const prev = emailHealth();
+  // Keep the time of the first failure in a run, so the warning says how long it's been broken.
+  const since = error ? (prev.ok ? now : prev.since ?? now) : now;
+  run(
+    "INSERT INTO app_status (key, value, updated_at) VALUES ('email', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+    JSON.stringify({ ok: !error, error, since } satisfies EmailHealth), now,
+  );
+}
+
+/** Whether the latest email went out. With no sends yet, email counts as working. */
+export function emailHealth(): EmailHealth {
+  const row = get<{ value: string }>("SELECT value FROM app_status WHERE key = 'email'");
+  try { return row ? (JSON.parse(row.value) as EmailHealth) : { ok: true, error: null, since: null }; } catch { return { ok: true, error: null, since: null }; }
+}
+
+async function sendViaProvider(m: { to: string; subject: string; text: string; replyTo?: string | null; attachments?: Attachment[] }): Promise<string | null> {
   if (smtpReady()) {
     try {
       await smtpTransport().sendMail({ from: fromAddress(), to: m.to, subject: m.subject, text: m.text, replyTo: m.replyTo ?? undefined, attachments: m.attachments });
