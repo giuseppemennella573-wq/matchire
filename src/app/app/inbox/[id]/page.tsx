@@ -16,6 +16,7 @@ export const metadata = { title: "Enquiry" };
 const PURPOSE_LABEL: Record<string, string> = {
   quote: "Quote", ask_info: "Asks for details", answer: "Answer", confirm: "Booking confirmation", unavailable: "Date unavailable",
   over_capacity: "Over capacity", referred: "Referral note", followup: "Follow-up", last_call: "Last call",
+  phone_reply: "from your WhatsApp app",
 };
 
 export default async function EnquiryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ msg?: string; error?: string }> }) {

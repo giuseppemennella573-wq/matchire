@@ -1,7 +1,7 @@
 import { after, type NextRequest } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { get } from "@/lib/db";
-import { ingest, processEnquiry } from "@/lib/engine";
+import { ingest, processEnquiry, recordPhoneReply } from "@/lib/engine";
 
 // WhatsApp Cloud API webhook. Meta calls GET once to verify the URL, then
 // POSTs every inbound message. We acknowledge at once and do the work after.
@@ -18,10 +18,12 @@ export async function GET(req: NextRequest) {
 }
 
 interface WaPayload {
-  entry?: { changes?: { value?: {
+  entry?: { changes?: { field?: string; value?: {
     metadata?: { phone_number_id?: string };
     contacts?: { wa_id?: string; profile?: { name?: string } }[];
     messages?: { from?: string; type?: string; text?: { body?: string }; button?: { text?: string }; interactive?: { button_reply?: { title?: string } } }[];
+    /** Messages the vendor sent from the WhatsApp Business app on a coexistence number. */
+    message_echoes?: { from?: string; to?: string; type?: string; text?: { body?: string } }[];
   } }[] }[];
 }
 
@@ -48,6 +50,15 @@ export async function POST(req: NextRequest) {
         ? get<{ id: number }>("SELECT id FROM vendors WHERE wa_phone_number_id = ?", value.metadata.phone_number_id)
         : undefined;
       const pnid = value?.metadata?.phone_number_id;
+      if (value?.message_echoes?.length) {
+        if (!vendor) { console.warn(`[whatsapp] phone reply for phone number ID ${pnid ?? "(none)"} ignored: no vendor has that ID`); continue; }
+        for (const m of value.message_echoes) {
+          if (!m.to || !m.text?.body) { console.log(`[whatsapp] ignored a ${m.type ?? "non-text"} reply sent from the app`); continue; }
+          const r = recordPhoneReply(vendor.id, m.to, m.text.body);
+          console.log(r ? `[whatsapp] vendor ${vendor.id} replied from their phone → enquiry ${r.enquiryId}` : `[whatsapp] vendor ${vendor.id} messaged +${m.to} from their phone (not an enquiry)`);
+        }
+        continue;
+      }
       if (!value?.messages?.length) continue; // delivery/read receipts and template updates
       if (!vendor) {
         console.warn(`[whatsapp] message for phone number ID ${pnid ?? "(none)"} ignored: no vendor has that ID in Settings`);

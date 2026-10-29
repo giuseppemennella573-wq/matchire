@@ -118,6 +118,39 @@ export function ingest(input: IngestInput): { enquiryId: number; isNew: boolean 
   });
 }
 
+/**
+ * The vendor replied to a planner from the WhatsApp Business app on their phone
+ * (a coexistence number: Meta sends a copy as an smb_message_echoes webhook).
+ * Their reply stands: it joins the conversation, any pending draft is dropped
+ * and follow-ups stop, so the planner never gets a second answer from Matchire.
+ * Chats that aren't an enquiry in Matchire are left alone.
+ */
+export function recordPhoneReply(vendorId: number, planner: string, text: string): { enquiryId: number } | null {
+  const body = text.trim();
+  const digits = planner.replace(/\D/g, "");
+  if (!body || !digits) return null;
+  return tx(() => {
+    const e = get<Enquiry>(
+      `SELECT * FROM enquiries WHERE vendor_id = ? AND channel = 'whatsapp' AND REPLACE(REPLACE(REPLACE(contact_handle, '+', ''), ' ', ''), '-', '') = ?
+       AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ','now','-60 days') ORDER BY id DESC LIMIT 1`,
+      vendorId, digits,
+    );
+    if (!e) return null;
+    const now = nowIso();
+    // Meta may also echo a message Matchire itself just sent; don't record it twice.
+    const dup = get("SELECT 1 FROM messages WHERE enquiry_id = ? AND direction = 'out' AND status IN ('sent','manual') AND body = ? AND COALESCE(sent_at, created_at) > strftime('%Y-%m-%dT%H:%M:%fZ','now','-10 minutes')", e.id, body);
+    if (dup) return { enquiryId: e.id };
+    run("INSERT INTO messages (enquiry_id, direction, body, status, purpose, created_at, sent_at) VALUES (?, 'out', ?, 'manual', 'phone_reply', ?, ?)", e.id, body, now, now);
+    run("UPDATE messages SET status = 'discarded' WHERE enquiry_id = ? AND status = 'draft'", e.id);
+    run(
+      `UPDATE enquiries SET first_response_at = COALESCE(first_response_at, ?), last_outbound_at = ?, next_followup_at = NULL, owner_reason = NULL,
+       status = CASE WHEN status = 'new' THEN 'awaiting_info' ELSE status END, updated_at = ? WHERE id = ?`,
+      now, now, now, e.id,
+    );
+    return { enquiryId: e.id };
+  });
+}
+
 // ---------- Understanding + drafting ----------
 
 function mergeDetails(prev: Details | null, next: Details): Details {
@@ -207,6 +240,7 @@ export interface ProcessResult {
 
 /** Understand the conversation so far, price it, and draft the next reply. */
 export async function processEnquiry(vendorId: number, enquiryId: number): Promise<ProcessResult> {
+  const startedAt = nowIso();
   const vendor = getVendor(vendorId);
   const e = getEnquiry(vendorId, enquiryId);
   if (!vendor || !e) throw new Error("Enquiry not found");
@@ -303,6 +337,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   const now = nowIso();
 
   const draftId = tx(() => {
+    // The vendor answered from their WhatsApp app while this reply was being drafted: theirs stands.
+    if (get("SELECT 1 FROM messages WHERE enquiry_id = ? AND purpose = 'phone_reply' AND created_at >= ?", enquiryId, startedAt)) return null;
     run("UPDATE messages SET status = 'discarded' WHERE enquiry_id = ? AND status = 'draft'", enquiryId);
     run(
       `UPDATE enquiries SET details = ?, quote = ?, lead = ?, event_date = ?, contact_name = COALESCE(contact_name, ?), owner_reason = ?,
@@ -317,6 +353,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
     return run("INSERT INTO messages (enquiry_id, direction, body, status, purpose, created_at) VALUES (?, 'out', ?, 'draft', ?, ?)", enquiryId, body, purpose, now);
   });
 
+  if (draftId === null) return { enquiryId, draftId, autoSent: false, ownerReason: null, usedAI };
   let autoSent = false;
   if (vendor.auto_send && !needsOwner) {
     const r = await sendDraft(vendorId, draftId);

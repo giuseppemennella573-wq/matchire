@@ -39,6 +39,8 @@ npm run typecheck
 
 **WhatsApp (Meta WhatsApp Cloud API).** Create an app in Meta for Developers with the WhatsApp product. Set the webhook URL to `https://<your-domain>/api/webhooks/whatsapp` with the verify token from `WHATSAPP_VERIFY_TOKEN`, and subscribe to `messages`. Set `WHATSAPP_APP_SECRET` so webhook signatures are checked. Each vendor enters their phone number ID and access token under **Settings**. WhatsApp only allows free-form replies within 24 hours of the planner's last message; later replies fail with a clear error and need to be sent from the phone.
 
+**Vendors replying from their phone (coexistence).** When a vendor's number is connected with coexistence, they keep using the WhatsApp Business app, and Meta sends a copy of each message they send from it. Subscribe the webhook to the `smb_message_echoes` field as well as `messages`. A reply from the phone joins the enquiry ("from your WhatsApp app"), drops any pending Matchire draft and stops follow-ups, so the planner never gets a second answer; it also wins if it arrives while a draft is being written. Chats with people who aren't an enquiry are ignored. See `recordPhoneReply()` in `src/lib/engine.ts`.
+
 **WhatsApp follow-ups and the 24-hour window.** The window runs from the planner's *last inbound* message. For each follow-up:
 
 1. If it's due at least an hour before the window closes, it goes out as normal free-form text.
