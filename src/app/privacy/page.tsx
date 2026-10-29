@@ -1,7 +1,7 @@
 import { Logo } from "@/components/logo";
 export const metadata = { title: "Privacy policy" };
 
-const UPDATED = "26 October 2026";
+const UPDATED = "29 October 2026";
 
 export default function Privacy() {
   return (
@@ -56,7 +56,7 @@ export default function Privacy() {
           <li><b>Render</b> hosts the application and its database.</li>
           <li><b>Meta (WhatsApp Business Platform)</b> carries WhatsApp messages between planners and vendors.</li>
           <li><b>Anthropic</b> provides the AI model that reads enquiries and drafts replies. Message content is sent to it for that purpose only.</li>
-          <li><b>Google Workspace</b> sends and receives our email.</li>
+          <li><b>Google Workspace</b> sends and receives our email, and keeps our daily database backups.</li>
         </ul>
         <p>These providers may process data outside Singapore. We use them under their business terms, which require them to protect the data.</p>
       </section>
@@ -90,6 +90,14 @@ export default function Privacy() {
       <section className="stack">
         <h2>Security</h2>
         <p>Data is sent over encrypted connections, passwords are hashed, and access to vendor data is limited to that vendor&apos;s account.</p>
+      </section>
+
+      <section className="stack">
+        <h2>Requests from authorities</h2>
+        <p>
+          We review every request from a public authority for legal validity, challenge requests we consider unlawful,
+          disclose only the minimum information required, and keep a record of each request and our response.
+        </p>
       </section>
 
       <section className="stack">
