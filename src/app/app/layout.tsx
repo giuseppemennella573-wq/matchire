@@ -3,7 +3,7 @@ import { get } from "@/lib/db";
 import { Nav } from "@/components/nav";
 import { logoutAction } from "../(auth)/actions";
 import { aiEnabled } from "@/lib/ai";
-import { countUncontacted, isAdmin } from "@/lib/early-access";
+import { accountsWaiting, countSignupsWaiting, isAdmin } from "@/lib/early-access";
 import { Logo } from "@/components/logo";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="shell">
       <aside className="side">
         <Logo href="/app" />
-        <Nav attention={attention} admin={isAdmin(user) ? { waiting: countUncontacted() } : null} />
+        <Nav attention={attention} admin={isAdmin(user) ? { signups: countSignupsWaiting(), accounts: accountsWaiting().length } : null} />
         <div className="side-foot">
           <b style={{ color: "var(--ink)" }}>{vendor.name}</b>
           <span>{user.email}</span>

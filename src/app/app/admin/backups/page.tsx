@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireVendor } from "@/lib/auth";
 import { isAdmin } from "@/lib/early-access";
@@ -23,7 +22,7 @@ export default async function Backups({ searchParams }: { searchParams: Promise<
     <div className="stack-lg">
       <div className="page-head">
         <div className="stack" style={{ gap: 6 }}>
-          <Link href="/app/admin" className="small muted">← Early access</Link>
+          <p className="eyebrow">Matchire admin</p>
           <h1>Backups</h1>
           <p className="muted">A full copy of the database is taken every day at 3 am Singapore time, kept here for 14 days, and emailed to <b>{backupTo()}</b> as an off-site copy.</p>
         </div>

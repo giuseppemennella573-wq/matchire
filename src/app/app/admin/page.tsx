@@ -1,36 +1,29 @@
 import { redirect } from "next/navigation";
 import { requireVendor } from "@/lib/auth";
-import { accountsWaiting, ALERT_TO, isAdmin, listAccounts, listSignups, whatsappLink } from "@/lib/early-access";
-import { kindLabel } from "@/lib/engine";
+import { ALERT_TO, isAdmin, listSignups, whatsappLink } from "@/lib/early-access";
 import { emailReady } from "@/lib/channels";
 import { formatDateTime } from "@/lib/dates";
-import { deleteAccountAction, deleteSignupAction, resendAlertAction, toggleAccountContactedAction, toggleContactedAction } from "./actions";
+import { deleteSignupAction, resendAlertAction, toggleContactedAction } from "./actions";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 
-export const metadata = { title: "Sign-ups" };
+export const metadata = { title: "Early access" };
 
 export default async function Admin({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string }> }) {
   const { user } = await requireVendor();
   if (!isAdmin(user)) redirect("/app");
   const { msg, error } = await searchParams;
   const rows = listSignups();
-  const accounts = listAccounts();
-  const newAccounts = new Set(accountsWaiting(accounts).map((a) => a.id));
   const waiting = rows.filter((r) => !r.contacted_at).length;
 
   return (
     <div className="stack-lg">
       <div className="page-head">
         <div className="stack" style={{ gap: 6 }}>
-          <p className="eyebrow">Admin</p>
-          <h1>Sign-ups</h1>
-          <p className="muted">
-            <b>{waiting}</b> early-access {waiting === 1 ? "request" : "requests"} and <b>{newAccounts.size}</b> new app {newAccounts.size === 1 ? "account" : "accounts"} waiting for you.
-            Both are emailed to <b>{ALERT_TO()}</b>.
-          </p>
+          <p className="eyebrow">Matchire admin</p>
+          <h1>Early access</h1>
+          <p className="muted"><b>{waiting}</b> {waiting === 1 ? "request" : "requests"} waiting for a reply. New requests are emailed to <b>{ALERT_TO()}</b>.</p>
         </div>
         <div className="row">
-          <a className="btn btn-ghost" href="/app/admin/backups">Backups</a>
           {rows.length > 0 && <a className="btn btn-ghost" href="/app/admin/csv">Download CSV</a>}
         </div>
       </div>
@@ -41,7 +34,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       )}
 
       <section className="card card-flush">
-        <div className="card-head"><h2>Early-access requests</h2><span className="small muted">{rows.length} total · {waiting} waiting · from the form on the landing page</span></div>
+        <div className="card-head"><h2>Requests</h2><span className="small muted">{rows.length} total · {waiting} waiting · from the form on the landing page</span></div>
         {rows.length === 0 ? <p className="empty">No sign-ups yet. They appear here as soon as someone submits the form on the landing page.</p> : (
           <div className="table-wrap">
             <table>
@@ -94,50 +87,6 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         )}
       </section>
 
-      <section className="card card-flush" id="accounts">
-        <div className="card-head">
-          <h2>App accounts</h2>
-          <span className="small muted">{accounts.length} total · {newAccounts.size} waiting · created at /signup, not through the early-access form</span>
-        </div>
-        {accounts.length === 0 ? <p className="empty">No accounts yet.</p> : (
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>Created</th><th>Who</th><th>Business</th><th>Email</th><th>Price list</th><th>Enquiries</th><th>Status</th><th /></tr></thead>
-              <tbody>
-                {accounts.map((a) => (
-                  <tr key={a.id} style={newAccounts.has(a.id) ? undefined : { opacity: 0.6 }}>
-                    <td className="small">{formatDateTime(a.created_at)}</td>
-                    <td><b>{a.name}</b>{newAccounts.has(a.id) && <> <span className="badge badge-brand">New</span></>}</td>
-                    <td>{a.business}<div className="small muted">{kindLabel(a.kind)}</div></td>
-                    <td className="small"><a href={`mailto:${a.email}`}>{a.email}</a></td>
-                    <td className="small">{a.live_items ? `${a.live_items} live items` : <span className="muted">Not set up</span>}</td>
-                    <td className="small mono">{a.enquiries}</td>
-                    <td>
-                      {isAdmin(a) ? <span className="small muted">Admin</span> : (
-                        <form action={toggleAccountContactedAction}>
-                          <input type="hidden" name="id" value={a.id} />
-                          <input type="hidden" name="contacted" value={a.admin_contacted_at ? "0" : "1"} />
-                          <button className={`btn btn-sm ${a.admin_contacted_at ? "btn-ghost" : "btn-primary"}`} type="submit">
-                            {a.admin_contacted_at ? "Contacted ✓" : "Mark contacted"}
-                          </button>
-                        </form>
-                      )}
-                    </td>
-                    <td>
-                      {!isAdmin(a) && (
-                        <form action={deleteAccountAction}>
-                          <input type="hidden" name="id" value={a.id} />
-                          <ConfirmSubmit message={`Delete ${a.business} (${a.email})? This removes the account and everything in it: price list, enquiries, calendar, partners and referrals. Their login stops working. This can't be undone.`}>Delete</ConfirmSubmit>
-                        </form>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
     </div>
   );
 }

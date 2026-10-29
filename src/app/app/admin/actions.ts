@@ -29,7 +29,7 @@ export async function toggleAccountContactedAction(form: FormData) {
   await requireAdmin();
   setAccountContacted(signupId(form), form.get("contacted") === "1");
   revalidatePath("/app", "layout");
-  redirect("/app/admin#accounts");
+  redirect("/app/admin/accounts");
 }
 
 export async function deleteAccountAction(form: FormData) {
@@ -42,7 +42,7 @@ export async function deleteAccountAction(form: FormData) {
     kind = "error";
   }
   revalidatePath("/app", "layout");
-  redirect(`/app/admin?${kind}=${encodeURIComponent(msg)}#accounts`);
+  redirect(`/app/admin/accounts?${kind}=${encodeURIComponent(msg)}`);
 }
 
 export async function deleteSignupAction(form: FormData) {

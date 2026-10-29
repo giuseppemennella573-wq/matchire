@@ -120,7 +120,7 @@ export async function notifyNewAccount(userId: number): Promise<string | null> {
         `Email:     ${a.email}`,
         `Created:   ${formatDateTime(a.created_at)} SGT`,
         "",
-        appUrl ? `All accounts: ${appUrl}/app/admin#accounts` : "",
+        appUrl ? `All accounts: ${appUrl}/app/admin/accounts` : "",
       ].join("\n").trim(),
     });
   } catch (e) {
@@ -156,9 +156,11 @@ export function deleteAccount(userId: number): { business: string } {
 }
 
 export const listSignups = () => all<Signup>("SELECT * FROM early_access ORDER BY id DESC");
+export const countSignupsWaiting = () => get<{ n: number }>("SELECT COUNT(*) n FROM early_access WHERE contacted_at IS NULL")?.n ?? 0;
+
 /** Everything waiting for the admin: early-access requests and new app accounts not yet marked contacted. */
 export const countUncontacted = () =>
-  (get<{ n: number }>("SELECT COUNT(*) n FROM early_access WHERE contacted_at IS NULL")?.n ?? 0) + accountsWaiting().length;
+  countSignupsWaiting() + accountsWaiting().length;
 
 export function deleteSignup(id: number) {
   run("DELETE FROM early_access WHERE id = ?", id);
