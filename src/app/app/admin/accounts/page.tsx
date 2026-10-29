@@ -3,7 +3,7 @@ import { requireVendor } from "@/lib/auth";
 import { accountsWaiting, ALERT_TO, isAdmin, listAccounts } from "@/lib/early-access";
 import { kindLabel } from "@/lib/engine";
 import { formatDateTime } from "@/lib/dates";
-import { deleteAccountAction, toggleAccountContactedAction } from "../actions";
+import { deleteAccountAction, sendResetLinkAction, toggleAccountContactedAction } from "../actions";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 
 export const metadata = { title: "Accounts" };
@@ -35,7 +35,7 @@ export default async function Accounts({ searchParams }: { searchParams: Promise
         {accounts.length === 0 ? <p className="empty">No accounts yet.</p> : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Created</th><th>Who</th><th>Business</th><th>Email</th><th>Price list</th><th>Enquiries</th><th>Status</th><th /></tr></thead>
+              <thead><tr><th>Created</th><th>Who</th><th>Business</th><th>Email</th><th>Price list</th><th>Enquiries</th><th>Status</th><th /><th /></tr></thead>
               <tbody>
                 {accounts.map((a) => (
                   <tr key={a.id} style={newAccounts.has(a.id) ? undefined : { opacity: 0.6 }}>
@@ -55,6 +55,12 @@ export default async function Accounts({ searchParams }: { searchParams: Promise
                           </button>
                         </form>
                       )}
+                    </td>
+                    <td>
+                      <form action={sendResetLinkAction}>
+                        <input type="hidden" name="id" value={a.id} />
+                        <button className="btn btn-ghost btn-sm" type="submit" title={`Email ${a.email} a link to choose a new password`}>Send reset link</button>
+                      </form>
                     </td>
                     <td>
                       {!isAdmin(a) && (

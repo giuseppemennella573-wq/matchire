@@ -7,6 +7,8 @@ import { createAccount, createSession, deleteSession, login } from "@/lib/accoun
 import { SESSION_COOKIE, setSessionCookie } from "@/lib/auth";
 import type { VendorKind } from "@/lib/types";
 import { notifyNewAccount } from "@/lib/early-access";
+import { requestPasswordReset, resetPassword } from "@/lib/password-reset";
+import { appUrl } from "@/lib/app-url";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 
@@ -48,4 +50,23 @@ export async function logoutAction() {
   if (t) deleteSession(t);
   jar.delete(SESSION_COOKIE);
   redirect("/login");
+}
+
+export async function forgotPasswordAction(form: FormData) {
+  const email = str(form, "email");
+  if (email) {
+    const result = await requestPasswordReset(email, appUrl());
+    if (result !== "sent" && result !== "no_account") console.warn(`[password-reset] not sent: ${result}`);
+  }
+  // Same answer whether or not the address has an account.
+  redirect("/forgot?sent=1");
+}
+
+export async function resetPasswordAction(form: FormData) {
+  const t = str(form, "token");
+  const password = String(form.get("password") ?? "");
+  if (password !== String(form.get("confirm") ?? "")) redirect(`/reset/${encodeURIComponent(t)}?error=${encodeURIComponent("The two passwords don't match.")}`);
+  const r = resetPassword(t, password);
+  if (!r.ok) redirect(`/reset/${encodeURIComponent(t)}?error=${encodeURIComponent(r.error)}`);
+  redirect(`/login?msg=${encodeURIComponent("Password updated. Log in with your new password.")}`);
 }

@@ -2,7 +2,7 @@ import { requireVendor } from "@/lib/auth";
 import { VENDOR_KINDS } from "@/lib/types";
 import { aiEnabled } from "@/lib/ai";
 import { emailReady, inboundAddress, whatsappReady } from "@/lib/channels";
-import { rotateInboundTokenAction, saveSettingsAction } from "../actions";
+import { changePasswordAction, rotateInboundTokenAction, saveSettingsAction } from "../actions";
 import { CopyButton } from "@/components/copy-button";
 
 export const metadata = { title: "Settings" };
@@ -114,6 +114,17 @@ export default async function Settings({ searchParams }: { searchParams: Promise
         <Copyable value={`${url}/e/${v.slug}`} />
         <p className="small muted">To embed it on your site:</p>
         <Copyable value={`<iframe src="${url}/e/${v.slug}?embed=1" style="width:100%;height:640px;border:0" title="Enquire with ${v.name}"></iframe>`} />
+      </section>
+
+      <section className="card stack" id="password">
+        <h2>Password</h2>
+        <form action={changePasswordAction} className="stack" style={{ maxWidth: 420 }}>
+          <label className="field"><span>Current password</span><input name="current_password" type="password" required autoComplete="current-password" /></label>
+          <label className="field"><span>New password</span><input name="new_password" type="password" required minLength={8} autoComplete="new-password" /></label>
+          <label className="field"><span>Type the new password again</span><input name="confirm_password" type="password" required minLength={8} autoComplete="new-password" /></label>
+          <div><button className="btn btn-ghost" type="submit">Change password</button></div>
+        </form>
+        <p className="small muted">Forgot it? Log out and use &quot;Forgot your password?&quot; on the login page.</p>
       </section>
 
       <section className="card stack" id="ai">

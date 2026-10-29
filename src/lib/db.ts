@@ -145,6 +145,15 @@ CREATE TABLE IF NOT EXISTS backups (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
+CREATE TABLE IF NOT EXISTS password_resets (
+  token_hash TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS password_resets_user ON password_resets(user_id);
+
 CREATE TABLE IF NOT EXISTS early_access (
   id INTEGER PRIMARY KEY,
   name TEXT, business TEXT, vendor_type TEXT, enquiries_per_week TEXT,

@@ -5,6 +5,9 @@ import { revalidatePath } from "next/cache";
 import { requireVendor } from "@/lib/auth";
 import { deleteAccount, deleteSignup, isAdmin, notifySignup, setAccountContacted, setContacted } from "@/lib/early-access";
 import { createBackup } from "@/lib/backup";
+import { get } from "@/lib/db";
+import { requestPasswordReset } from "@/lib/password-reset";
+import { appUrl } from "@/lib/app-url";
 import { emailReady } from "@/lib/channels";
 
 async function requireAdmin() {
@@ -71,4 +74,14 @@ export async function resendAlertAction(form: FormData) {
   await requireAdmin();
   const error = await notifySignup(signupId(form));
   redirect(`/app/admin?${error ? "error" : "msg"}=${encodeURIComponent(error ?? "Alert email sent.")}`);
+}
+
+export async function sendResetLinkAction(form: FormData) {
+  await requireAdmin();
+  const u = get<{ email: string }>("SELECT email FROM users WHERE id = ?", signupId(form));
+  const result = u ? await requestPasswordReset(u.email, appUrl()) : "Account not found";
+  const msg = result === "sent" ? `Reset link sent to ${u!.email}. It expires in 1 hour.`
+    : result === "rate_limited" ? "Three reset links were already sent in the last hour. Try again later."
+    : `Couldn't send the reset link: ${result}`;
+  redirect(`/app/admin/accounts?${result === "sent" ? "msg" : "error"}=${encodeURIComponent(msg)}`);
 }

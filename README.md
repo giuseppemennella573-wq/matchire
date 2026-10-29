@@ -108,6 +108,12 @@ Restoring replaces all data with the backup's contents; anything since then is l
 
 To restore from an emailed copy, upload the `.db.gz` to the server first (or ask for an upload-and-restore button).
 
+## Passwords
+
+Anyone can reset their own password from **Forgot your password?** on the login page: Matchire emails a one-time link that expires after an hour (only its hash is stored), and setting a new password logs the account out everywhere. Logged-in users can change it under **Settings → Password**, and admins can email anyone a reset link from **Matchire admin → Accounts**. Links use `APP_URL`, so it must be set in production.
+
+If email isn't working, reset a password from the server: in Render, open the service's **Shell** and run `node scripts/set-password.mjs you@example.com`, then type the new password when asked.
+
 ## Code map
 
 ```

@@ -7,6 +7,9 @@ import { get, run } from "@/lib/db";
 import * as E from "@/lib/engine";
 import { aiEnabled, aiImportPriceList } from "@/lib/ai";
 import { addItems, token } from "@/lib/accounts";
+import { changePassword } from "@/lib/password-reset";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE } from "@/lib/auth";
 import { isValidIsoDate } from "@/lib/dates";
 import type { Channel, Item, VendorKind } from "@/lib/types";
 
@@ -270,4 +273,14 @@ export async function rotateInboundTokenAction() {
 
 function isRedirect(e: unknown): boolean {
   return typeof e === "object" && e !== null && "digest" in e && String((e as { digest: unknown }).digest).startsWith("NEXT_REDIRECT");
+}
+
+export async function changePasswordAction(form: FormData) {
+  const { user } = await requireVendor();
+  const next = String(form.get("new_password") ?? "");
+  if (next !== String(form.get("confirm_password") ?? "")) back("/app/settings", "The two new passwords don't match.", "error");
+  const session = (await cookies()).get(SESSION_COOKIE)?.value;
+  const error = changePassword(user.id, String(form.get("current_password") ?? ""), next, session);
+  if (error) back("/app/settings", error, "error");
+  back("/app/settings", "Password changed. You've been logged out on other devices.");
 }
