@@ -210,3 +210,6 @@ code, .code { font-family: var(--f-mono); font-size: .82rem; background: var(--p
 .import-first { padding: 28px; border: 1.5px solid var(--brand); background: var(--brand-soft); }
 .import-first h2 { font-size: 1.5rem; }
 .import-first textarea, .import-first input[type="file"] { background: var(--card); }
+
+/* Brief mode: the brief on an enquiry */
+.brief { margin: 0; white-space: pre-wrap; font-family: var(--f-mono); font-size: .78rem; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; overflow-wrap: anywhere; }

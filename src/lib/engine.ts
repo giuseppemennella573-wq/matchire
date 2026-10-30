@@ -5,10 +5,11 @@ import { buildQuote, allowedAmounts, unknownAmounts, fmtMoney } from "./pricing.
 import { parseEnquiry } from "./heuristics.ts";
 import { aiEnabled, aiExtract, aiDraft, type DraftFacts } from "./ai.ts";
 import { formatDate, formatDateTime, sgToday } from "./dates.ts";
-import { deliver, deliverTemplate, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
+import { deliver, deliverTemplate, sendRawEmail, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
 import { maybeDailyBackup } from "./backup.ts";
 import { asksPrice, qualification, qualifyQuestion, requiredFields } from "./qualify.ts";
 import { fishingSignal } from "./fishing.ts";
+import { briefAsks, briefText, buildBrief, type Brief } from "./brief.ts";
 
 // The booking desk. An enquiry flows: ingest → understand → quote → draft →
 // (approve) → send → hold the date → follow up → booked / lost / expired.
@@ -152,6 +153,8 @@ export function recordPhoneReply(vendorId: number, planner: string, text: string
        status = CASE WHEN status = 'new' THEN 'awaiting_info' ELSE status END, updated_at = ? WHERE id = ?`,
       now, now, now, e.id,
     );
+    // Brief mode: a priced reply from the vendor's phone is their quote.
+    if (e.brief_status === "waiting" && looksLikeQuote(body)) markBriefQuoted(vendorId, e.id, now);
     return { enquiryId: e.id };
   });
 }
@@ -208,6 +211,7 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
     case "confirm":
       return `${hi}Wonderful, thank you! 🎉 We'd love to have you on ${when || "your date"}.${f.quote ? `\n\nTotal: ${fmtMoney(f.quote.total)}` : ""}\n\n${f.depositNote || "I'll send the deposit details shortly to lock in your booking."}${sign}`;
     case "followup":
+      if (!f.quote && f.quoteSent) return `${hi}Just checking in on the quote for ${when || "your event"}. Happy to adjust anything, or answer any questions.${sign}`;
       if (!f.quote) return `${hi}Just checking in about ${when || "your event"}. Whenever you're ready, share a few details and I'll send you exact pricing.${sign}`;
       return `${hi}Just checking in on the quote for ${when || "your event"}${f.quote ? ` (${fmtMoney(f.quote.total)})` : ""}. Happy to adjust anything, or answer any questions. Shall I keep the date for you?${sign}`;
     case "last_call":
@@ -216,6 +220,17 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
       // No price yet, not even a "from" price: ask for what's needed to quote.
       const priced = f.askedPrice ? "Happy to send exact pricing! " : "I'd love to help. ";
       return `${hi}Thanks for reaching out to ${vendor.name} 😊\n\n${priced}${f.missing[0] ?? "What's the date?"}${sign}`;
+    }
+    case "brief": {
+      // The vendor writes this quote. Never a price here, not even a range.
+      let r = `${hi}Thanks for all the details! ${vendor.name} will send you a tailored quote within ${f.briefHours ?? 24} hours.`;
+      if (f.holdHours && when) r += ` I've pencilled in ${when} for you in the meantime.`;
+      // Missing details read as "could you share X and Y?"; the vendor's own questions are asked as written.
+      const share = f.missing.filter((q) => !q.endsWith("?"));
+      const own = f.missing.filter((q) => q.endsWith("?"));
+      if (share.length) r += `\n\nTo tailor it, could you share ${share.join(" and ")}?`;
+      if (own.length) r += `${share.length ? " " : "\n\n"}${own.join(" ")}`;
+      return r + sign;
     }
     case "answer":
     case "ask_info":
@@ -332,7 +347,9 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   // No price until the enquiry is qualified (or the vendor said "Send price anyway").
   const qual = qualification(details, requiredFields(vendor.qualify_fields));
   const quotable = qual.qualified || !!e.price_override;
-  const quote = pkg && quotable ? buildQuote({ vendor, pkg, addons, hours: details.hours, pax: details.pax, date: details.event_date, slot: details.slot }) : null;
+  // Brief mode (for the vendor, or for an item marked "Always quote manually"): the vendor writes the quote.
+  const briefMode = vendor.pricing_mode === "brief" || [pkg, ...addons].some((i) => i?.manual_quote);
+  const quote = pkg && quotable && !briefMode ? buildQuote({ vendor, pkg, addons, hours: details.hours, pax: details.pax, date: details.event_date, slot: details.slot }) : null;
   const avail = details.event_date ? availability(vendor, details.event_date, enquiryId) : null;
   const available = avail ? avail.available : null;
   const overCap = Boolean(vendor.capacity && details.pax && details.pax > vendor.capacity);
@@ -345,6 +362,11 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   else if (overCap) { purpose = "over_capacity"; reasons.push(`${details.pax} guests is over your ${vendor.capacity} capacity. Consider referring to a partner.`); }
   else if (available === false && !details.date_is_approximate) { purpose = "unavailable"; reasons.push(`You're fully booked on ${formatDate(details.event_date)}. Offer another date or refer to a partner.`); }
   else if (!quotable) purpose = "qualify";
+  else if (briefMode) {
+    purpose = e.brief_status ? "answer" : "brief";
+    if (e.brief_status === "waiting") reasons.push(`Brief mode: the planner is waiting for your tailored quote${e.brief_due_at ? ` (promised by ${formatDateTime(e.brief_due_at)})` : ""}.`);
+    else if (e.brief_status === "quoted") reasons.push("Brief mode: you wrote this quote, so Matchire won't add prices. Check the reply.");
+  }
   else if (!pkg) { purpose = "ask_info"; reasons.push("No package on your price list fits this enquiry."); }
   else if (missing.length) purpose = "ask_info";
   else if (!isFirst && details.intent === "question") purpose = "answer";
@@ -356,13 +378,17 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   const partnerSuggestions = shared.map((s) => s.view);
   const partnerPrices = shared.flatMap((s) => (s.price != null ? [s.price] : []));
 
-  const willHold = purpose === "quote" && available === true && !details.date_is_approximate && missing.length === 0;
+  // A brief holds the date as soon as it's free; a quote waits until nothing's missing.
+  const willHold = available === true && !details.date_is_approximate && (purpose === "brief" || (purpose === "quote" && missing.length === 0));
   const facts: DraftFacts = {
     purpose,
     details,
     quote,
     available,
-    missing: purpose === "qualify" ? [qualifyQuestion(qual.missing)] : missing,
+    missing: purpose === "qualify" ? [qualifyQuestion(qual.missing)]
+      : purpose === "brief" ? briefAsks(details, vendor, msgs.filter((m) => m.direction === "out" && m.status !== "draft").map((m) => m.body))
+      : missing,
+    briefHours: vendor.brief_hours,
     askedPrice: purpose === "qualify" && inbound.some((m) => asksPrice(m.body)),
     holdHours: willHold ? vendor.hold_hours : null,
     partnerSuggestions,
@@ -380,8 +406,9 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   if (usedAI) {
     try {
       // Before qualifying, the AI doesn't see the price list, and any amount at all sends it back to the template.
-      const draft = await aiDraft({ vendor, items: purpose === "qualify" ? [] : items, messages: msgs, facts });
-      const allowed = draftAllowedAmounts(purpose, quote, items, [...partnerPrices, details.budget ?? 0, vendor.min_spend]);
+      const noPrices = purpose === "qualify" || briefMode;
+      const draft = await aiDraft({ vendor, items: noPrices ? [] : items.filter((i) => !i.manual_quote), messages: msgs, facts });
+      const allowed = draftAllowedAmounts(noPrices ? "qualify" : purpose, quote, items, [...partnerPrices, details.budget ?? 0, vendor.min_spend]);
       const bad = unknownAmounts(draft.reply, allowed);
       if (bad.length) {
         reasons.push(`The AI draft mentioned prices not on your list (${bad.map(fmtMoney).join(", ")}), so Matchire used the standard template instead.`);
@@ -410,6 +437,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
       JSON.stringify(details), quote ? JSON.stringify(quote) : null, lead, details.event_date, details.contact_name,
       needsOwner ? reasons.join(" ") || "Check this reply before it goes out." : null, details.intent, now, enquiryId,
     );
+    if (purpose === "brief") run("UPDATE enquiries SET brief = ? WHERE id = ?", JSON.stringify(buildBrief(e, details, msgs, vendor, null, null)), enquiryId);
     if (details.intent === "declines") {
       run("UPDATE holds SET status = 'released' WHERE enquiry_id = ? AND status = 'active' AND kind = 'hold'", enquiryId);
       run("UPDATE enquiries SET next_followup_at = NULL WHERE id = ?", enquiryId);
@@ -475,7 +503,53 @@ export async function sendDraft(vendorId: number, messageId: number, opts: { bod
     afterSend(vendor, e, m.purpose ?? "quote", now);
   });
   if (opts.markBooked && result.status === "sent") markBooked(vendorId, e.id);
+  if (result.status === "sent") await afterSendAsync(vendor, e.id, m.purpose ?? "quote", body, now);
   return result;
+}
+
+/** What happens after a reply goes out that needs the network: the brief email, or spotting a quote the vendor wrote. */
+async function afterSendAsync(vendor: Vendor, enquiryId: number, purpose: string, body: string, now: string) {
+  const e = getEnquiry(vendor.id, enquiryId)!;
+  if (purpose === "brief") await notifyVendor(vendor, e, "brief");
+  else if (e.brief_status === "waiting" && looksLikeQuote(body)) markBriefQuoted(vendor.id, e.id, now);
+}
+
+/** A reply the vendor wrote with an amount in it ("SGD 1,200") is their quote. */
+const looksLikeQuote = (body: string) => unknownAmounts(body, new Set()).length > 0;
+
+/** Brief mode: the vendor sent their quote ("Quote sent", or a reply with a price). Follow-ups start now. */
+export function markBriefQuoted(vendorId: number, enquiryId: number, now = nowIso()) {
+  const vendor = getVendor(vendorId)!;
+  const e = getEnquiry(vendorId, enquiryId);
+  if (!e) throw new Error("Enquiry not found");
+  const hold = get<{ id: number }>("SELECT id FROM holds WHERE enquiry_id = ? AND status = 'active' AND kind = 'hold'", e.id);
+  const nudge = hoursFrom(now, hold ? Math.min(vendor.followup_days * 24, vendor.hold_hours / 2) : vendor.followup_days * 24);
+  run(
+    "UPDATE enquiries SET brief_status = 'quoted', status = 'quoted', followup_stage = 0, next_followup_at = ?, owner_reason = NULL, last_outbound_at = COALESCE(last_outbound_at, ?), updated_at = ? WHERE id = ?",
+    nudgeTime(vendor, e, now, nudge), now, now, e.id,
+  );
+}
+
+/** Email the vendor their brief (or a reminder that the quote is due). Demo accounts only pretend. */
+export async function notifyVendor(vendor: Vendor, e: Enquiry, kind: "brief" | "reminder"): Promise<string | null> {
+  const b: Brief | null = e.brief ? JSON.parse(e.brief) : null;
+  if (!b) return null;
+  const who = b.client;
+  const subject = kind === "brief" ? `New brief: ${who}${b.date ? `, ${formatDate(b.date)}` : ""}` : `Quote due: ${who}${b.date ? `, ${formatDate(b.date)}` : ""}`;
+  const intro = kind === "brief"
+    ? `Matchire told ${who} you'll send a tailored quote${b.dueAt ? ` by ${formatDateTime(b.dueAt)}` : ""}. Here's the brief.`
+    : `You promised ${who} a tailored quote by ${formatDateTime(b.dueAt)}, and it hasn't gone out yet.`;
+  const link = `${(process.env.APP_URL || "https://app.matchire.ai").replace(/\/$/, "")}/app/inbox/${e.id}`;
+  const text = `${intro}\n\n${briefText(b)}\n\nOpen it: ${link}\nWhen you've sent your quote, press "Quote sent" so the follow-ups start.`;
+  const to = all<{ email: string }>("SELECT email FROM users WHERE vendor_id = ?", vendor.id).map((u) => u.email);
+  if (vendor.is_demo) {
+    console.log(`[demo] demo: not sent (${kind} email, enquiry ${e.id})`);
+    return null;
+  }
+  let error: string | null = null;
+  for (const addr of to) error = (await sendRawEmail({ to: addr, subject, text }).catch((x) => (x instanceof Error ? x.message : String(x)))) ?? error;
+  if (error) console.warn(`[brief] ${kind} email for enquiry ${e.id} failed: ${error}`);
+  return error;
 }
 
 const hoursFrom = (iso: string, h: number) => new Date(new Date(iso).getTime() + h * 3600_000).toISOString();
@@ -562,6 +636,21 @@ function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string) {
       run("UPDATE enquiries SET status = 'quoted', followup_stage = 0, next_followup_at = ? WHERE id = ?", nudgeTime(vendor, e, now, nudge), e.id);
       break;
     }
+    case "brief": {
+      const exact = d.event_date && !d.date_is_approximate;
+      let hold: Hold | null = get<Hold>("SELECT * FROM holds WHERE enquiry_id = ? AND status = 'active'", e.id) ?? null;
+      if (exact && !hold && availability(vendor, d.event_date!, e.id).available) {
+        const id = run("INSERT INTO holds (vendor_id, enquiry_id, date, kind, note, expires_at) VALUES (?, ?, ?, 'hold', ?, ?)",
+          vendor.id, e.id, d.event_date!, e.contact_name || d.contact_name || "Enquiry", hoursFrom(now, vendor.hold_hours));
+        hold = get<Hold>("SELECT * FROM holds WHERE id = ?", id)!;
+      }
+      const due = hoursFrom(now, vendor.brief_hours);
+      const brief = buildBrief(e, d, getMessages(e.id), vendor, hold, due);
+      // No planner follow-ups until the vendor's quote is out; the vendor gets reminded instead.
+      run("UPDATE enquiries SET status = 'awaiting_info', brief = ?, brief_status = 'waiting', brief_due_at = ?, brief_reminded_at = NULL, next_followup_at = NULL WHERE id = ?", JSON.stringify(brief), due, e.id);
+      run("INSERT INTO messages (enquiry_id, direction, body, status, created_at) VALUES (?, 'note', ?, 'sent', ?)", e.id, `Brief for your quote (due ${formatDateTime(due)}):\n\n${briefText(brief)}`, now);
+      break;
+    }
     case "ask_info":
     case "qualify":
       run("UPDATE enquiries SET status = 'awaiting_info', followup_stage = 0, next_followup_at = ? WHERE id = ?", nudgeTime(vendor, e, now, followup), e.id);
@@ -595,11 +684,14 @@ export function markDraftSentManually(vendorId: number, messageId: number, body?
   const vendor = getVendor(vendorId)!;
   const e = getEnquiry(vendorId, m.enquiry_id)!;
   const now = nowIso();
+  const text = (body ?? m.body).trim();
   tx(() => {
-    run("UPDATE messages SET body = ?, status = 'manual', error = NULL, sent_at = ? WHERE id = ?", (body ?? m.body).trim(), now, messageId);
+    run("UPDATE messages SET body = ?, status = 'manual', error = NULL, sent_at = ? WHERE id = ?", text, now, messageId);
     run("UPDATE enquiries SET first_response_at = COALESCE(first_response_at, ?), last_outbound_at = ?, owner_reason = NULL, updated_at = ? WHERE id = ?", now, now, now, e.id);
     afterSend(vendor, e, m.purpose ?? "quote", now);
   });
+  // The state above is already saved; this only sends the brief email (await it to know it went).
+  return afterSendAsync(vendor, e.id, m.purpose ?? "quote", text, now);
 }
 
 export function discardDraft(vendorId: number, messageId: number) {
@@ -760,7 +852,7 @@ export async function tick(now: string = nowIso()) {
       const template = route.kind === "template" ? route.template : null;
       const body = template?.body ?? templateDraft(vendor, {
         purpose, details: parseDetails(e), quote: parseQuote(e), available: null, missing: [], holdHours: null,
-        partnerSuggestions: [], referredTo: null, depositNote: "",
+        partnerSuggestions: [], referredTo: null, depositNote: "", quoteSent: e.status === "quoted",
       });
       const id = run("INSERT INTO messages (enquiry_id, direction, body, status, purpose, template) VALUES (?, 'out', ?, 'draft', ?, ?)", e.id, body, purpose, template ? JSON.stringify(template) : null);
       followups++;
@@ -769,6 +861,15 @@ export async function tick(now: string = nowIso()) {
       else if (vendor.auto_send && !e.fishing_reason) await sendDraft(vendor.id, id, { now }).catch(() => null);
       else if (e.fishing_reason) run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", `Possible price-fishing: ${e.fishing_reason}. Check this follow-up before it goes out.`, e.id);
       else run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", purpose === "followup" ? "Follow-up ready: the planner hasn't replied." : "Last call before the hold expires.", e.id);
+    }
+    // Brief mode: remind the vendor (never the planner) when a promised quote is late.
+    const late = all<Enquiry>("SELECT * FROM enquiries WHERE brief_status = 'waiting' AND brief_due_at IS NOT NULL AND brief_due_at <= ? AND brief_reminded_at IS NULL", now);
+    for (const e of late) {
+      const vendor = getVendor(e.vendor_id);
+      if (!vendor) continue;
+      run("UPDATE enquiries SET brief_reminded_at = ?, owner_reason = ? WHERE id = ?", now, `Your tailored quote was due ${formatDateTime(e.brief_due_at)}. Send it, then press "Quote sent".`, e.id);
+      run("INSERT INTO messages (enquiry_id, direction, body, status, created_at) VALUES (?, 'note', ?, 'sent', ?)", e.id, `Reminder: the quote you promised was due ${formatDateTime(e.brief_due_at)}.`, now);
+      await notifyVendor(vendor, e, "reminder").catch(() => null);
     }
     // The day's backup, once it's past 3 am in Singapore.
     const backup = await maybeDailyBackup(new Date(now)).catch((e) => {

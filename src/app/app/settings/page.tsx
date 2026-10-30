@@ -217,6 +217,15 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                   <label key={f.id} className="check"><input type="checkbox" name={`qualify_${f.id}`} defaultChecked={requiredFields(v.qualify_fields).includes(f.id)} /><span>{f.label}</span></label>
                 ))}
               </fieldset>
+              <fieldset className="stack" style={{ border: 0, padding: 0, margin: "8px 0 0", gap: 8 }}>
+                <legend className="small" style={{ fontWeight: 700, marginBottom: 6 }}>How should Matchire handle pricing?</legend>
+                <label className="check"><input type="radio" name="pricing_mode" value="quote" defaultChecked={v.pricing_mode !== "brief"} /><span><b>Quote from my price list.</b> <span className="muted">Matchire prices each enquiry from your packages once it has the details above.</span></span></label>
+                <label className="check"><input type="radio" name="pricing_mode" value="brief" defaultChecked={v.pricing_mode === "brief"} /><span><b>Brief mode: qualify and send me a brief, I&apos;ll write the quote.</b> <span className="muted">For custom work. Matchire asks the questions, holds the date and emails you a brief; it never quotes, not even a range. You can also mark single items &quot;Always quote manually&quot; on your price list.</span></span></label>
+              </fieldset>
+              <div className="grid2">
+                <label className="field"><span>Brief mode: I&apos;ll send my quote within (hours)</span><input name="brief_hours" type="number" min="1" max="168" defaultValue={v.brief_hours} /></label>
+              </div>
+              <label className="field"><span>Brief mode: my own questions, one per line (optional)</span><textarea name="brief_questions" rows={3} defaultValue={v.brief_questions} placeholder={"Indoor or outdoor?\nDo you have a colour scheme?"} /></label>
               <p className="small muted">Matchire never sends a price, range or &quot;from&quot; price until it has these. Leave the others unticked to quote once it has the date plus any one of guest count, venue, duration or event type. You can always choose &quot;Send price anyway&quot; on an enquiry.</p>
             </section>
             <section className="card stack">

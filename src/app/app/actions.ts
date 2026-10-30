@@ -101,6 +101,7 @@ export async function outcomeAction(form: FormData) {
   else if (intent === "reopen") E.reopen(vendor.id, eid);
   else if (intent === "reprocess") await E.processEnquiry(vendor.id, eid);
   else if (intent === "clear_flag") E.clearFishingFlag(vendor.id, eid);
+  else if (intent === "quote_sent") E.markBriefQuoted(vendor.id, eid);
   revalidatePath("/app", "layout");
   redirect(`/app/inbox/${eid}`);
 }
@@ -140,15 +141,15 @@ export async function saveItemAction(form: FormData) {
   if (!name || price == null || price < 0) back("/app/prices", "Every item needs a name and a price.", "error");
   const pricing = (["flat", "per_hour", "per_pax"].includes(str(form, "pricing")) ? str(form, "pricing") : "flat") as Item["pricing"];
   const kind = str(form, "kind") === "addon" ? "addon" : "package";
-  const vals = [kind, name, str(form, "description"), pricing, price, num(form, "included_hours"), num(form, "extra_hour_price"), num(form, "min_pax"), num(form, "max_pax"), form.get("active") === "on" ? 1 : 0] as const;
+  const vals = [kind, name, str(form, "description"), pricing, price, num(form, "included_hours"), num(form, "extra_hour_price"), num(form, "min_pax"), num(form, "max_pax"), form.get("active") === "on" ? 1 : 0, form.get("manual_quote") === "on" ? 1 : 0] as const;
   if (itemId) {
     run(
-      `UPDATE items SET kind = ?, name = ?, description = ?, pricing = ?, price = ?, included_hours = ?, extra_hour_price = ?, min_pax = ?, max_pax = ?, active = ? WHERE id = ? AND vendor_id = ?`,
+      `UPDATE items SET kind = ?, name = ?, description = ?, pricing = ?, price = ?, included_hours = ?, extra_hour_price = ?, min_pax = ?, max_pax = ?, active = ?, manual_quote = ? WHERE id = ? AND vendor_id = ?`,
       ...vals, itemId, vendor.id,
     );
   } else {
     run(
-      `INSERT INTO items (kind, name, description, pricing, price, included_hours, extra_hour_price, min_pax, max_pax, active, vendor_id, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 99)`,
+      `INSERT INTO items (kind, name, description, pricing, price, included_hours, extra_hour_price, min_pax, max_pax, active, manual_quote, vendor_id, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 99)`,
       ...vals, vendor.id,
     );
   }

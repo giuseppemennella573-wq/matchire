@@ -81,6 +81,7 @@ const DetailsSchema = z.object({
   budget: z.number().nullable().describe("Budget in SGD; '3k' means 3000"),
   event_type: z.enum(["wedding", "birthday", "corporate", "launch", "private_party", "other"]).nullable(),
   location: z.string().nullable(),
+  style: z.string().nullable().describe("Style, theme or look the planner described, in a few words"),
   package_id: z.number().nullable().describe("id of the best-fitting package from the price list, or null if none fits"),
   addon_ids: z.array(z.number()).describe("ids of add-ons the planner asked for or clearly needs"),
   needs: z.array(z.string()).describe("Short labels for specific requirements (Halal, Projector, Custom frame...)"),
@@ -133,13 +134,17 @@ const ReplySchema = z.object({
 });
 
 export interface DraftFacts {
-  purpose: "qualify" | "quote" | "ask_info" | "answer" | "confirm" | "unavailable" | "over_capacity" | "referred" | "followup" | "last_call";
+  purpose: "qualify" | "brief" | "quote" | "ask_info" | "answer" | "confirm" | "unavailable" | "over_capacity" | "referred" | "followup" | "last_call";
   details: Details;
   quote: Quote | null;
   available: boolean | null;
   missing: string[];
   /** The planner asked what it costs (used when qualifying). */
   askedPrice?: boolean;
+  /** Brief mode: the tailored quote follows within this many hours. */
+  briefHours?: number;
+  /** A quote has been sent (by Matchire or by the vendor). */
+  quoteSent?: boolean;
   holdHours: number | null;
   partnerSuggestions: PartnerView[];
   referredTo: string | null;
@@ -160,6 +165,7 @@ Sign off as: ${vendor.signoff || vendor.name}
 Rules:
 - Use only the facts provided. Every price you mention must appear in the quote or price list given (or be a partner's from_price); never estimate, round or invent a price, discount or availability.
 - If purpose is "qualify": you don't know enough to price this yet. Reply warmly in one short message, ask for the details in "missing" (at most 2 questions), and never mention any price, range, "from" price or package cost, even if the planner asks. If they asked about price, say you're happy to send exact pricing once you have those details.
+- If purpose is "brief": the owner writes this quote personally. Thank the planner, say the owner will send a tailored quote within briefHours hours, mention the date is pencilled in if holdHours is set, and ask the questions in "missing" (at most 2). Never mention any price, range or "from" price.
 - Partners: if partnerSuggestions is not empty, you may suggest them by name and category. Mention a partner's price only when its from_price is given, exactly as written; otherwise say they can quote the planner directly. You know nothing else about partners' prices.
 - If the facts list missing details, ask for them in one friendly line.
 - Answer the planner's questions only from the price list and business notes. If you can't answer one, say the owner will confirm, and set needs_owner.

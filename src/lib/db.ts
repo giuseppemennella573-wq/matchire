@@ -231,6 +231,14 @@ const COLUMNS: [table: string, column: string, definition: string][] = [
   ["enquiries", "price_override", "INTEGER NOT NULL DEFAULT 0"],
   ["enquiries", "fishing_reason", "TEXT"],
   ["enquiries", "fishing_cleared", "INTEGER NOT NULL DEFAULT 0"],
+  ["vendors", "pricing_mode", "TEXT NOT NULL DEFAULT 'quote'"],
+  ["vendors", "brief_hours", "INTEGER NOT NULL DEFAULT 24"],
+  ["vendors", "brief_questions", "TEXT NOT NULL DEFAULT ''"],
+  ["items", "manual_quote", "INTEGER NOT NULL DEFAULT 0"],
+  ["enquiries", "brief", "TEXT"],
+  ["enquiries", "brief_status", "TEXT"],
+  ["enquiries", "brief_due_at", "TEXT"],
+  ["enquiries", "brief_reminded_at", "TEXT"],
 ];
 
 function migrate(conn: DatabaseSync) {

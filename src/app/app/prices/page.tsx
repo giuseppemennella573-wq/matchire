@@ -40,6 +40,7 @@ function ItemForm({ item, kind }: { item?: Item; kind?: "package" | "addon" }) {
         <label className="field"><span>Max guests</span><input name="max_pax" type="number" min="0" defaultValue={item?.max_pax ?? ""} /></label>
         <label className="check" style={{ alignSelf: "end", paddingBottom: 10 }}><input type="checkbox" name="active" defaultChecked={item ? !!item.active : true} /><span>Live: use in quotes</span></label>
       </div>
+      <label className="check small"><input type="checkbox" name="manual_quote" defaultChecked={!!item?.manual_quote} /><span><b>Always quote manually.</b> <span className="muted">Enquiries for this get a brief instead of a price, and you write the quote.</span></span></label>
       <div className="row"><button className="btn btn-primary btn-sm" type="submit">{item ? "Save" : "Add"}</button></div>
     </form>
   );
@@ -74,7 +75,7 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
           <details key={i.id} className="more" style={{ borderBottom: "1px solid var(--line)", padding: "12px 18px" }}>
             <summary style={{ color: "var(--ink)" }}>
               <span className="row between">
-                <span className="row"><b>{i.name}</b>{!i.active && <span className="badge badge-amber">Not live</span>}</span>
+                <span className="row"><b>{i.name}</b>{!i.active && <span className="badge badge-amber">Not live</span>}{!!i.manual_quote && <span className="badge">You quote</span>}</span>
                 <span className="mono small">{priceText(i)}</span>
               </span>
               {i.description && <span className="small muted" style={{ fontWeight: 400 }}>{i.description}</span>}

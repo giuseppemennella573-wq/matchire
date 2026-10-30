@@ -41,6 +41,12 @@ export interface Vendor {
   wa_templates_approved: number;
   /** "Before quoting, ask for": comma-separated field ids beyond the date ("pax,venue"). Empty: date plus any one detail. */
   qualify_fields: string;
+  /** "quote": quote from the price list. "brief": qualify, hold the date and send the vendor a brief; the vendor writes the quote. */
+  pricing_mode: "quote" | "brief";
+  /** Brief mode: the planner is told a tailored quote follows within this many hours. */
+  brief_hours: number;
+  /** Brief mode: the vendor's own questions, one per line. */
+  brief_questions: string;
   inbound_token: string;
   created_at: string;
 }
@@ -68,6 +74,8 @@ export interface Item {
   max_pax: number | null;
   active: number;
   sort: number;
+  /** "Always quote manually": an enquiry for this goes to Brief mode. */
+  manual_quote?: number;
 }
 
 export type Channel = "whatsapp" | "email" | "web" | "instagram" | "manual" | "referral";
@@ -121,6 +129,7 @@ export interface Details {
   budget: number | null;
   event_type: EventType | null;
   location: string | null;
+  style?: string | null;
   package_id: number | null;
   addon_ids: number[];
   needs: string[];
@@ -143,6 +152,7 @@ export const EMPTY_DETAILS: Details = {
   budget: null,
   event_type: null,
   location: null,
+  style: null,
   package_id: null,
   addon_ids: [],
   needs: [],
@@ -194,6 +204,11 @@ export interface Enquiry {
   fishing_reason: string | null;
   /** The vendor cleared the flag: don't raise it again on this enquiry. */
   fishing_cleared: number;
+  /** Brief mode: the brief as JSON (see brief.ts), what the vendor is waiting on, and when the quote is due. */
+  brief: string | null;
+  brief_status: "waiting" | "quoted" | null;
+  brief_due_at: string | null;
+  brief_reminded_at: string | null;
   created_at: string;
   updated_at: string;
 }

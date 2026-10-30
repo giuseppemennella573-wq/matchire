@@ -8,13 +8,14 @@ import { formatDate, formatDateTime } from "@/lib/dates";
 import { CHANNEL_LABEL, STATUS_LABEL, type Hold, type Vendor } from "@/lib/types";
 import { deleteEnquiryAction, draftAction, noteAction, outcomeAction, plannerReplyAction, referAction, releaseHoldAction } from "../../actions";
 import { CopyButton } from "@/components/copy-button";
+import { briefText, type Brief } from "@/lib/brief";
 import { Submit } from "@/components/submit";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 
 export const metadata = { title: "Enquiry" };
 
 const PURPOSE_LABEL: Record<string, string> = {
-  qualify: "Asks for details before pricing", quote: "Quote", ask_info: "Asks for details", answer: "Answer", confirm: "Booking confirmation", unavailable: "Date unavailable",
+  qualify: "Asks for details before pricing", brief: "Brief: your quote to follow", quote: "Quote", ask_info: "Asks for details", answer: "Answer", confirm: "Booking confirmation", unavailable: "Date unavailable",
   over_capacity: "Over capacity", referred: "Referral note", followup: "Follow-up", last_call: "Last call",
   phone_reply: "from your WhatsApp app",
 };
@@ -43,6 +44,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
   );
   const referredFrom = e.referred_from ? get<Vendor>("SELECT * FROM vendors WHERE id = ?", e.referred_from) : null;
   const open = ["new", "awaiting_info", "quoted", "expired"].includes(e.status);
+  const brief: Brief | null = e.brief ? JSON.parse(e.brief) : null;
   const missing = [!d.event_date && "Date", !d.pax && "Headcount", !d.slot && !d.start_time && vendor.kind !== "caterer" && "Start time"].filter(Boolean) as string[];
 
   return (
@@ -171,6 +173,23 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
               {q.offpeak && <p className="small muted">Weekday daytime rate applied.</p>}
               {q.issues.map((x) => <p key={x} className="alert alert-warn small">{x}</p>)}
               <Link href="/app/prices" className="small muted">Built from your price list</Link>
+            </section>
+          )}
+
+          {brief && (
+            <section className="card stack">
+              <div className="row between">
+                <h2>Brief</h2>
+                <span className={`badge ${e.brief_status === "quoted" ? "badge-ok" : "badge-amber"}`}>{e.brief_status === "quoted" ? "Quote sent" : e.brief_status === "waiting" ? `Quote due ${formatDateTime(e.brief_due_at)}` : "Not sent yet"}</span>
+              </div>
+              <pre className="brief small">{briefText(brief)}</pre>
+              {e.brief_status === "waiting" && (
+                <form action={outcomeAction} className="stack">
+                  <input type="hidden" name="enquiryId" value={e.id} />
+                  <p className="small muted">Write your quote in the reply box or on your phone. When it&apos;s sent, press this so the follow-ups start. A reply with a price in it counts on its own.</p>
+                  <div><Submit name="intent" value="quote_sent" className="btn btn-primary btn-sm">Quote sent</Submit></div>
+                </form>
+              )}
             </section>
           )}
 

@@ -69,6 +69,9 @@ export function settingsUpdate(tab: SettingsTab, form: Form, v: Vendor): Columns
       return {
         auto_send: !v.is_demo && form.get("auto_send") === "on" ? 1 : 0, // locked off on demo accounts
         qualify_fields: QUALIFY_FIELDS.filter((f) => form.get(`qualify_${f.id}`) === "on").map((f) => f.id).join(","),
+        pricing_mode: form.get("pricing_mode") === "brief" ? "brief" : "quote",
+        brief_hours: Math.min(168, atLeast(form, "brief_hours", 24, 1)),
+        brief_questions: str(form, "brief_questions").split("\n").map((q) => q.trim()).filter(Boolean).slice(0, 10).join("\n"),
       };
     default:
       return {}; // channels and account have their own actions

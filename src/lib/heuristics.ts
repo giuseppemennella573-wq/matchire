@@ -78,6 +78,10 @@ export function parseEnquiry(text: string, items: Item[], today: string = sgToda
   d.event_type = type;
 
   d.location = findLocation(text);
+  // "rustic theme", "boho style" or "theme: garden party"
+  const sb = text.match(/\b([A-Za-z][\w-]*(?:\s+[A-Za-z][\w-]*)?)\s+(?:theme|style|look|vibe)\b/i);
+  const sa = text.match(/\b(?:theme|style|look|vibe)\b\s*(?:is|will be|:|-)\s*([^.,!?\n]{3,60})/i);
+  d.style = sa ? sa[1].trim() : sb && !/^(a|the|any|your|what|which|of)$/i.test(sb[1]) ? sb[1].replace(/^(a|an|the|with)\s+/i, "").trim() : null;
 
   const needs: [string, string][] = [["halal", "Halal"], ["vegetarian", "Vegetarian"], ["vegan", "Vegan"], ["projector", "Projector"], ["360", "360 booth"], ["frame", "Custom print frame"], ["logo", "Branding"], ["led", "LED wall"], ["outside catering", "Outside catering"], ["min spend", "Minimum spend"], ["parking", "Parking"], ["mic", "Microphones"]];
   for (const [k, label] of needs) if (low.includes(k)) d.needs.push(label);
