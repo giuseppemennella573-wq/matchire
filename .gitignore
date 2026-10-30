@@ -6,3 +6,6 @@ data/*.db*
 .env.local
 *.tsbuildinfo
 next-env.d.ts
+# Explainer video: frames, stills, voice clips and the voice model stay out of git
+video/explainer/out/
+video/explainer/models/
