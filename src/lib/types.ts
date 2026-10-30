@@ -190,6 +190,10 @@ export interface Enquiry {
   referred_from: number | null;
   /** The vendor chose "Send price anyway" before the enquiry was qualified. */
   price_override: number;
+  /** Why this looks like price-fishing ("asked for prices 2 times without giving a date"), while flagged. */
+  fishing_reason: string | null;
+  /** The vendor cleared the flag: don't raise it again on this enquiry. */
+  fishing_cleared: number;
   created_at: string;
   updated_at: string;
 }

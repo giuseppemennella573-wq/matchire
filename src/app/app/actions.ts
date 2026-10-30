@@ -100,6 +100,7 @@ export async function outcomeAction(form: FormData) {
   else if (intent === "lost") E.markLost(vendor.id, eid);
   else if (intent === "reopen") E.reopen(vendor.id, eid);
   else if (intent === "reprocess") await E.processEnquiry(vendor.id, eid);
+  else if (intent === "clear_flag") E.clearFishingFlag(vendor.id, eid);
   revalidatePath("/app", "layout");
   redirect(`/app/inbox/${eid}`);
 }

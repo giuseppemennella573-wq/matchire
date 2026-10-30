@@ -8,6 +8,7 @@ import { formatDate, formatDateTime, sgToday } from "./dates.ts";
 import { deliver, deliverTemplate, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
 import { maybeDailyBackup } from "./backup.ts";
 import { asksPrice, qualification, qualifyQuestion, requiredFields } from "./qualify.ts";
+import { fishingSignal } from "./fishing.ts";
 
 // The booking desk. An enquiry flows: ingest → understand → quote → draft →
 // (approve) → send → hold the date → follow up → booked / lost / expired.
@@ -238,6 +239,44 @@ export function draftAllowedAmounts(purpose: DraftFacts["purpose"], quote: Quote
   return purpose === "qualify" ? new Set() : allowedAmounts(quote, items, extra);
 }
 
+/** Raise the price-fishing flag on an enquiry if a signal fits. Returns the reason, or null. */
+function checkFishing(e: Enquiry, msgs: Message[], details: Details, items: Item[], today: string): string | null {
+  const inbound = msgs.filter((m) => m.direction === "in");
+  const firstAsk = msgs.find((m) => m.direction === "out" && (m.status === "sent" || m.status === "manual") && (m.purpose === "qualify" || m.purpose === "ask_info"));
+  const handle = e.contact_handle || e.contact_email;
+  const recent = handle
+    ? all<{ id: number; event_date: string | null }>(
+        "SELECT id, event_date FROM enquiries WHERE vendor_id = ? AND (contact_handle = ? OR contact_email = ?) AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days')",
+        e.vendor_id, handle, handle,
+      ).map((r) => (r.id === e.id ? details.event_date : r.event_date))
+    : [];
+  const hit = fishingSignal({
+    inbound: inbound.map((m) => m.body),
+    repliesAfterDateAsk: firstAsk ? inbound.filter((m) => m.id > firstAsk.id).length : 0,
+    details,
+    firstDetails: parseEnquiry(inbound[0]?.body ?? "", items, today),
+    recentDates: recent,
+  });
+  if (!hit) return null;
+  const now = nowIso();
+  run("UPDATE enquiries SET fishing_reason = ? WHERE id = ?", hit.reason, e.id);
+  run("INSERT INTO enquiry_flags (vendor_id, enquiry_id, kind, signal, reason, created_at) VALUES (?, ?, 'price_fishing', ?, ?, ?)", e.vendor_id, e.id, hit.signal, hit.reason, now);
+  return hit.reason;
+}
+
+/** The vendor says it's a real enquiry: clear the flag for good on this enquiry. */
+export function clearFishingFlag(vendorId: number, enquiryId: number) {
+  if (!getEnquiry(vendorId, enquiryId)) throw new Error("Enquiry not found");
+  tx(() => {
+    run("UPDATE enquiries SET fishing_reason = NULL, fishing_cleared = 1, owner_reason = NULL WHERE id = ?", enquiryId);
+    run("UPDATE enquiry_flags SET cleared_at = ? WHERE enquiry_id = ? AND cleared_at IS NULL", nowIso(), enquiryId);
+  });
+}
+
+/** How many enquiries were flagged as possible price-fishing (cleared ones included). */
+export const countFishingFlags = (vendorId: number) =>
+  get<{ n: number }>("SELECT COUNT(*) n FROM enquiry_flags WHERE vendor_id = ? AND kind = 'price_fishing'", vendorId)!.n;
+
 function leadScore(d: Details, q: Quote | null, available: boolean | null, missing: string[], overCap: boolean): "hot" | "warm" | "cold" {
   if (overCap || available === false) return "cold";
   if (q && d.budget && d.budget < q.total * 0.7) return "cold";
@@ -286,6 +325,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   if (isFirst) details.intent = "new_enquiry";
   if (!details.contact_name && e.contact_name) details.contact_name = e.contact_name.split(" ")[0];
 
+  const fishing = e.fishing_reason ?? (e.fishing_cleared ? null : checkFishing(e, msgs, details, items, today));
+
   const pkg = items.find((i) => i.id === details.package_id && i.active) ?? null;
   const addons = items.filter((i) => details.addon_ids.includes(i.id) && i.active && i.kind === "addon");
   // No price until the enquiry is qualified (or the vendor said "Send price anyway").
@@ -331,6 +372,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
 
   if (quote?.issues.length) reasons.push(...quote.issues);
   if (details.needs_owner && details.owner_reason) reasons.push(details.owner_reason);
+  // Never an automatic price for a possible price-fisher; the planner is never told.
+  if (fishing) reasons.push(`Possible price-fishing: ${fishing}. Check this reply before it goes out.`);
   if (aiError) reasons.push(`AI unavailable (${aiError}); drafted with the built-in template.`);
 
   let body = templateDraft(vendor, facts);
@@ -723,7 +766,8 @@ export async function tick(now: string = nowIso()) {
       followups++;
       const blocked = route.kind === "closed" ? route.reason : template ? templateBlocked(vendor, e, template) : null;
       if (blocked) run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", blocked, e.id);
-      else if (vendor.auto_send) await sendDraft(vendor.id, id, { now }).catch(() => null);
+      else if (vendor.auto_send && !e.fishing_reason) await sendDraft(vendor.id, id, { now }).catch(() => null);
+      else if (e.fishing_reason) run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", `Possible price-fishing: ${e.fishing_reason}. Check this follow-up before it goes out.`, e.id);
       else run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", purpose === "followup" ? "Follow-up ready: the planner hasn't replied." : "Last call before the hold expires.", e.id);
     }
     // The day's backup, once it's past 3 am in Singapore.

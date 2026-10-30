@@ -55,6 +55,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
             <span className="badge">{CHANNEL_LABEL[e.channel]}</span>
             <span className="badge">{STATUS_LABEL[e.status]}</span>
             {e.lead && <span className="badge"><span className={`dot dot-${e.lead}`} /> {e.lead === "hot" ? "Hot lead" : e.lead === "warm" ? "Needs info" : "Unlikely"}</span>}
+            {e.fishing_reason && <span className="badge badge-amber">Possible price-fishing</span>}
             {e.contact_handle && <span className="muted">{e.contact_handle}</span>}
             {e.contact_email && e.contact_email !== e.contact_handle && <span className="muted">{e.contact_email}</span>}
           </div>
@@ -62,6 +63,13 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
       </div>
       {msg && <p className="alert alert-ok" role="status">{msg}</p>}
       {error && <p className="alert alert-err" role="alert">{error}</p>}
+      {e.fishing_reason && (
+        <form action={outcomeAction} className="alert alert-warn row between">
+          <input type="hidden" name="enquiryId" value={e.id} />
+          <span><b>Possible price-fishing:</b> {e.fishing_reason}. Matchire won&apos;t send this planner a price on its own; you approve each reply. The planner isn&apos;t told.</span>
+          <Submit className="btn btn-ghost btn-sm" name="intent" value="clear_flag">It&apos;s a real enquiry</Submit>
+        </form>
+      )}
 
       <div className="convo-grid">
         <section className="card card-flush">

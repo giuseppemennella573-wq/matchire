@@ -177,6 +177,17 @@ CREATE TABLE IF NOT EXISTS password_resets (
 );
 CREATE INDEX IF NOT EXISTS password_resets_user ON password_resets(user_id);
 
+CREATE TABLE IF NOT EXISTS enquiry_flags (
+  id INTEGER PRIMARY KEY,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  enquiry_id INTEGER REFERENCES enquiries(id) ON DELETE SET NULL,
+  kind TEXT NOT NULL,
+  signal TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  cleared_at TEXT
+);
+CREATE INDEX IF NOT EXISTS enquiry_flags_vendor ON enquiry_flags(vendor_id, kind);
 CREATE TABLE IF NOT EXISTS early_access (
   id INTEGER PRIMARY KEY,
   name TEXT, business TEXT, vendor_type TEXT, enquiries_per_week TEXT,
@@ -218,6 +229,8 @@ const COLUMNS: [table: string, column: string, definition: string][] = [
   ["vendors", "wa_display_number", "TEXT"],
   ["vendors", "qualify_fields", "TEXT NOT NULL DEFAULT ''"],
   ["enquiries", "price_override", "INTEGER NOT NULL DEFAULT 0"],
+  ["enquiries", "fishing_reason", "TEXT"],
+  ["enquiries", "fishing_cleared", "INTEGER NOT NULL DEFAULT 0"],
 ];
 
 function migrate(conn: DatabaseSync) {

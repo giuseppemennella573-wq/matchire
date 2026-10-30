@@ -64,6 +64,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
                   <b>{e.contact_name || e.contact_handle || `Enquiry #${e.id}`}</b>
                   <span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span>
                   {e.has_draft ? <span className="badge badge-brand">Reply ready</span> : null}
+                  {e.fishing_reason && <span className="badge badge-amber" title={e.fishing_reason}>Possible price-fishing</span>}
                   <span className="badge">{CHANNEL_LABEL[e.channel as Channel]}</span>
                 </div>
                 <p className="preview">{e.last}</p>
