@@ -115,3 +115,13 @@ export function unknownAmounts(text: string, allowed: Set<number>): number[] {
   }
   return found;
 }
+
+/**
+ * How the Price list page opens: an empty list starts with the rate-card import
+ * ("import-first"), or with the add-by-hand form when asked for or when there's
+ * no AI to import with ("manual"). A list with items shows as usual ("list").
+ */
+export function priceListMode(itemCount: number, ai: boolean, manual: boolean): "import-first" | "manual" | "list" {
+  if (itemCount > 0) return "list";
+  return ai && !manual ? "import-first" : "manual";
+}

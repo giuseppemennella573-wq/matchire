@@ -90,7 +90,7 @@ export default async function Partners({ searchParams }: { searchParams: Promise
           )}
           <section className="card stack small">
             <h3>How suggestions work</h3>
-            <p className="muted">When a wedding, party or corporate event needs something you don&apos;t offer, Matchire can mention a partner and their starting price in your quote. Your partners only ever see enquiries you refer to them. You earn {vendor.referral_fee_pct}% of the booking value on referrals that book (change this in <Link href="/app/settings">Settings</Link>).</p>
+            <p className="muted">When an enquiry needs something you don&apos;t offer, Matchire can suggest one of your partners by name and category in your reply, plus their starting price if they share it. Partners never see your price list. Your partners only ever see enquiries you refer to them. You earn {vendor.referral_fee_pct}% of the booking value on referrals that book (change this in <Link href="/app/settings#partners">Settings</Link>).</p>
           </section>
         </div>
       </div>

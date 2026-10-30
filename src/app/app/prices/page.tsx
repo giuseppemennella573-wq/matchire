@@ -1,6 +1,6 @@
 import { requireVendor } from "@/lib/auth";
 import { getItems } from "@/lib/engine";
-import { fmtMoney } from "@/lib/pricing";
+import { fmtMoney, priceListMode } from "@/lib/pricing";
 import { aiEnabled } from "@/lib/ai";
 import type { Item } from "@/lib/types";
 import { activateImportedAction, deleteItemAction, importPriceListAction, saveItemAction } from "../actions";
@@ -45,11 +45,24 @@ function ItemForm({ item, kind }: { item?: Item; kind?: "package" | "addon" }) {
   );
 }
 
-export default async function Prices({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string }> }) {
+/** The rate-card import, shared by the first-time card and the one at the bottom of the list. */
+function ImportForm() {
+  return (
+    <form action={importPriceListAction} className="stack">
+      <textarea name="text" rows={4} placeholder={"Classic booth 2h $450, extra hour $120\n360 booth 2h $650, extra hour $180\nCustom frame $80"} />
+      <input type="file" name="file" accept="application/pdf,image/png,image/jpeg,image/webp" />
+      <div><Submit pending="Reading your rate card…">Import</Submit></div>
+    </form>
+  );
+}
+
+export default async function Prices({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string; manual?: string }> }) {
   const { vendor } = await requireVendor();
-  const { msg, error } = await searchParams;
+  const { msg, error, manual } = await searchParams;
   const items = getItems(vendor.id);
   const pending = items.filter((i) => !i.active).length;
+  const mode = priceListMode(items.length, aiEnabled(), !!manual);
+  const empty = mode !== "list";
 
   const section = (kind: "package" | "addon", title: string, hint: string) => {
     const list = items.filter((i) => i.kind === kind);
@@ -72,7 +85,7 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
             </div>
           </details>
         ))}
-        <details className="more" style={{ padding: "12px 18px" }}>
+        <details className="more" style={{ padding: "12px 18px" }} open={mode === "manual" && kind === "package"} id={kind === "package" ? "add-package" : undefined}>
           <summary>+ Add {kind === "package" ? "a package" : "an add-on"}</summary>
           <ItemForm kind={kind} />
         </details>
@@ -87,6 +100,7 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
           <h1>Price list</h1>
           <p className="muted">Matchire quotes only from what&apos;s here. It never invents a price.</p>
         </div>
+        {!empty && <a className="btn btn-ghost btn-sm" href="#import">Import</a>}
       </div>
       {msg && <p className="alert alert-ok" role="status">{msg}</p>}
       {error && <p className="alert alert-err" role="alert">{error}</p>}
@@ -96,21 +110,35 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
           <form action={activateImportedAction}><button className="btn btn-ghost btn-sm" type="submit">Make all live</button></form>
         </div>
       )}
-      {section("package", "Packages", "The main thing a planner books. Every quote starts with one.")}
-      {section("addon", "Add-ons", "Extras added when a planner asks for them: frames, transport, staff, cleaning.")}
+      {mode === "import-first" ? (
+        <>
+          <section className="card stack import-first" id="import">
+            <div className="stack" style={{ gap: 6 }}>
+              <h2>Upload your rate card</h2>
+              <p className="muted">PDF, photo, or paste the text. We&apos;ll turn it into packages you can edit. Nothing goes live until you approve it.</p>
+            </div>
+            <ImportForm />
+          </section>
+          <p className="small"><a href="/app/prices?manual=1#add-package">or add packages by hand</a></p>
+        </>
+      ) : (
+        <>
+          {empty && !aiEnabled() && <p className="small muted">Add your packages below. Importing a rate card needs AI, which is switched off on this server.</p>}
+          {section("package", "Packages", "The main thing a planner books. Every quote starts with one.")}
+          {section("addon", "Add-ons", "Extras added when a planner asks for them: frames, transport, staff, cleaning.")}
+        </>
+      )}
 
-      <section className="card stack" id="import">
-        <div className="stack" style={{ gap: 4 }}>
-          <h2>Import a rate card</h2>
-          <p className="small muted">Paste your price list, or upload a PDF or a photo of your rate card. Matchire sets up the items for you to check; nothing goes live until you approve it.</p>
-        </div>
-        {!aiEnabled() && <p className="alert alert-warn small">Importing needs AI, which is switched off on this server.</p>}
-        <form action={importPriceListAction} className="stack">
-          <textarea name="text" rows={4} placeholder={"Classic booth 2h $450, extra hour $120\n360 booth 2h $650, extra hour $180\nCustom frame $80"} />
-          <input type="file" name="file" accept="application/pdf,image/png,image/jpeg,image/webp" />
-          <div><Submit pending="Reading your rate card…">Import</Submit></div>
-        </form>
-      </section>
+      {(mode === "list" || (mode === "manual" && aiEnabled())) && (
+        <section className="card stack" id="import">
+          <div className="stack" style={{ gap: 4 }}>
+            <h2>Import a rate card</h2>
+            <p className="small muted">Paste your price list, or upload a PDF or a photo of your rate card. Matchire sets up the items for you to check; nothing goes live until you approve it.</p>
+          </div>
+          {!aiEnabled() && <p className="alert alert-warn small">Importing needs AI, which is switched off on this server.</p>}
+          <ImportForm />
+        </section>
+      )}
     </div>
   );
 }

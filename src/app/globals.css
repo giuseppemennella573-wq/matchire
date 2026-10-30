@@ -205,3 +205,8 @@ code, .code { font-family: var(--f-mono); font-size: .82rem; background: var(--p
   .settings-nav { flex-direction: row; overflow-x: auto; position: static; margin: 0 -4px; padding: 0 4px 4px; }
   .savebar .btn { flex: 1; }
 }
+
+/* Price list: the import card shown first while the list is empty */
+.import-first { padding: 28px; border: 1.5px solid var(--brand); background: var(--brand-soft); }
+.import-first h2 { font-size: 1.5rem; }
+.import-first textarea, .import-first input[type="file"] { background: var(--card); }
