@@ -48,6 +48,7 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 | Brief mode (custom services) | Live | Claim it for custom services: "Brief mode: Matchire qualifies, holds the date and sends you a brief; you write the quote." The FAQ copy needs Giuseppe's OK before it goes on the site. |
 | Date unavailable: other dates + partner | Live | "Booked? Matchire offers nearby dates and a partner instead of a no." |
 | Per-package extra-hour rates | Live | Claim freely |
+| "Not sure yet" / "Too expensive" keep the lead open (Undecided / Price concern) | Live | "Knows 'maybe' from 'no': 'Not sure yet' keeps the date held and follow-ups running. 'Too expensive' comes to you with real options from your price list, never an invented discount." Only clear refusals close an enquiry. |
 
 ## Open decisions (ask Giuseppe before acting)
 - None right now.

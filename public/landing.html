@@ -166,8 +166,15 @@ section.band{padding-block:84px;border-top:1px solid var(--line)}
 .feat{padding:24px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);display:grid;gap:10px;align-content:start}
 .feat p{color:var(--muted);font-size:.95rem}
 .feat svg{width:34px;height:34px}
-.feat.wide{grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center}
-@media (max-width:900px){.feat-grid{grid-template-columns:1fr 1fr}.feat.wide{grid-column:1/-1;grid-template-columns:1fr}}
+.feat-rows{display:grid;gap:28px}
+.feat-row{display:grid;gap:12px}
+.feat-label{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.feat h3 .new,.feat h3 .soon{vertical-align:3px}
+.new{display:inline-block;margin-left:6px;padding:.1rem .45rem;border-radius:999px;border:1px solid var(--orchid);background:var(--orchid-soft);color:var(--glow);font:600 .66rem/1.4 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.feat.flow{gap:14px}
+.feat.flow .timeline{grid-template-columns:repeat(5,1fr)}
+.feat.flow .tl{grid-template-columns:1fr;gap:6px;align-content:start}
+@media (max-width:900px){.feat-grid{grid-template-columns:1fr 1fr}.feat.flow .timeline{grid-template-columns:1fr}.feat.flow .tl{grid-template-columns:62px 1fr}}
 @media (max-width:560px){.feat-grid{grid-template-columns:1fr}}
 .timeline{display:grid;gap:8px;font-size:.85rem}
 .tl{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:center}
@@ -397,13 +404,69 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
         <h2>Everything that wins the booking</h2>
         <p class="lede">Matchire sits on top of the channels you already use. Planners keep messaging you on WhatsApp; they just get answers faster.</p>
       </div>
-      <div class="feat-grid">
-        <div class="feat wide">
-          <div style="display:grid;gap:10px">
-            <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M6 27l2-6a11 11 0 1 1 4 4z" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linejoin="round"/></svg>
-            <h3>Replies in minutes, any hour</h3>
-            <p>Matchire reads each enquiry on WhatsApp, email, Instagram DMs <span class="soon">Coming soon</span> and your website form, picks out the date, headcount, budget and needs, then replies in your tone. Anything unusual comes to you for approval first.</p>
+      <div class="feat-rows">
+        <div class="feat-row">
+          <p class="feat-label">Replies that win</p>
+          <div class="feat-grid">
+            <div class="feat" id="feat-replies">
+              <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M6 27l2-6a11 11 0 1 1 4 4z" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linejoin="round"/></svg>
+              <h3>Replies in minutes, any hour</h3>
+              <p>Matchire reads each enquiry on WhatsApp, email, Instagram DMs <span class="soon">Coming soon</span> and your website form, picks out the date, headcount, budget and needs, then replies in your tone. Anything unusual comes to you for approval first.</p>
+            </div>
+            <div class="feat" id="feat-asks">
+              <svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="12" fill="none" stroke="var(--orchid)" stroke-width="2.2"/><path d="M13 13.5a4 4 0 1 1 5.5 3.7c-1 .5-1.5 1.2-1.5 2.3v.5" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/><circle cx="17" cy="24.5" r="1.4" fill="var(--orchid)"/></svg>
+              <h3>Asks before it quotes <span class="new">New</span></h3>
+              <p>No price goes out until Matchire knows the date and one more detail, like guest count or venue. Price-shoppers get questions, real clients get an exact quote.</p>
+            </div>
+            <div class="feat" id="feat-quotes">
+              <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="6" y="5" width="22" height="25" rx="3" fill="none" stroke="var(--orchid)" stroke-width="2.2"/><path d="M11 12h12M11 17h12M11 22h7" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/></svg>
+              <h3>Exact quotes from your packages</h3>
+              <p>Load your price list once. Matchire builds each quote from your packages, add-ons, the extra-hour rate on each package and your minimum spend, and never invents a price. Every quote states the deposit in SGD and when the hold ends.</p>
+            </div>
           </div>
+        </div>
+        <div class="feat-row">
+          <p class="feat-label">Never lose a lead</p>
+          <div class="feat-grid">
+            <div class="feat" id="feat-holds">
+              <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="5" y="7" width="24" height="22" rx="3" fill="none" stroke="var(--orchid)" stroke-width="2.2"/><path d="M5 13h24M11 4v6M23 4v6" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/></svg>
+              <h3>Holds the date, follows up gently</h3>
+              <p>Checks your availability before quoting and holds the date while the planner decides. If they go quiet, one gentle nudge at about 24 hours, then a last call before the hold ends. The date is released automatically if they don't reply.</p>
+            </div>
+            <div class="feat" id="feat-date-taken">
+              <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="5" y="7" width="24" height="22" rx="3" fill="none" stroke="var(--orchid)" stroke-width="2.2"/><path d="M5 13h24M11 4v6M23 4v6" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/><path d="M11 21h12m-4-4 4 4-4 4" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <h3>Date taken? Keep the lead <span class="new">New</span></h3>
+              <p>If you're booked, Matchire offers your nearest free dates and can suggest a trusted partner, so the planner doesn't go elsewhere empty-handed.</p>
+            </div>
+            <div class="feat" id="feat-maybe">
+              <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M17 29V18M17 18 8 9M17 18l9-9" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 14V9h5M26 14V9h-5" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <h3>Knows “maybe” from “no” <span class="new">New</span></h3>
+              <p>“Not sure yet” keeps the date held and follow-ups running. “Too expensive” comes to you with real options from your price list, never an invented discount.</p>
+            </div>
+          </div>
+        </div>
+        <div class="feat-row">
+          <p class="feat-label">You stay in control</p>
+          <div class="feat-grid">
+            <div class="feat" id="feat-brief">
+              <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M9 5h12l5 5v19H9z" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linejoin="round"/><path d="M21 5v5h5M13 17h9M13 22h6" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <h3>Brief mode for custom work <span class="new">New</span></h3>
+              <p>Décor, styling or anything custom? Matchire asks the right questions, holds the date and sends you a clean brief. You write the quote.</p>
+            </div>
+            <div class="feat" id="feat-fishing">
+              <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M9 30V5" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/><path d="M9 6h16l-4 5 4 5H9" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linejoin="round"/></svg>
+              <h3>Spots price-fishers <span class="new">New</span></h3>
+              <p>Enquiries that keep asking for the full price list without giving a date get flagged, and prices stop going out automatically.</p>
+            </div>
+            <div class="feat" id="feat-offpeak">
+              <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M6 28V16M14 28V9M22 28v-8M30 28V12" stroke="var(--orchid)" stroke-width="2.6" stroke-linecap="round"/></svg>
+              <h3>Off-peak pricing, pipeline at a glance</h3>
+              <p>Set lower rates for weekday daytime slots, offered only when a planner's date qualifies, so quiet days fill without discounting Saturdays. See every enquiry, quote and hold in one place, with reply times and which channels bring your best bookings.</p>
+            </div>
+          </div>
+        </div>
+        <div class="feat flow" id="feat-flow">
+          <p class="feat-label">One enquiry, start to finish</p>
           <div class="timeline" aria-label="Example enquiry timeline">
             <div class="tl"><span class="mono">23:14</span><span>Enquiry arrives on WhatsApp</span></div>
             <div class="tl hi"><span class="mono">23:16</span><span>Quote sent, date held for 48h</span></div>
@@ -411,31 +474,6 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
             <div class="tl"><span class="mono">+36h</span><span>Last call before the hold ends</span></div>
             <div class="tl hi"><span class="mono"></span><span>Client confirms, booking locked in</span></div>
           </div>
-        </div>
-        <div class="feat">
-          <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="6" y="5" width="22" height="25" rx="3" fill="none" stroke="var(--orchid)" stroke-width="2.2"/><path d="M11 12h12M11 17h12M11 22h7" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/></svg>
-          <h3>Instant quotes from your packages</h3>
-          <p>Load your price list once. Matchire builds each quote from your packages, extra hours, add-ons and minimums, and never invents a price.</p>
-        </div>
-        <div class="feat">
-          <svg viewBox="0 0 34 34" aria-hidden="true"><rect x="5" y="7" width="24" height="22" rx="3" fill="none" stroke="var(--orchid)" stroke-width="2.2"/><path d="M5 13h24M11 4v6M23 4v6" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/></svg>
-          <h3>Calendar-aware holds</h3>
-          <p>Checks your availability before quoting, holds the date while the planner decides, and releases it automatically if they go quiet.</p>
-        </div>
-        <div class="feat">
-          <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M5 17h6l3-8 6 16 3-8h6" fill="none" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <h3>Follow-ups that don't nag</h3>
-          <p>Leads that go quiet get one well-timed nudge, then a last call before the hold expires. You stop losing bookings to forgetfulness.</p>
-        </div>
-        <div class="feat">
-          <svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="11" fill="none" stroke="var(--orchid)" stroke-width="2.2"/><path d="M17 10v7l5 3" stroke="var(--orchid)" stroke-width="2.2" stroke-linecap="round"/></svg>
-          <h3>Off-peak pricing</h3>
-          <p>Set lower rates for weekday daytime slots. Matchire offers them only when a planner's date qualifies, so quiet days fill without discounting Saturdays.</p>
-        </div>
-        <div class="feat">
-          <svg viewBox="0 0 34 34" aria-hidden="true"><path d="M6 28V16M14 28V9M22 28v-8M30 28V12" stroke="var(--orchid)" stroke-width="2.6" stroke-linecap="round"/></svg>
-          <h3>Pipeline at a glance</h3>
-          <p>See every enquiry, quote and hold in one place, with reply times and which channels bring your best bookings.</p>
         </div>
       </div>
     </div>
