@@ -35,7 +35,7 @@ function ItemForm({ item, kind }: { item?: Item; kind?: "package" | "addon" }) {
       <div className="grid3">
         <label className="field"><span>Price (SGD)</span><input name="price" type="number" step="0.01" min="0" required defaultValue={item?.price} /></label>
         <label className="field"><span>Hours included</span><input name="included_hours" type="number" step="0.5" min="0" defaultValue={item?.included_hours ?? ""} /></label>
-        <label className="field"><span>Extra hour (SGD)</span><input name="extra_hour_price" type="number" step="0.01" min="0" defaultValue={item?.extra_hour_price ?? ""} /></label>
+        <label className="field"><span>Extra hour (SGD, optional)</span><input name="extra_hour_price" type="number" step="0.01" min="0" defaultValue={item?.extra_hour_price ?? ""} /></label>
         <label className="field"><span>Min guests</span><input name="min_pax" type="number" min="0" defaultValue={item?.min_pax ?? ""} /></label>
         <label className="field"><span>Max guests</span><input name="max_pax" type="number" min="0" defaultValue={item?.max_pax ?? ""} /></label>
         <label className="check" style={{ alignSelf: "end", paddingBottom: 10 }}><input type="checkbox" name="active" defaultChecked={item ? !!item.active : true} /><span>Live: use in quotes</span></label>

@@ -28,7 +28,7 @@ function hoursFor(pkg: Item, requested: number | null): number {
   return Math.max(requested, base || 0);
 }
 
-function priceItem(item: Item, hours: number | null, pax: number | null, issues: string[]): QuoteLine[] {
+function priceItem(item: Item, hours: number | null, pax: number | null, issues: string[], unpriced: { hours: number }): QuoteLine[] {
   const lines: QuoteLine[] = [];
   if (item.pricing === "flat") {
     const inc = item.included_hours;
@@ -38,7 +38,9 @@ function priceItem(item: Item, hours: number | null, pax: number | null, issues:
       if (item.extra_hour_price != null) {
         lines.push({ label: `Extra ${extra}h`, amount: extra * item.extra_hour_price });
       } else {
-        issues.push(`${item.name} includes ${inc}h but ${hours}h were requested, and no extra-hour rate is set.`);
+        // Never guess: the reply says the vendor will confirm the extra time.
+        issues.push(`${item.name} includes ${inc}h but ${hours}h were requested, and no extra-hour rate is set. Confirm the price for the extra ${extra}h.`);
+        if (item.kind === "package") unpriced.hours = extra;
       }
     }
   } else if (item.pricing === "per_hour") {
@@ -65,7 +67,8 @@ export function buildQuote(input: QuoteInput): Quote {
   const hours = pkg.pricing === "per_pax" ? input.hours : hoursFor(pkg, input.hours);
   const offpeak = vendor.offpeak_discount > 0 && isOffPeak(date, slot);
 
-  const lines = priceItem(pkg, hours, pax, issues);
+  const unpriced = { hours: 0 };
+  const lines = priceItem(pkg, hours, pax, issues, unpriced);
   if (offpeak) {
     // The discount applies to the package itself, never to add-ons or fees.
     const pct = vendor.offpeak_discount / 100;
@@ -75,7 +78,7 @@ export function buildQuote(input: QuoteInput): Quote {
     }
     lines[0].note = `${vendor.offpeak_discount}% weekday daytime rate`;
   }
-  for (const a of addons) lines.push(...priceItem(a, hours, pax, issues));
+  for (const a of addons) lines.push(...priceItem(a, hours, pax, issues, unpriced));
 
   let total = round(lines.reduce((s, l) => s + l.amount, 0));
   if (vendor.min_spend > 0 && total < vendor.min_spend) {
@@ -84,7 +87,7 @@ export function buildQuote(input: QuoteInput): Quote {
   }
   if (vendor.capacity && pax && pax > vendor.capacity) issues.push(`${pax} guests exceeds the ${vendor.capacity} capacity.`);
 
-  return { package_id: pkg.id, lines: lines.map((l) => ({ ...l, amount: round(l.amount) })), total, offpeak, issues };
+  return { package_id: pkg.id, lines: lines.map((l) => ({ ...l, amount: round(l.amount) })), total, offpeak, issues, ...(unpriced.hours ? { unpriced_hours: unpriced.hours } : {}) };
 }
 
 /** Every amount a reply is allowed to mention: line items, totals and package prices. */
@@ -114,6 +117,19 @@ export function unknownAmounts(text: string, allowed: Set<number>): number[] {
     if (!allowed.has(round(n))) found.push(n);
   }
   return found;
+}
+
+/**
+ * A rate card that gives one extra-hour rate for everything: packages with
+ * included hours and no rate of their own get it. Returns how many did.
+ */
+export function applyCardExtraHour<T extends Pick<Item, "kind" | "pricing" | "included_hours" | "extra_hour_price">>(items: T[], rate: number | null | undefined): number {
+  if (rate == null || !(rate > 0)) return 0;
+  let n = 0;
+  for (const i of items) {
+    if (i.kind === "package" && i.pricing === "flat" && i.included_hours && i.extra_hour_price == null) { i.extra_hour_price = rate; n++; }
+  }
+  return n;
 }
 
 /**

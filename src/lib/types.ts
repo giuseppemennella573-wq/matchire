@@ -178,6 +178,8 @@ export interface Quote {
   total: number;
   offpeak: boolean;
   issues: string[];
+  /** Hours asked for beyond the package that have no extra-hour rate: not priced, the vendor confirms them. */
+  unpriced_hours?: number;
 }
 
 export interface Enquiry {

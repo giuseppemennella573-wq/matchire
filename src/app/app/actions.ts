@@ -6,7 +6,7 @@ import { requireVendor } from "@/lib/auth";
 import { get, run } from "@/lib/db";
 import * as E from "@/lib/engine";
 import { aiEnabled, aiImportPriceList } from "@/lib/ai";
-import { addItems, token } from "@/lib/accounts";
+import { saveImportedRateCard, token } from "@/lib/accounts";
 import { changePassword } from "@/lib/password-reset";
 import { channelChangesFromForm, requestChannelSetup, updateChannels } from "@/lib/channel-settings";
 import { settingsUpdate, tabFromHash } from "@/lib/settings-tabs";
@@ -182,10 +182,7 @@ export async function importPriceListAction(form: FormData) {
   }
   if (!text && !upload) back("/app/prices", "Paste your rate card or upload a file.", "error");
   try {
-    const out = await aiImportPriceList({ text, file: upload });
-    addItems(vendor.id, out.items.map((i) => ({ ...i, description: i.description ?? "" })), false);
-    if (out.notes.trim()) run("UPDATE vendors SET notes = TRIM(notes || char(10) || ?) WHERE id = ?", out.notes.trim(), vendor.id);
-    back("/app/prices", `Imported ${out.items.length} items for review. Check each one, then make them live.`);
+    back("/app/prices", saveImportedRateCard(vendor.id, await aiImportPriceList({ text, file: upload })));
   } catch (e) {
     if (isRedirect(e)) throw e;
     back("/app/prices", `Import failed: ${errMsg(e)}`, "error");

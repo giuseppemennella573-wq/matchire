@@ -1,6 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { get, run, tx } from "./db.ts";
 import type { Item, User, Vendor, VendorKind } from "./types.ts";
+import { applyCardExtraHour, fmtMoney } from "./pricing.ts";
 
 // Accounts, sessions and starter price lists. Kept free of Next.js imports so
 // scripts and tests can use it directly.
@@ -83,6 +84,20 @@ export function addItems(vendorId: number, items: SampleItem[], active = true) {
       vendorId, i.kind, i.name, i.description, i.pricing, i.price, i.included_hours, i.extra_hour_price, i.min_pax, i.max_pax, active ? 1 : 0, n,
     ),
   );
+}
+
+/**
+ * Save an imported rate card for review (not live). One extra-hour rate for
+ * the whole card goes on every package without its own. Returns the message
+ * for the vendor.
+ */
+export function saveImportedRateCard(vendorId: number, card: { items: SampleItem[]; extra_hour_price_all?: number | null; notes: string }): string {
+  const items = card.items.map((i) => ({ ...i, description: i.description ?? "" }));
+  const applied = applyCardExtraHour(items, card.extra_hour_price_all);
+  addItems(vendorId, items, false);
+  if (card.notes.trim()) run("UPDATE vendors SET notes = TRIM(notes || char(10) || ?) WHERE id = ?", card.notes.trim(), vendorId);
+  const rate = applied ? ` The card's extra-hour rate (${fmtMoney(card.extra_hour_price_all!)}) was applied to ${applied} package${applied > 1 ? "s" : ""}: check it on each.` : "";
+  return `Imported ${items.length} items for review.${rate} Check each one, then make them live.`;
 }
 
 export function createAccount(input: { email: string; password: string; name: string; business: string; kind: VendorKind; samplePrices?: boolean }): { userId: number; vendorId: number } {

@@ -295,6 +295,7 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
       let r = `${hi}Thanks for reaching out to ${vendor.name} 😊\n\n`;
       if (f.available && when && !d.date_is_approximate) r += `Good news, we're available ${when}. `;
       if (f.quote && f.quote.lines.length) r += `Here's your quote:\n${quoteText(f.quote)}`;
+      if (f.quote?.unpriced_hours) r += `\n\nI'll confirm the price for the extra ${f.quote.unpriced_hours}h shortly.`;
       if (f.quote?.offpeak) r += `\n(includes our weekday daytime rate)`;
       if (f.partnerSuggestions.length) r += `\n\nPlanning the rest of the event? ${f.partnerSuggestions.map(partnerLine).join(" ")}`;
       r += ask;

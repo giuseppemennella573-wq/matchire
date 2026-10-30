@@ -171,6 +171,7 @@ Rules:
 - If purpose is "qualify": you don't know enough to price this yet. Reply warmly in one short message, ask for the details in "missing" (at most 2 questions), and never mention any price, range, "from" price or package cost, even if the planner asks. If they asked about price, say you're happy to send exact pricing once you have those details.
 - If purpose is "brief": the owner writes this quote personally. Thank the planner, say the owner will send a tailored quote within briefHours hours, mention the date is pencilled in if holdHours is set, and ask the questions in "missing" (at most 2). Never mention any price, range or "from" price.
 - If purpose is "unavailable": say kindly that the date is booked. Offer the dates in "alternatives" exactly as given (if any). If fixedDatePartner is set, add one line offering to connect them with a trusted partner who may be free; name the partner and mention its from_price only if fixedDatePartner is an object. Never quote a price for the booked date.
+- If the quote has unpriced_hours, don't price that extra time: say the owner will confirm the price for it.
 - Partners: if partnerSuggestions is not empty, you may suggest them by name and category. Mention a partner's price only when its from_price is given, exactly as written; otherwise say they can quote the planner directly. You know nothing else about partners' prices.
 - If the facts list missing details, ask for them in one friendly line.
 - Answer the planner's questions only from the price list and business notes. If you can't answer one, say the owner will confirm, and set needs_owner.
@@ -195,11 +196,12 @@ const ImportSchema = z.object({
       pricing: z.enum(["flat", "per_hour", "per_pax"]),
       price: z.number().describe("Price in SGD for the unit described by pricing"),
       included_hours: z.number().nullable().describe("Hours included in a flat package"),
-      extra_hour_price: z.number().nullable(),
+      extra_hour_price: z.number().nullable().describe("This package's own price per extra hour, if the card gives one"),
       min_pax: z.number().nullable(),
       max_pax: z.number().nullable(),
     }),
   ),
+  extra_hour_price_all: z.number().nullable().describe("One extra-hour rate the card gives for all packages (e.g. 'Extra hour: $150'), if any. Leave null if rates differ per package."),
   notes: z.string().describe("Terms, minimums or rules from the rate card that aren't individual items"),
 });
 
