@@ -239,6 +239,8 @@ const COLUMNS: [table: string, column: string, definition: string][] = [
   ["enquiries", "brief_status", "TEXT"],
   ["enquiries", "brief_due_at", "TEXT"],
   ["enquiries", "brief_reminded_at", "TEXT"],
+  ["vendors", "deposit_pct", "REAL"],
+  ["messages", "hold_until", "TEXT"],
 ];
 
 function migrate(conn: DatabaseSync) {

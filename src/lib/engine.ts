@@ -10,6 +10,7 @@ import { maybeDailyBackup } from "./backup.ts";
 import { asksPrice, qualification, qualifyQuestion, requiredFields } from "./qualify.ts";
 import { fishingSignal } from "./fishing.ts";
 import { briefAsks, briefText, buildBrief, type Brief } from "./brief.ts";
+import { depositLine, holdSentence, holdUntil, normalizeReply, upsellFor } from "./polish.ts";
 
 // The booking desk. An enquiry flows: ingest → understand → quote → draft →
 // (approve) → send → hold the date → follow up → booked / lost / expired.
@@ -231,7 +232,7 @@ function missingFields(vendor: Vendor, d: Details, pkg: Item | null): string[] {
 
 function quoteText(q: Quote): string {
   const lines = q.lines.map((l) => `• ${l.label}: ${fmtMoney(l.amount)}${l.full != null ? ` (usually ${fmtMoney(l.full)})` : ""}`);
-  return `${lines.join("\n")}\nTotal: ${fmtMoney(q.total)}`;
+  return `${lines.join("\n")}\n\nTotal: ${fmtMoney(q.total)}`;
 }
 
 /** Deterministic reply used without an API key, and whenever a model draft fails a check. */
@@ -265,7 +266,7 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
     case "referred":
       return `${hi}Thanks for thinking of ${vendor.name}! We're not able to take ${when || "this booking"}, so I've passed your details to our trusted partner ${f.referredTo}, who'll be in touch with you shortly.${sign}`;
     case "confirm":
-      return `${hi}Wonderful, thank you! 🎉 We'd love to have you on ${when || "your date"}.${f.quote ? `\n\nTotal: ${fmtMoney(f.quote.total)}` : ""}\n\n${f.depositNote || "I'll send the deposit details shortly to lock in your booking."}${sign}`;
+      return `${hi}Wonderful, thank you! 🎉 We'd love to have you on ${when || "your date"}.${f.quote ? `\n\nTotal: ${fmtMoney(f.quote.total)}` : ""}${f.depositText ? `\n\n${f.depositText}` : ""}\n\n${f.depositNote || "I'll send the deposit details shortly to lock in your booking."}${sign}`;
     case "followup":
       if (!f.quote && f.quoteSent) return `${hi}Just checking in on the quote for ${when || "your event"}. Happy to adjust anything, or answer any questions.${sign}`;
       if (!f.quote) return `${hi}Just checking in about ${when || "your event"}. Whenever you're ready, share a few details and I'll send you exact pricing.${sign}`;
@@ -296,10 +297,12 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
       if (f.available && when && !d.date_is_approximate) r += `Good news, we're available ${when}. `;
       if (f.quote && f.quote.lines.length) r += `Here's your quote:\n${quoteText(f.quote)}`;
       if (f.quote?.unpriced_hours) r += `\n\nI'll confirm the price for the extra ${f.quote.unpriced_hours}h shortly.`;
+      if (f.upsellText) r += `\n\n${f.upsellText}`;
+      if (f.depositText && f.purpose === "quote") r += `\n\n${f.depositText}`;
       if (f.quote?.offpeak) r += `\n(includes our weekday daytime rate)`;
       if (f.partnerSuggestions.length) r += `\n\nPlanning the rest of the event? ${f.partnerSuggestions.map(partnerLine).join(" ")}`;
       r += ask;
-      if (!f.missing.length && f.holdHours) r += `\n\nI've pencilled in the date for you for ${f.holdHours} hours. Shall I go ahead and confirm?`;
+      if (!f.missing.length && f.holdHours) r += `\n\n${f.holdText ?? `I've pencilled in the date for you for ${f.holdHours} hours.`} Shall I go ahead and confirm?`;
       if (d.questions.length && f.purpose === "answer") r += `\n\nI'll check on your question and get back to you shortly.`;
       return r + sign;
     }
@@ -464,6 +467,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   if (fixedDatePrice != null) partnerPrices.push(fixedDatePrice);
 
   // A brief holds the date as soon as it's free; a quote waits until nothing's missing.
+  const draftedAt = nowIso();
   const willHold = available === true && !details.date_is_approximate && (purpose === "brief" || (purpose === "quote" && missing.length === 0));
   const facts: DraftFacts = {
     purpose,
@@ -478,6 +482,9 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
     fixedDatePartner,
     askedPrice: purpose === "qualify" && inbound.some((m) => asksPrice(m.body)),
     holdHours: willHold ? vendor.hold_hours : null,
+    holdText: willHold && purpose === "quote" ? holdSentence(holdUntil(draftedAt, vendor.hold_hours)) : null,
+    depositText: quote && (purpose === "quote" || purpose === "confirm") ? depositLine(vendor, quote.total)?.text ?? null : null,
+    upsellText: purpose === "quote" && pkg && quote ? upsellFor(pkg, items, addons, { vendor, pax: details.pax, date: details.event_date, slot: details.slot })?.text ?? null : null,
     partnerSuggestions,
     referredTo: null,
     depositNote: vendor.deposit_note,
@@ -495,12 +502,13 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
       // Before qualifying, the AI doesn't see the price list, and any amount at all sends it back to the template.
       const noPrices = purpose === "qualify" || briefMode;
       const draft = await aiDraft({ vendor, items: noPrices ? [] : items.filter((i) => !i.manual_quote), messages: msgs, facts });
-      const allowed = draftAllowedAmounts(noPrices ? "qualify" : purpose, quote, items, [...partnerPrices, details.budget ?? 0, vendor.min_spend]);
+      const polish = [quote ? depositLine(vendor, quote.total)?.amount : null, pkg && quote ? upsellFor(pkg, items, addons, { vendor, pax: details.pax, date: details.event_date, slot: details.slot })?.total : null].filter((x): x is number => x != null);
+      const allowed = draftAllowedAmounts(noPrices ? "qualify" : purpose, quote, items, [...partnerPrices, ...polish, details.budget ?? 0, vendor.min_spend]);
       const bad = unknownAmounts(draft.reply, allowed);
       if (bad.length) {
         reasons.push(`The AI draft mentioned prices not on your list (${bad.map(fmtMoney).join(", ")}), so Matchire used the standard template instead.`);
       } else {
-        body = draft.reply.trim();
+        body = normalizeReply(draft.reply.trim());
         if (draft.needs_owner && draft.owner_reason) reasons.push(draft.owner_reason);
       }
     } catch (err) {
@@ -529,7 +537,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
       run("UPDATE holds SET status = 'released' WHERE enquiry_id = ? AND status = 'active' AND kind = 'hold'", enquiryId);
       run("UPDATE enquiries SET next_followup_at = NULL WHERE id = ?", enquiryId);
     }
-    return run("INSERT INTO messages (enquiry_id, direction, body, status, purpose, created_at) VALUES (?, 'out', ?, 'draft', ?, ?)", enquiryId, body, purpose, now);
+    return run("INSERT INTO messages (enquiry_id, direction, body, status, purpose, hold_until, created_at) VALUES (?, 'out', ?, 'draft', ?, ?, ?)",
+      enquiryId, body, purpose, facts.holdText ? holdUntil(draftedAt, vendor.hold_hours) : null, now);
   });
 
   if (draftId === null) return { enquiryId, draftId, autoSent: false, ownerReason: null, usedAI };
@@ -553,7 +562,8 @@ export async function sendDraft(vendorId: number, messageId: number, opts: { bod
   const vendor = getVendor(vendorId)!;
   const e = getEnquiry(vendorId, m.enquiry_id)!;
   const now = opts.now ?? nowIso();
-  let body = (opts.body ?? m.body).trim();
+  const promised = promisedHold(vendor, m, (opts.body ?? m.body).trim(), now);
+  let body = promised.body;
 
   // Follow-ups after WhatsApp's 24-hour window can only go out as approved templates.
   let template: Template | null = m.template ? JSON.parse(m.template) : null;
@@ -587,7 +597,7 @@ export async function sendDraft(vendorId: number, messageId: number, opts: { bod
     run("UPDATE messages SET body = ?, template = ?, status = ?, error = ?, sent_at = ? WHERE id = ?", body, template ? JSON.stringify(template) : null, result.status, result.error ?? null, result.status === "failed" ? null : now, messageId);
     if (result.status === "failed") return;
     run("UPDATE enquiries SET first_response_at = COALESCE(first_response_at, ?), last_outbound_at = ?, owner_reason = NULL, updated_at = ? WHERE id = ?", now, now, now, e.id);
-    afterSend(vendor, e, m.purpose ?? "quote", now);
+    afterSend(vendor, e, m.purpose ?? "quote", now, promised.until);
   });
   if (opts.markBooked && result.status === "sent") markBooked(vendorId, e.id);
   if (result.status === "sent") await afterSendAsync(vendor, e.id, m.purpose ?? "quote", body, now);
@@ -706,7 +716,19 @@ function templateBlocked(vendor: Vendor, e: Enquiry, t: Template): string | null
   return `${NEEDS_TEMPLATE_APPROVAL}. WhatsApp's 24-hour window has closed, so this goes out as the ${t.name} template. Once Meta approves it, tick "My follow-up templates are approved" in Settings and send.`;
 }
 
-function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string) {
+/**
+ * The hold a quote promised ("until Sun 1 Nov, 4pm"). If that time has passed
+ * by the time it's sent, a new deadline replaces it in the text too, so the
+ * planner is never told a time that doesn't match the hold.
+ */
+function promisedHold(vendor: Vendor, m: Message, body: string, now: string): { until: string | null; body: string } {
+  if (!m.hold_until) return { until: null, body };
+  if (m.hold_until > now) return { until: m.hold_until, body };
+  const until = holdUntil(now, vendor.hold_hours);
+  return { until, body: body.replace(holdSentence(m.hold_until), holdSentence(until)) };
+}
+
+function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string, holdExpires: string | null = null) {
   const d = parseDetails(e);
   const followup = hoursFrom(now, vendor.followup_days * 24);
   switch (purpose) {
@@ -716,7 +738,7 @@ function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string) {
       let nudge = followup;
       if (exact && !has && availability(vendor, d.event_date!, e.id).available) {
         run("INSERT INTO holds (vendor_id, enquiry_id, date, kind, note, expires_at) VALUES (?, ?, ?, 'hold', ?, ?)",
-          vendor.id, e.id, d.event_date!, e.contact_name || d.contact_name || "Enquiry", hoursFrom(now, vendor.hold_hours));
+          vendor.id, e.id, d.event_date!, e.contact_name || d.contact_name || "Enquiry", holdExpires ?? hoursFrom(now, vendor.hold_hours));
         // Nudge while the date is still held, so the planner can still act on it.
         nudge = hoursFrom(now, Math.min(vendor.followup_days * 24, vendor.hold_hours / 2));
       }
@@ -774,11 +796,12 @@ export function markDraftSentManually(vendorId: number, messageId: number, body?
   const vendor = getVendor(vendorId)!;
   const e = getEnquiry(vendorId, m.enquiry_id)!;
   const now = nowIso();
-  const text = (body ?? m.body).trim();
+  const promised = promisedHold(vendor, m, (body ?? m.body).trim(), now);
+  const text = promised.body;
   tx(() => {
     run("UPDATE messages SET body = ?, status = 'manual', error = NULL, sent_at = ? WHERE id = ?", text, now, messageId);
     run("UPDATE enquiries SET first_response_at = COALESCE(first_response_at, ?), last_outbound_at = ?, owner_reason = NULL, updated_at = ? WHERE id = ?", now, now, now, e.id);
-    afterSend(vendor, e, m.purpose ?? "quote", now);
+    afterSend(vendor, e, m.purpose ?? "quote", now, promised.until);
   });
   // The state above is already saved; this only sends the brief email (await it to know it went).
   return afterSendAsync(vendor, e.id, m.purpose ?? "quote", text, now);

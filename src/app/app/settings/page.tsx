@@ -87,6 +87,8 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                 <label className="field"><span>Off-peak discount % (Mon–Thu daytime)</span><input name="offpeak_discount" type="number" min="0" max="90" defaultValue={v.offpeak_discount || ""} /></label>
                 <label className="field"><span>Max guests (venues)</span><input name="capacity" type="number" min="0" defaultValue={v.capacity ?? ""} /></label>
               </div>
+              <label className="field" style={{ maxWidth: 260 }}><span>Deposit (% of the total)</span><input name="deposit_pct" type="number" min="0" max="100" step="1" defaultValue={v.deposit_pct ?? ""} placeholder="e.g. 30" /></label>
+              <p className="small muted" style={{ marginTop: -6 }}>Quotes then say &quot;A deposit of SGD 300 (30%) secures the date.&quot; Left empty, Matchire uses the % in your deposit instructions, if there is one.</p>
               <label className="field"><span>Deposit instructions, sent when a planner says yes</span><textarea name="deposit_note" rows={2} defaultValue={v.deposit_note} placeholder="A 30% deposit via PayNow to UEN 2023xxxxxK secures your date." /></label>
             </section>
           </TabForm>

@@ -18,7 +18,7 @@ const everything = form({
 test("each tab saves only its own fields", () => {
   const keys = (t: Parameters<typeof settingsUpdate>[0]) => Object.keys(settingsUpdate(t, everything, vendor)).sort();
   assert.deepEqual(keys("business"), ["kind", "name", "notes", "signoff", "tone"]);
-  assert.deepEqual(keys("bookings"), ["capacity", "deposit_note", "followup_days", "hold_hours", "jobs_per_day", "min_spend", "offpeak_discount"]);
+  assert.deepEqual(keys("bookings"), ["capacity", "deposit_note", "deposit_pct", "followup_days", "hold_hours", "jobs_per_day", "min_spend", "offpeak_discount"]);
   assert.deepEqual(keys("partners"), ["bundle_suggestions", "referral_fee_pct", "share_from_price"]);
   assert.deepEqual(keys("ai"), ["auto_send", "brief_hours", "brief_questions", "pricing_mode", "qualify_fields"]);
   assert.deepEqual(keys("channels"), []);

@@ -58,6 +58,7 @@ export function settingsUpdate(tab: SettingsTab, form: Form, v: Vendor): Columns
         offpeak_discount: Math.min(90, atLeast(form, "offpeak_discount", 0)),
         capacity: num(form, "capacity"),
         deposit_note: str(form, "deposit_note"),
+        deposit_pct: (() => { const p = num(form, "deposit_pct"); return p != null && p > 0 ? Math.min(100, p) : null; })(),
       };
     case "partners":
       return {

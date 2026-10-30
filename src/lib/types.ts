@@ -34,6 +34,8 @@ export interface Vendor {
   /** Demo account for showing prospects: nothing it does is ever really sent. */
   is_demo: number;
   deposit_note: string;
+  /** Deposit as a % of the total, for "A deposit of SGD 300 (30%)". Empty: read from the deposit instructions. */
+  deposit_pct: number | null;
   notes: string;
   wa_phone_number_id: string | null;
   wa_token: string | null;
@@ -227,6 +229,8 @@ export interface Message {
   error: string | null;
   /** JSON WaTemplate when this reply goes out as a WhatsApp template. */
   template: string | null;
+  /** A quote draft's promised hold deadline ("I'm holding the date for you until …"). */
+  hold_until?: string | null;
   created_at: string;
   sent_at: string | null;
 }
