@@ -204,9 +204,11 @@ export async function releaseHoldAction(form: FormData) {
 export async function invitePartnerAction(form: FormData) {
   const { vendor } = await requireVendor();
   const code = str(form, "code").toLowerCase().replace(/^.*\/e\//, "");
-  const partner = get<{ id: number; name: string }>("SELECT id, name FROM vendors WHERE slug = ?", code);
+  const partner = get<{ id: number; name: string; is_demo: number }>("SELECT id, name, is_demo FROM vendors WHERE slug = ?", code);
   if (!partner) back("/app/partners", "No vendor has that partner code.", "error");
   if (partner!.id === vendor.id) back("/app/partners", "That's your own code.", "error");
+  // A real planner must never be passed into a demo account that prospects look at.
+  if (!E.canPartner(partner!, vendor)) back("/app/partners", "Demo accounts can only partner with other demo accounts.", "error");
   const existing = get<{ id: number; status: string; requester_id: number }>(
     "SELECT * FROM partnerships WHERE (requester_id = ? AND partner_id = ?) OR (requester_id = ? AND partner_id = ?)",
     vendor.id, partner!.id, partner!.id, vendor.id,
@@ -249,7 +251,7 @@ export async function saveSettingsAction(form: FormData) {
     n("jobs_per_day", 1, 1),
     n("min_spend", 0),
     Math.min(90, n("offpeak_discount", 0)),
-    form.get("auto_send") === "on" ? 1 : 0,
+    !vendor.is_demo && form.get("auto_send") === "on" ? 1 : 0, // locked off on demo accounts
     n("hold_hours", 48, 1),
     n("followup_days", 2, 0.5),
     form.get("bundle_suggestions") === "on" ? 1 : 0,

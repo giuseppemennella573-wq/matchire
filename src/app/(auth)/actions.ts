@@ -56,7 +56,7 @@ export async function forgotPasswordAction(form: FormData) {
   const email = str(form, "email");
   if (email) {
     const result = await requestPasswordReset(email, appUrl());
-    if (result !== "sent" && result !== "no_account") console.warn(`[password-reset] not sent: ${result}`);
+    if (result !== "sent" && result !== "no_account" && result !== "demo") console.warn(`[password-reset] not sent: ${result}`);
   }
   // Same answer whether or not the address has an account.
   redirect("/forgot?sent=1");

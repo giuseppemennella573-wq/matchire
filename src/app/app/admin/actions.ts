@@ -8,6 +8,7 @@ import { createBackup } from "@/lib/backup";
 import { get } from "@/lib/db";
 import { requestPasswordReset } from "@/lib/password-reset";
 import { appUrl } from "@/lib/app-url";
+import { seedDemo } from "@/lib/demo";
 import { emailReady } from "@/lib/channels";
 
 async function requireAdmin() {
@@ -82,6 +83,21 @@ export async function sendResetLinkAction(form: FormData) {
   const result = u ? await requestPasswordReset(u.email, appUrl()) : "Account not found";
   const msg = result === "sent" ? `Reset link sent to ${u!.email}. It expires in 1 hour.`
     : result === "rate_limited" ? "Three reset links were already sent in the last hour. Try again later."
+    : result === "demo" ? "Demo accounts use DEMO_PASSWORD, so no reset email is sent. Reset the demo to apply a new password."
     : `Couldn't send the reset link: ${result}`;
   redirect(`/app/admin/accounts?${result === "sent" ? "msg" : "error"}=${encodeURIComponent(msg)}`);
+}
+
+export async function resetDemoAction() {
+  await requireAdmin();
+  let msg: string, kind = "msg";
+  try {
+    const r = await seedDemo();
+    msg = `Demo reset: Snap & Smile has ${r.enquiries} fresh enquiries and ${r.bookedSaturday} is fully booked.`;
+  } catch (e) {
+    msg = e instanceof Error ? e.message : String(e);
+    kind = "error";
+  }
+  revalidatePath("/app", "layout");
+  redirect(`/app/admin/accounts?${kind}=${encodeURIComponent(msg)}`);
 }

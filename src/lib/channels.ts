@@ -64,7 +64,15 @@ export function viaWhatsAppApi(v: Vendor, e: Enquiry): boolean {
   return e.channel === "whatsapp" && phoneOf(e) !== null && whatsappReady(v);
 }
 
+// Demo accounts never reach WhatsApp or email. The send is reported as done so
+// the demo shows the whole journey (date held, follow-up scheduled).
+function demoSend(v: Vendor, e: Enquiry, what: string): SendResult {
+  console.log(`[demo] demo: not sent (vendor ${v.id}, enquiry ${e.id}, ${what})`);
+  return { status: "sent", via: "demo" };
+}
+
 export async function deliverTemplate(v: Vendor, e: Enquiry, t: WaTemplate): Promise<SendResult> {
+  if (v.is_demo) return demoSend(v, e, `WhatsApp template ${t.name}`);
   if (!viaWhatsAppApi(v, e)) return { status: "manual", via: "WhatsApp", error: "WhatsApp isn't connected yet. Copy the reply and send it from your phone." };
   try {
     return await postWhatsApp(v, phoneOf(e)!, {
@@ -146,6 +154,7 @@ export function inboundAddress(v: Vendor): string | null {
 }
 
 export async function deliver(v: Vendor, e: Enquiry, body: string): Promise<SendResult> {
+  if (v.is_demo) return demoSend(v, e, e.channel);
   try {
     const phone = phoneOf(e);
     const email = e.contact_email || (e.contact_handle?.includes("@") ? e.contact_handle : null);

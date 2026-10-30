@@ -24,7 +24,7 @@ Needs Node 22.13 or newer (it uses the built-in `node:sqlite`).
 ```bash
 npm install
 cp .env.example .env.local     # add ANTHROPIC_API_KEY for AI reading and drafting
-npm run seed                   # demo data: demo@matchire.ai / matchire-demo
+npm run seed                   # dev data: dev@matchire.ai / matchire-demo
 npm run dev                    # http://localhost:3000
 ```
 
@@ -107,6 +107,18 @@ Restoring replaces all data with the backup's contents; anything since then is l
 4. Check the app. The previous database is kept as `matchire-before-restore.db` until you delete it.
 
 To restore from an emailed copy, upload the `.db.gz` to the server first (or ask for an upload-and-restore button).
+
+## Demo account
+
+`demo@matchire.ai` is a safe workspace to show prospects: **Snap & Smile Photobooth** with its price list, a partner caterer (Rempah Kitchen), a fully booked Saturday three weeks out, and three enquiries (WhatsApp, Instagram, email) drafted by the normal pipeline. Demo accounts (`vendors.is_demo`) never send anything: WhatsApp, email and template sends are simulated at the send layer (logged as `demo: not sent`), auto-send is locked off, no password-reset email goes out, and they can only partner with other demo accounts.
+
+Reset it (same result every time, never duplicates) with **Reset demo** on Matchire admin → Accounts, or:
+
+- locally: `DEMO_PASSWORD=... npm run seed:demo`
+- on Render (the image has no TypeScript scripts): set `DEMO_PASSWORD` in Environment, then in the service's **Shell** run
+  `node -e "fetch('http://localhost:3000/api/admin/seed-demo',{method:'POST',headers:{authorization:'Bearer '+process.env.CRON_SECRET}}).then(r=>r.text()).then(console.log)"`
+
+The local development seed (`npm run seed`) is separate and logs in as `dev@matchire.ai`.
 
 ## Passwords
 

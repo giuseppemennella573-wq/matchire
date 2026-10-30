@@ -74,3 +74,13 @@ test("heuristic parser reads a typical enquiry", () => {
   assert.equal(d2.package_id, 2);
   assert.equal(d2.hours, 4);
 });
+
+test("rules mode picks the package tier that fits the hours asked for", async () => {
+  const { matchPackage } = await import("../src/lib/heuristics.ts");
+  const pkg = (id: number, name: string, h: number) => ({ id, vendor_id: 1, kind: "package" as const, name, description: "Unlimited prints", pricing: "flat" as const, price: 100 * h, included_hours: h, extra_hour_price: null, min_pax: null, max_pax: null, active: 1, sort: id });
+  const items = [pkg(1, "Classic Booth 2h", 2), pkg(2, "Classic Booth 3h", 3), pkg(3, "Classic Booth 4h", 4)];
+  assert.equal(matchPackage("need a booth for 3h please", items, 3)?.id, 2);
+  assert.equal(matchPackage("booth for 2.5 hours", items, 2.5)?.id, 2, "the shortest package that covers it");
+  assert.equal(matchPackage("booth for 6 hours", items, 6)?.id, 3, "nothing covers it: the longest one");
+  assert.equal(matchPackage("how much for photobooth", items, null)?.id, 1, "no hours given: the first package");
+});

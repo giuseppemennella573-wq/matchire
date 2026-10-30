@@ -53,9 +53,10 @@ function resetEmail(link: string) {
  * same message either way, so the form never reveals who has an account.
  * Returns why nothing was sent, for logs and tests.
  */
-export async function requestPasswordReset(email: string, baseUrl: string, now = new Date()): Promise<"sent" | "no_account" | "rate_limited" | string> {
-  const u = get<{ id: number; email: string }>("SELECT id, email FROM users WHERE email = ?", email.trim().toLowerCase());
+export async function requestPasswordReset(email: string, baseUrl: string, now = new Date()): Promise<"sent" | "no_account" | "rate_limited" | "demo" | string> {
+  const u = get<{ id: number; email: string; is_demo: number }>("SELECT u.id, u.email, v.is_demo FROM users u JOIN vendors v ON v.id = u.vendor_id WHERE u.email = ?", email.trim().toLowerCase());
   if (!u) return "no_account";
+  if (u.is_demo) return "demo"; // demo logins use DEMO_PASSWORD; never email them
   const recent = get<{ n: number }>("SELECT COUNT(*) n FROM password_resets WHERE user_id = ? AND created_at > ?", u.id, new Date(now.getTime() - TTL_MS).toISOString())!.n;
   if (recent >= MAX_PER_HOUR) return "rate_limited";
   const raw = createResetToken(u.id, now);

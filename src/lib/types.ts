@@ -29,6 +29,8 @@ export interface Vendor {
   referral_fee_pct: number;
   /** Partners may see (and mention to their clients) this vendor's lowest live package price. Off by default. */
   share_from_price: number;
+  /** Demo account for showing prospects: nothing it does is ever really sent. */
+  is_demo: number;
   deposit_note: string;
   notes: string;
   wa_phone_number_id: string | null;

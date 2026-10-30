@@ -32,6 +32,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
       <main className="main">
+        {!!vendor.is_demo && (
+          <p className="alert alert-warn banner" role="status"><b>Demo account.</b> Nothing is really sent: replies and follow-ups are only simulated.</p>
+        )}
         {admin && !emailReady() && (
           <p className="alert alert-err banner" role="alert">
             <b>Matchire can&apos;t send email.</b> Outbound email isn&apos;t set up, so backups, alerts, password resets and email replies aren&apos;t going out.

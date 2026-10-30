@@ -1,18 +1,19 @@
 // Creates a demo workspace: Snapbox SG (photobooth) with three partner vendors
 // and a handful of realistic enquiries at different stages.
-//   npm run seed            → demo@matchire.ai / matchire-demo
+//   npm run seed            → dev@matchire.ai / matchire-demo  (local development only)
+// The demo we show prospects is separate: npm run seed:demo (scripts/seed-demo.ts).
 import { get, run } from "../src/lib/db.ts";
 import { createAccount } from "../src/lib/accounts.ts";
 import * as E from "../src/lib/engine.ts";
 import { addDays, formatDate, sgToday } from "../src/lib/dates.ts";
 
-if (get("SELECT 1 FROM users WHERE email = 'demo@matchire.ai'")) {
+if (get("SELECT 1 FROM users WHERE email = 'dev@matchire.ai'")) {
   console.log("Demo data already exists. Delete data/matchire.db to start over.");
   process.exit(0);
 }
 
 const PASSWORD = "matchire-demo";
-const booth = createAccount({ email: "demo@matchire.ai", password: PASSWORD, name: "Giuseppe", business: "Snapbox SG", kind: "photobooth", samplePrices: true }).vendorId;
+const booth = createAccount({ email: "dev@matchire.ai", password: PASSWORD, name: "Giuseppe", business: "Snapbox SG", kind: "photobooth", samplePrices: true }).vendorId;
 const caterer = createAccount({ email: "rempah@matchire.ai", password: PASSWORD, name: "Siti", business: "Rempah Kitchen", kind: "caterer", samplePrices: true }).vendorId;
 const venue = createAccount({ email: "loft@matchire.ai", password: PASSWORD, name: "Marcus", business: "The Loft, Telok Ayer", kind: "venue", samplePrices: true }).vendorId;
 const av = createAccount({ email: "clearwave@matchire.ai", password: PASSWORD, name: "Ravi", business: "Clearwave AV", kind: "av", samplePrices: true }).vendorId;
@@ -49,5 +50,5 @@ for (const q of enquiries) {
 }
 E.blockDate(booth, addDays(today, 22 + 7), "Away: family wedding");
 
-console.log(`Demo ready. Log in at /login with demo@matchire.ai / ${PASSWORD}`);
+console.log(`Demo ready. Log in at /login with dev@matchire.ai / ${PASSWORD}`);
 console.log(`Partner accounts (same password): rempah@, loft@, clearwave@matchire.ai`);

@@ -11,7 +11,13 @@ function words(s: string): string[] {
   return s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP.has(w));
 }
 
-export function matchPackage(text: string, items: Item[]): Item | null {
+/** How well a package's included hours cover the request: 0 is exact, bigger is worse, too short is worst. */
+function hoursFit(p: Item, hours: number | null): number {
+  if (hours == null || p.included_hours == null) return 0;
+  return p.included_hours >= hours ? p.included_hours - hours : 100 + hours - p.included_hours;
+}
+
+export function matchPackage(text: string, items: Item[], hours: number | null = null): Item | null {
   const pkgs = items.filter((i) => i.kind === "package" && i.active);
   if (!pkgs.length) return null;
   const low = text.toLowerCase();
@@ -27,9 +33,11 @@ export function matchPackage(text: string, items: Item[]): Item | null {
       if (shared.has(w) || !new RegExp(`\\b${w.replace(/[^a-z0-9]/g, "")}`).test(low)) continue;
       score += name.has(w) ? 2 : 1;
     }
-    if (score > bestScore) { best = p; bestScore = score; }
+    // Equal word matches (e.g. "Classic Booth 2h / 3h / 4h") are settled by which one fits the hours asked for.
+    if (score > bestScore || (score === bestScore && best && hoursFit(p, hours) < hoursFit(best, hours))) { best = p; bestScore = score; }
   });
-  return best ?? pkgs[0];
+  if (best) return best;
+  return [...pkgs].sort((a, b) => hoursFit(a, hours) - hoursFit(b, hours))[0];
 }
 
 export function matchAddons(text: string, items: Item[]): Item[] {
@@ -74,7 +82,7 @@ export function parseEnquiry(text: string, items: Item[], today: string = sgToda
 
   for (const q of text.match(/[^.!?\n]+\?/g) ?? []) if (q.trim().length > 3) d.questions.push(q.trim());
 
-  const pkg = matchPackage(text, items);
+  const pkg = matchPackage(text, items, d.hours);
   d.package_id = pkg?.id ?? null;
   d.addon_ids = matchAddons(text, items).map((a) => a.id);
 

@@ -72,7 +72,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
                 {m.body}
                 <div className="bubble-meta">
                   {formatDateTime(m.sent_at || m.created_at)}
-                  {m.direction === "out" && (m.status === "manual" ? " · sent by you" : m.status === "failed" ? ` · failed: ${m.error}` : " · sent")}
+                  {m.direction === "out" && (m.status === "manual" ? " · sent by you" : m.status === "failed" ? ` · failed: ${m.error}` : vendor.is_demo ? " · demo: not really sent" : " · sent")}
                   {m.purpose && m.direction === "out" ? ` · ${PURPOSE_LABEL[m.purpose] ?? m.purpose}` : ""}
                 </div>
               </div>

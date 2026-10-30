@@ -54,8 +54,8 @@ export default async function Settings({ searchParams }: { searchParams: Promise
         <section className="card stack">
           <h2>How hands-off to be</h2>
           <label className="check">
-            <input type="checkbox" name="auto_send" defaultChecked={!!v.auto_send} />
-            <span><b>Auto-send routine replies.</b> <span className="muted">Quotes, requests for details and follow-ups go out without waiting for you. Anything unusual, any booking confirmation, and anything off your price list still waits for your approval.</span></span>
+            <input type="checkbox" name="auto_send" defaultChecked={!!v.auto_send} disabled={!!v.is_demo} />
+            <span><b>Auto-send routine replies.</b> <span className="muted">Quotes, requests for details and follow-ups go out without waiting for you. Anything unusual, any booking confirmation, and anything off your price list still waits for your approval.{v.is_demo ? <b> Locked off on the demo account.</b> : null}</span></span>
           </label>
           <label className="check">
             <input type="checkbox" name="bundle_suggestions" defaultChecked={!!v.bundle_suggestions} />

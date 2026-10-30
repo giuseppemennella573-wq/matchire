@@ -39,6 +39,9 @@ export function availability(vendor: Vendor, date: string, excludeEnquiry?: numb
   return { available: used < vendor.jobs_per_day, used, capacity: vendor.jobs_per_day, blocked: false };
 }
 
+/** Demo accounts only ever partner with other demo accounts, so a real planner can't end up in a demo. */
+export const canPartner = (a: Pick<Vendor, "is_demo">, b: Pick<Vendor, "is_demo">) => !!a.is_demo === !!b.is_demo;
+
 export function acceptedPartners(vendorId: number): Vendor[] {
   return all<Vendor>(
     `SELECT v.* FROM partnerships p JOIN vendors v ON v.id = CASE WHEN p.requester_id = ? THEN p.partner_id ELSE p.requester_id END

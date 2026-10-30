@@ -3,7 +3,8 @@ import { requireVendor } from "@/lib/auth";
 import { accountsWaiting, ALERT_TO, isAdmin, listAccounts } from "@/lib/early-access";
 import { kindLabel } from "@/lib/engine";
 import { formatDateTime } from "@/lib/dates";
-import { deleteAccountAction, sendResetLinkAction, toggleAccountContactedAction } from "../actions";
+import { deleteAccountAction, resetDemoAction, sendResetLinkAction, toggleAccountContactedAction } from "../actions";
+import { Submit } from "@/components/submit";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 
 export const metadata = { title: "Accounts" };
@@ -23,6 +24,10 @@ export default async function Accounts({ searchParams }: { searchParams: Promise
           <h1>Accounts</h1>
           <p className="muted"><b>{newAccounts.size}</b> new {newAccounts.size === 1 ? "account" : "accounts"} waiting for you. Vendors who signed up at /signup, not through the early-access form. New ones are emailed to <b>{ALERT_TO()}</b>.</p>
         </div>
+        <form action={resetDemoAction} style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
+          <Submit className="btn btn-ghost" pending="Resetting the demo… about a minute">Reset demo</Submit>
+          <span className="small muted">Recreates Snap &amp; Smile (demo@matchire.ai) with fresh sample data</span>
+        </form>
       </div>
       {msg && <p className="alert alert-ok" role="status">{msg}</p>}
       {error && <p className="alert alert-err" role="alert">{error}</p>}
@@ -40,7 +45,7 @@ export default async function Accounts({ searchParams }: { searchParams: Promise
                 {accounts.map((a) => (
                   <tr key={a.id} style={newAccounts.has(a.id) ? undefined : { opacity: 0.6 }}>
                     <td className="small">{formatDateTime(a.created_at)}</td>
-                    <td><b>{a.name}</b>{newAccounts.has(a.id) && <> <span className="badge badge-brand">New</span></>}</td>
+                    <td><b>{a.name}</b>{newAccounts.has(a.id) && <> <span className="badge badge-brand">New</span></>}{!!a.is_demo && <> <span className="badge">Demo</span></>}</td>
                     <td>{a.business}<div className="small muted">{kindLabel(a.kind)}</div></td>
                     <td className="small"><a href={`mailto:${a.email}`}>{a.email}</a></td>
                     <td className="small">{a.live_items ? `${a.live_items} live items` : <span className="muted">Not set up</span>}</td>
