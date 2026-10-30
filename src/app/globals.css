@@ -182,3 +182,26 @@ details.more[open] > summary { margin-bottom: 10px; }
 .auth .card { width: 100%; max-width: 440px; padding: 28px; box-shadow: var(--shadow); }
 .public { max-width: 620px; margin: 0 auto; padding: 40px 16px 64px; }
 code, .code { font-family: var(--f-mono); font-size: .82rem; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: .1rem .4rem; overflow-wrap: anywhere; }
+
+/* Settings: left sub-nav on desktop, a scrollable row of tabs on mobile; one panel shown at a time */
+.settings { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; align-items: start; }
+.settings-nav { display: flex; flex-direction: column; gap: 2px; position: sticky; top: 16px; }
+.settings-nav a { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: .5rem .7rem; border-radius: 10px; text-decoration: none; color: var(--muted); font-weight: 600; white-space: nowrap; }
+.settings-nav a:hover { background: var(--card); color: var(--ink); }
+.settings-nav a[aria-selected="true"] { background: var(--brand-soft); color: var(--ink); }
+.dot-unsaved { width: 8px; height: 8px; border-radius: 50%; background: var(--flame); flex: none; }
+.settings-panel { display: none; }
+.settings[data-tab="business"] [data-panel="business"], .settings[data-tab="bookings"] [data-panel="bookings"],
+.settings[data-tab="channels"] [data-panel="channels"], .settings[data-tab="partners"] [data-panel="partners"],
+.settings[data-tab="ai"] [data-panel="ai"], .settings[data-tab="account"] [data-panel="account"] { display: grid; }
+.savebar { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding: 12px 0; background: var(--paper); border-top: 1px solid var(--line); }
+.savebar .unsaved { visibility: hidden; color: var(--amber); font-weight: 600; }
+.settings[data-dirty~="business"] [data-savebar="business"] .unsaved, .settings[data-dirty~="bookings"] [data-savebar="bookings"] .unsaved,
+.settings[data-dirty~="channels"] [data-savebar="channels"] .unsaved, .settings[data-dirty~="partners"] [data-savebar="partners"] .unsaved,
+.settings[data-dirty~="ai"] [data-savebar="ai"] .unsaved { visibility: visible; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; background: var(--ink); color: var(--paper); padding: .6rem 1.1rem; border-radius: 999px; font-weight: 700; box-shadow: var(--shadow); }
+@media (max-width: 860px) {
+  .settings { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .settings-nav { flex-direction: row; overflow-x: auto; position: static; margin: 0 -4px; padding: 0 4px 4px; }
+  .savebar .btn { flex: 1; }
+}

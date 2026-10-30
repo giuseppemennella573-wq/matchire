@@ -68,10 +68,10 @@ test("only admins can change channels; changes are logged without token values",
 
 test("the vendor settings save no longer writes channel fields", () => {
   const src = readFileSync("src/app/app/actions.ts", "utf8");
-  const save = src.slice(src.indexOf("export async function saveSettingsAction"));
+  const save = src.slice(src.indexOf("export async function saveSettingsTabAction"));
   const update = save.slice(0, save.indexOf("revalidatePath"));
   assert.ok(!/UPDATE vendors SET[^`]*wa_(phone_number_id|token|templates_approved)/.test(update), "channel columns are only written by updateChannels");
-  assert.match(update, /if \(isAdmin\(user\)\) await updateChannels\(/);
+  assert.match(update, /if \(isAdmin\(user\)\) \{[\s\S]*updateChannels\(/);
 });
 
 test("Request setup emails the admin once a day; the demo only simulates it", async () => {

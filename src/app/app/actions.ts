@@ -9,12 +9,13 @@ import { aiEnabled, aiImportPriceList } from "@/lib/ai";
 import { addItems, token } from "@/lib/accounts";
 import { changePassword } from "@/lib/password-reset";
 import { channelChangesFromForm, requestChannelSetup, updateChannels } from "@/lib/channel-settings";
+import { settingsUpdate, tabFromHash } from "@/lib/settings-tabs";
 import { isAdmin } from "@/lib/early-access";
 import { appUrl } from "@/lib/app-url";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/auth";
 import { isValidIsoDate } from "@/lib/dates";
-import type { Channel, Item, VendorKind } from "@/lib/types";
+import type { Channel, Item } from "@/lib/types";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const num = (f: FormData, k: string) => {
@@ -237,42 +238,30 @@ export async function respondPartnerAction(form: FormData) {
 
 // ---------- Settings ----------
 
-export async function saveSettingsAction(form: FormData) {
+/** Save one Settings tab. Only that tab's fields are written (see settingsUpdate). */
+export async function saveSettingsTabAction(form: FormData) {
   const { user, vendor } = await requireVendor();
-  const n = (k: string, fallback: number, min = 0) => Math.max(min, num(form, k) ?? fallback);
-  run(
-    `UPDATE vendors SET name = ?, kind = ?, tone = ?, signoff = ?, notes = ?, deposit_note = ?, capacity = ?, jobs_per_day = ?, min_spend = ?,
-     offpeak_discount = ?, auto_send = ?, hold_hours = ?, followup_days = ?, bundle_suggestions = ?, share_from_price = ?, referral_fee_pct = ?
-     WHERE id = ?`,
-    str(form, "name") || vendor.name,
-    (str(form, "kind") || vendor.kind) as VendorKind,
-    str(form, "tone") || vendor.tone,
-    str(form, "signoff"),
-    str(form, "notes"),
-    str(form, "deposit_note"),
-    num(form, "capacity"),
-    n("jobs_per_day", 1, 1),
-    n("min_spend", 0),
-    Math.min(90, n("offpeak_discount", 0)),
-    !vendor.is_demo && form.get("auto_send") === "on" ? 1 : 0, // locked off on demo accounts
-    n("hold_hours", 48, 1),
-    n("followup_days", 2, 0.5),
-    form.get("bundle_suggestions") === "on" ? 1 : 0,
-    form.get("share_from_price") === "on" ? 1 : 0,
-    Math.min(50, n("referral_fee_pct", 10)),
-    vendor.id,
-  );
-  // Channel connections (tokens, IDs) are set by Matchire admins only; anyone else's fields are ignored.
-  if (isAdmin(user)) await updateChannels(vendor.id, channelChangesFromForm(form), { id: user.id, email: user.email, admin: true });
+  const tab = tabFromHash(str(form, "tab"));
+  const cols = Object.entries(settingsUpdate(tab, form, vendor));
+  if (cols.length) run(`UPDATE vendors SET ${cols.map(([k]) => `${k} = ?`).join(", ")} WHERE id = ?`, ...cols.map(([, v]) => v), vendor.id);
+  // Channel connections and template approval are set by Matchire admins only; anyone else's fields are ignored.
+  if (isAdmin(user)) {
+    const actor = { id: user.id, email: user.email, admin: true };
+    if (tab === "channels") {
+      const c = channelChangesFromForm(form);
+      await updateChannels(vendor.id, { phoneNumberId: c.phoneNumberId, token: c.token, disconnect: c.disconnect }, actor);
+    }
+    if (tab === "ai") await updateChannels(vendor.id, { templatesApproved: form.get("wa_templates_approved") === "on" }, actor);
+  }
   revalidatePath("/app", "layout");
-  back("/app/settings", "Settings saved.");
+  redirect(`/app/settings?tab=${tab}&saved=1`);
 }
 
 export async function rotateInboundTokenAction(form: FormData) {
   const { vendor } = await requireVendor();
-  if (form.get("confirm") !== "on") back("/app/settings", "Tick the box to confirm you want a new address.", "error");
+  if (form.get("confirm") !== "on") back("/app/settings?tab=channels", "Tick the box to confirm you want a new address.", "error");
   run("UPDATE vendors SET inbound_token = ? WHERE id = ?", token(12).toLowerCase().replace(/[^a-z0-9]/g, "x"), vendor.id);
-  back("/app/settings", "New inbound email address generated. Update your forwarding rule.");
+  back("/app/settings?tab=channels", "New forwarding address generated. Update your forwarding rule.");
 }
 
 function isRedirect(e: unknown): boolean {
@@ -282,11 +271,11 @@ function isRedirect(e: unknown): boolean {
 export async function changePasswordAction(form: FormData) {
   const { user } = await requireVendor();
   const next = String(form.get("new_password") ?? "");
-  if (next !== String(form.get("confirm_password") ?? "")) back("/app/settings", "The two new passwords don't match.", "error");
+  if (next !== String(form.get("confirm_password") ?? "")) back("/app/settings?tab=account", "The two new passwords don't match.", "error");
   const session = (await cookies()).get(SESSION_COOKIE)?.value;
   const error = changePassword(user.id, String(form.get("current_password") ?? ""), next, session);
-  if (error) back("/app/settings", error, "error");
-  back("/app/settings", "Password changed. You've been logged out on other devices.");
+  if (error) back("/app/settings?tab=account", error, "error");
+  back("/app/settings?tab=account", "Password changed. You've been logged out on other devices.");
 }
 
 export async function requestSetupAction(form: FormData) {
@@ -294,8 +283,8 @@ export async function requestSetupAction(form: FormData) {
   const channel = form.get("channel") === "email" ? "email" : "whatsapp";
   const label = channel === "email" ? "email forwarding" : "WhatsApp";
   const r = await requestChannelSetup(vendor, user, channel, appUrl());
-  if (r === "sent") back("/app/settings", `Request sent. We'll be in touch to set up ${label}.`);
-  if (r === "already_requested") back("/app/settings", `You've already asked for ${label} setup today. We'll be in touch.`);
-  if (r === "demo") back("/app/settings", "Demo account: the request was simulated, nothing was sent.");
-  back("/app/settings", `Couldn't send the request (${r.replace(/\.$/, "")}). Email us at hello@matchire.ai instead.`, "error");
+  if (r === "sent") back("/app/settings?tab=channels", `Request sent. We'll be in touch to set up ${label}.`);
+  if (r === "already_requested") back("/app/settings?tab=channels", `You've already asked for ${label} setup today. We'll be in touch.`);
+  if (r === "demo") back("/app/settings?tab=channels", "Demo account: the request was simulated, nothing was sent.");
+  back("/app/settings?tab=channels", `Couldn't send the request (${r.replace(/\.$/, "")}). Email us at hello@matchire.ai instead.`, "error");
 }
