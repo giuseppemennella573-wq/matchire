@@ -43,6 +43,11 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 | Email inbox | Assisted setup | "We set it up with you" |
 | "Replies are assisted" note | No setting | Say "add it to your sign-off" |
 | Billing / plan limits / trial | Not enforced (early access) | OK to show plans; free during early access |
+| Qualify before quoting | Live | Claim it: "Asks for the date and a detail before quoting, so every price is real." |
+| Price-fishing flag | Live | OK as a proof point: "Spots price-shoppers and holds prices back for your approval." Never say we accuse or block clients. |
+| Brief mode (custom services) | Live | Claim it for custom services: "Brief mode: Matchire qualifies, holds the date and sends you a brief; you write the quote." The FAQ copy needs Giuseppe's OK before it goes on the site. |
+| Date unavailable: other dates + partner | Live | "Booked? Matchire offers nearby dates and a partner instead of a no." |
+| Per-package extra-hour rates | Live | Claim freely |
 
 ## Open decisions (ask Giuseppe before acting)
 - None right now.
@@ -56,3 +61,4 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 - 2026-10-28: Venue plan adds "Partner suggestions in replies", just above "Send & receive partner referrals". (Approved by Giuseppe, 2026-10-28.)
 - 2026-10-28: Rates are private per business. "Share my starting price with partners" setting, default off (existing accounts off too); when on, partners see one "from" price, never the rate card. Partner suggestions without it read "Our partner X (category) can quote you directly." Site copy no longer promises partner prices. (Approved by Giuseppe, 2026-10-28.)
 - 2026-10-28: Nav button "Start free trial" renamed "Join early access" to match the pricing note; no "trial" wording left on the site. (Approved by Giuseppe, 2026-10-28.)
+- 2026-10-30: Pack 04. No price (total, range or "from" price) goes to a planner until Matchire knows the event date plus one more detail (guests, venue, hours or event type), unless the vendor chooses "Send price anyway". (Approved by Giuseppe, 2026-10-30.)
