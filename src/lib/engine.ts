@@ -4,7 +4,7 @@ import { EMPTY_DETAILS, OPEN_STATUSES, VENDOR_KINDS } from "./types.ts";
 import { buildQuote, allowedAmounts, unknownAmounts, fmtMoney } from "./pricing.ts";
 import { parseEnquiry } from "./heuristics.ts";
 import { aiEnabled, aiExtract, aiDraft, type DraftFacts } from "./ai.ts";
-import { formatDate, formatDateTime, sgToday } from "./dates.ts";
+import { addDays, dayOfWeek, formatDate, formatDateTime, sgToday } from "./dates.ts";
 import { deliver, deliverTemplate, sendRawEmail, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
 import { maybeDailyBackup } from "./backup.ts";
 import { asksPrice, qualification, qualifyQuestion, requiredFields } from "./qualify.ts";
@@ -40,6 +40,49 @@ export function availability(vendor: Vendor, date: string, excludeEnquiry?: numb
   if (rows.some((h) => h.kind === "block")) return { available: false, used: rows.length, capacity: vendor.jobs_per_day, blocked: true };
   const used = rows.filter((h) => h.enquiry_id == null || h.enquiry_id !== excludeEnquiry).length;
   return { available: used < vendor.jobs_per_day, used, capacity: vendor.jobs_per_day, blocked: false };
+}
+
+/** Fri–Sun count as weekend dates, Mon–Thu as weekdays. */
+const weekendish = (iso: string) => [0, 5, 6].includes(dayOfWeek(iso));
+
+/**
+ * Up to `n` free dates within a week of a booked one, nearest first, preferring
+ * the same kind of day (weekend for a weekend). Never today or earlier.
+ */
+export function alternativeDates(vendor: Vendor, date: string, excludeEnquiry?: number, n = 2, today = sgToday()): string[] {
+  const out: { d: string; score: number }[] = [];
+  for (let k = 1; k <= 7; k++) {
+    for (const d of [addDays(date, -k), addDays(date, k)]) {
+      if (d <= today || !availability(vendor, d, excludeEnquiry).available) continue;
+      out.push({ d, score: k + (weekendish(d) === weekendish(date) ? 0 : 10) + (d < date ? 0 : 0.5) });
+    }
+  }
+  return out.sort((a, b) => a.score - b.score).slice(0, n).map((x) => x.d).sort();
+}
+
+/** "Fri 20 or Sun 22 Nov", or "Sat 31 Oct or Sun 1 Nov". */
+export function formatDateChoice(dates: string[]): string {
+  const parts = dates.map((d) => formatDate(d).replace(",", ""));
+  if (parts.length === 2 && dates[0].slice(0, 7) === dates[1].slice(0, 7)) return `${parts[0].replace(/\s+\S+$/, "")} or ${parts[1]}`;
+  return parts.join(" or ");
+}
+
+/** The planner picked one of the dates we offered ("Sunday works", "the 22nd please"). */
+export function pickAlternative(text: string, alternatives: string[]): string | null {
+  const low = text.toLowerCase();
+  const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const hits = alternatives.filter((d) => {
+    const dow = DAYS[dayOfWeek(d)];
+    const dom = String(Number(d.slice(8)));
+    return new RegExp(`\\b${dow}`).test(low) || new RegExp(`\\b${dom}(st|nd|rd|th)?\\b`).test(low);
+  });
+  return hits.length === 1 ? hits[0] : null;
+}
+
+/** Partners in the vendor's own category first (they can cover a date the vendor can't), then the rest. */
+export function partnersForReferral(vendor: Vendor): Vendor[] {
+  const all = acceptedPartners(vendor.id);
+  return [...all.filter((p) => p.kind === vendor.kind), ...all.filter((p) => p.kind !== vendor.kind)];
 }
 
 /** Demo accounts only ever partner with other demo accounts, so a real planner can't end up in a demo. */
@@ -204,8 +247,21 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
   switch (f.purpose) {
     case "over_capacity":
       return `${hi}Thanks for reaching out to ${vendor.name} 😊\n\nOur space fits up to ${vendor.capacity} guests, so ${d.pax} would be too many for us. I'd be happy to introduce a partner venue that fits your group.${sign}`;
-    case "unavailable":
-      return `${hi}Thanks for reaching out to ${vendor.name} 😊\n\nUnfortunately we're fully booked on ${when || "that date"}. Would another date work for you? I can also introduce a trusted partner who may be free.${sign}`;
+    case "unavailable": {
+      // Never a price for a date we can't do. Offer nearby free dates, and a partner who may be free.
+      let r = `${hi}Thanks for reaching out to ${vendor.name} 😊\n\nUnfortunately we're fully booked on ${when || "that date"}.`;
+      const alts = f.alternatives?.join(" or ") ?? "";
+      r += alts ? ` I'm free on ${alts}, would ${alts.includes(" or ") ? "either" : "that"} work?` : " Would another date work for you?";
+      if (f.fixedDatePartner) {
+        const nth = d.event_date ? `the ${ordinal(Number(d.event_date.slice(8)))}` : "your date";
+        const part = d.slot === "morning" ? "that morning" : d.slot === "afternoon" ? "that afternoon" : d.slot === "evening" ? "that evening" : "that day";
+        const p = f.fixedDatePartner;
+        r += p === "unnamed"
+          ? `\n\nIf ${nth} is fixed, I can connect you with a trusted partner who may be free ${part}.`
+          : `\n\nIf ${nth} is fixed, our trusted partner ${p.name} (${p.category}${p.from_price ? `, from ${p.from_price}` : ""}) may be free ${part}. Happy to connect you.`;
+      }
+      return r + sign;
+    }
     case "referred":
       return `${hi}Thanks for thinking of ${vendor.name}! We're not able to take ${when || "this booking"}, so I've passed your details to our trusted partner ${f.referredTo}, who'll be in touch with you shortly.${sign}`;
     case "confirm":
@@ -292,6 +348,8 @@ export function clearFishingFlag(vendorId: number, enquiryId: number) {
 export const countFishingFlags = (vendorId: number) =>
   get<{ n: number }>("SELECT COUNT(*) n FROM enquiry_flags WHERE vendor_id = ? AND kind = 'price_fishing'", vendorId)!.n;
 
+const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
+
 function leadScore(d: Details, q: Quote | null, available: boolean | null, missing: string[], overCap: boolean): "hot" | "warm" | "cold" {
   if (overCap || available === false) return "cold";
   if (q && d.budget && d.budget < q.total * 0.7) return "cold";
@@ -334,8 +392,17 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
     }
   } else {
     details = mergeDetails(prev, parseEnquiry(inbound.map((m) => m.body).join("\n"), items, today));
-    // The rules-based reader only sees the latest message's intent.
-    if (!isFirst && inbound.length) details.intent = parseEnquiry(inbound[inbound.length - 1].body, items, today).intent;
+    // The rules-based reader only sees the latest message's intent, and a date in it replaces the earlier one.
+    if (!isFirst && inbound.length) {
+      const latest = parseEnquiry(inbound[inbound.length - 1].body, items, today);
+      details.intent = latest.intent;
+      if (latest.event_date) Object.assign(details, { event_date: latest.event_date, date_text: latest.date_text, date_is_approximate: latest.date_is_approximate });
+    }
+  }
+  // "Sunday works": the planner took one of the dates we offered.
+  if (!isFirst && prev?.alternatives?.length && inbound.length) {
+    const pick = pickAlternative(inbound[inbound.length - 1].body, prev.alternatives);
+    if (pick) Object.assign(details, { event_date: pick, date_text: formatDate(pick), date_is_approximate: false, alternatives: [] });
   }
   if (isFirst) details.intent = "new_enquiry";
   if (!details.contact_name && e.contact_name) details.contact_name = e.contact_name.split(" ")[0];
@@ -349,7 +416,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   const quotable = qual.qualified || !!e.price_override;
   // Brief mode (for the vendor, or for an item marked "Always quote manually"): the vendor writes the quote.
   const briefMode = vendor.pricing_mode === "brief" || [pkg, ...addons].some((i) => i?.manual_quote);
-  const quote = pkg && quotable && !briefMode ? buildQuote({ vendor, pkg, addons, hours: details.hours, pax: details.pax, date: details.event_date, slot: details.slot }) : null;
+  const dateBooked = !!details.event_date && !details.date_is_approximate && availability(vendor, details.event_date, enquiryId).available === false;
+  const quote = pkg && quotable && !briefMode && !dateBooked ? buildQuote({ vendor, pkg, addons, hours: details.hours, pax: details.pax, date: details.event_date, slot: details.slot }) : null;
   const avail = details.event_date ? availability(vendor, details.event_date, enquiryId) : null;
   const available = avail ? avail.available : null;
   const overCap = Boolean(vendor.capacity && details.pax && details.pax > vendor.capacity);
@@ -369,14 +437,30 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   }
   else if (!pkg) { purpose = "ask_info"; reasons.push("No package on your price list fits this enquiry."); }
   else if (missing.length) purpose = "ask_info";
-  else if (!isFirst && details.intent === "question") purpose = "answer";
+  // A new date ("could we do the 5th instead?") gets a fresh quote, not just an answer.
+  else if (!isFirst && details.intent === "question" && details.event_date === (prev?.event_date ?? null)) purpose = "answer";
 
   const partners = vendor.bundle_suggestions && purpose === "quote" && details.event_type && details.event_type !== "other"
     ? acceptedPartners(vendorId).filter((p) => p.kind !== vendor.kind).slice(0, 2)
     : [];
+  // Date booked: nearby free dates, and a partner in the same category who may be free that day.
+  let alternatives: string[] = [];
+  let fixedDatePartner: DraftFacts["fixedDatePartner"] = null;
+  let fixedDatePrice: number | null = null;
+  if (purpose === "unavailable" && details.event_date) {
+    alternatives = alternativeDates(vendor, details.event_date, enquiryId, 2, today);
+    details.alternatives = alternatives;
+    const same = vendor.bundle_suggestions ? acceptedPartners(vendorId).find((p) => p.kind === vendor.kind) : undefined;
+    if (same) {
+      const pv = partnerView(same);
+      fixedDatePartner = pv.view.from_price ? pv.view : "unnamed";
+      fixedDatePrice = pv.price;
+    }
+  }
   const shared = partners.map(partnerView);
   const partnerSuggestions = shared.map((s) => s.view);
   const partnerPrices = shared.flatMap((s) => (s.price != null ? [s.price] : []));
+  if (fixedDatePrice != null) partnerPrices.push(fixedDatePrice);
 
   // A brief holds the date as soon as it's free; a quote waits until nothing's missing.
   const willHold = available === true && !details.date_is_approximate && (purpose === "brief" || (purpose === "quote" && missing.length === 0));
@@ -389,6 +473,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
       : purpose === "brief" ? briefAsks(details, vendor, msgs.filter((m) => m.direction === "out" && m.status !== "draft").map((m) => m.body))
       : missing,
     briefHours: vendor.brief_hours,
+    alternatives: alternatives.length ? [formatDateChoice(alternatives)] : [],
+    fixedDatePartner,
     askedPrice: purpose === "qualify" && inbound.some((m) => asksPrice(m.body)),
     holdHours: willHold ? vendor.hold_hours : null,
     partnerSuggestions,
@@ -668,6 +754,9 @@ function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string) {
       run("UPDATE enquiries SET followup_stage = 2, next_followup_at = NULL WHERE id = ?", e.id);
       break;
     case "unavailable":
+      // Not lost: we offered other dates. It stays open (and isn't counted as quoted) until the planner answers.
+      run("UPDATE enquiries SET status = 'awaiting_info', next_followup_at = NULL WHERE id = ?", e.id);
+      break;
     case "over_capacity":
       run("UPDATE enquiries SET status = 'lost', next_followup_at = NULL WHERE id = ?", e.id);
       break;

@@ -70,6 +70,11 @@ export function parseEnquiry(text: string, items: Item[], today: string = sgToda
   d.slot = slot;
   const tm = low.match(/\b(\d{1,2}(?::\d{2})?\s?(?:am|pm))\b/);
   d.start_time = tm ? tm[1] : null;
+  // "6pm" with no "evening": the start time says which part of the day.
+  if (!d.slot && tm) {
+    const h = (Number(tm[1].match(/\d+/)![0]) % 12) + (tm[1].includes("pm") ? 12 : 0);
+    d.slot = h >= 17 ? "evening" : h >= 12 ? "afternoon" : "morning";
+  }
 
   const type: EventType | null = /wedding|solemni|\brom\b|bride|groom/.test(low) ? "wedding"
     : /launch/.test(low) ? "launch"

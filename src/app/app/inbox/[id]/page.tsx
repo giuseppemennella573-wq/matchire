@@ -35,7 +35,8 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
   const addons = items.filter((i) => d.addon_ids.includes(i.id));
   const holds = all<Hold>("SELECT * FROM holds WHERE enquiry_id = ? ORDER BY id DESC", e.id);
   const activeHold = holds.find((h) => h.status === "active");
-  const partners = E.acceptedPartners(vendor.id);
+  const partners = E.partnersForReferral(vendor);
+  const sameKindPartner = partners.some((p) => p.kind === vendor.kind);
   const referral = get<{ status: string; fee_amount: number | null; name: string; dir: string }>(
     `SELECT r.status, r.fee_amount, v.name, CASE WHEN r.source_enquiry = ? THEN 'to' ELSE 'from' END dir FROM referrals r
      JOIN vendors v ON v.id = CASE WHEN r.source_enquiry = ? THEN r.to_vendor ELSE r.from_vendor END
@@ -44,6 +45,8 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
   );
   const referredFrom = e.referred_from ? get<Vendor>("SELECT * FROM vendors WHERE id = ?", e.referred_from) : null;
   const open = ["new", "awaiting_info", "quoted", "expired"].includes(e.status);
+  // A date the vendor can't do is never quoted, and its booking value isn't pre-filled.
+  const dateUnavailable = open && !!d.event_date && !d.date_is_approximate && !E.availability(vendor, d.event_date, e.id).available;
   const brief: Brief | null = e.brief ? JSON.parse(e.brief) : null;
   const missing = [!d.event_date && "Date", !d.pax && "Headcount", !d.slot && !d.start_time && vendor.kind !== "caterer" && "Start time"].filter(Boolean) as string[];
 
@@ -161,6 +164,14 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
             )}
           </section>
 
+          {dateUnavailable && !q && (
+            <section className="card stack">
+              <h2>Quote</h2>
+              <p><span className="badge badge-amber">Not quoted: date unavailable</span></p>
+              <p className="small muted">You&apos;re booked on {formatDate(d.event_date)}. If the planner takes another date, Matchire quotes it as usual.</p>
+            </section>
+          )}
+
           {q && q.lines.length > 0 && (
             <section className="card stack">
               <h2>Quote</h2>
@@ -218,7 +229,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
             ) : open ? (
               <form action={outcomeAction} className="stack">
                 <input type="hidden" name="enquiryId" value={e.id} />
-                <label className="field"><span>Booking value (SGD)</span><input name="value" type="number" step="0.01" min="0" defaultValue={q?.total ?? ""} /></label>
+                <label className="field"><span>Booking value (SGD)</span><input name="value" type="number" step="0.01" min="0" defaultValue={dateUnavailable ? "" : q?.total ?? ""} /></label>
                 <div className="row">
                   <Submit name="intent" value="booked" className="btn btn-primary btn-sm">Mark booked</Submit>
                   <Submit name="intent" value="lost" className="btn btn-ghost btn-sm" formNoValidate>Mark lost</Submit>
@@ -232,17 +243,20 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
             )}
           </section>
 
-          {open && !referral && partners.length > 0 && (
+          {open && !referral && (partners.length > 0 || dateUnavailable) && (
             <section className="card stack">
               <h2>Pass to a partner</h2>
               <p className="small muted">Can&apos;t take it? Refer the planner to a partner and earn {vendor.referral_fee_pct}% if they book.</p>
-              <form action={referAction} className="row">
-                <input type="hidden" name="enquiryId" value={e.id} />
-                <select name="partnerId" className="grow" aria-label="Partner">
-                  {partners.map((p) => <option key={p.id} value={p.id}>{p.name} · {E.kindLabel(p.kind)}</option>)}
-                </select>
-                <Submit className="btn btn-ghost btn-sm" pending="Referring…">Refer</Submit>
-              </form>
+              {partners.length > 0 && (
+                <form action={referAction} className="row">
+                  <input type="hidden" name="enquiryId" value={e.id} />
+                  <select name="partnerId" className="grow" aria-label="Partner">
+                    {partners.map((p) => <option key={p.id} value={p.id}>{p.name} · {E.kindLabel(p.kind)}</option>)}
+                  </select>
+                  <Submit className="btn btn-ghost btn-sm" pending="Referring…">Refer</Submit>
+                </form>
+              )}
+              {!sameKindPartner && <p className="small muted">No {E.kindLabel(vendor.kind).toLowerCase()} partner yet. <Link href="/app/partners">Invite one</Link></p>}
             </section>
           )}
 

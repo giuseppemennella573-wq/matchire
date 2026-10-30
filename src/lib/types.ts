@@ -130,6 +130,8 @@ export interface Details {
   event_type: EventType | null;
   location: string | null;
   style?: string | null;
+  /** Free dates we offered when the requested one was booked (YYYY-MM-DD). */
+  alternatives?: string[];
   package_id: number | null;
   addon_ids: number[];
   needs: string[];

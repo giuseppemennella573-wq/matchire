@@ -145,6 +145,10 @@ export interface DraftFacts {
   briefHours?: number;
   /** A quote has been sent (by Matchire or by the vendor). */
   quoteSent?: boolean;
+  /** Date unavailable: nearby free dates to offer ("Fri 20 Nov"). */
+  alternatives?: string[];
+  /** Date unavailable: a same-category partner who may be free. Named only if they share their starting price. */
+  fixedDatePartner?: PartnerView | "unnamed" | null;
   holdHours: number | null;
   partnerSuggestions: PartnerView[];
   referredTo: string | null;
@@ -166,6 +170,7 @@ Rules:
 - Use only the facts provided. Every price you mention must appear in the quote or price list given (or be a partner's from_price); never estimate, round or invent a price, discount or availability.
 - If purpose is "qualify": you don't know enough to price this yet. Reply warmly in one short message, ask for the details in "missing" (at most 2 questions), and never mention any price, range, "from" price or package cost, even if the planner asks. If they asked about price, say you're happy to send exact pricing once you have those details.
 - If purpose is "brief": the owner writes this quote personally. Thank the planner, say the owner will send a tailored quote within briefHours hours, mention the date is pencilled in if holdHours is set, and ask the questions in "missing" (at most 2). Never mention any price, range or "from" price.
+- If purpose is "unavailable": say kindly that the date is booked. Offer the dates in "alternatives" exactly as given (if any). If fixedDatePartner is set, add one line offering to connect them with a trusted partner who may be free; name the partner and mention its from_price only if fixedDatePartner is an object. Never quote a price for the booked date.
 - Partners: if partnerSuggestions is not empty, you may suggest them by name and category. Mention a partner's price only when its from_price is given, exactly as written; otherwise say they can quote the planner directly. You know nothing else about partners' prices.
 - If the facts list missing details, ask for them in one friendly line.
 - Answer the planner's questions only from the price list and business notes. If you can't answer one, say the owner will confirm, and set needs_owner.
