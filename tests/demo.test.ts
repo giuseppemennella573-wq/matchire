@@ -22,7 +22,7 @@ globalThis.fetch = (async (url: string | URL) => { network.push(String(url)); re
 
 const counts = () => ({
   demoVendors: get<{ n: number }>("SELECT COUNT(*) n FROM vendors WHERE is_demo = 1")!.n,
-  demoUsers: get<{ n: number }>("SELECT COUNT(*) n FROM users WHERE email IN (?, ?)", D.DEMO_EMAIL, D.DEMO_PARTNER_EMAIL)!.n,
+  demoUsers: get<{ n: number }>("SELECT COUNT(*) n FROM users WHERE email IN (?, ?, ?)", ...D.DEMO_EMAILS)!.n,
   items: get<{ n: number }>("SELECT COUNT(*) n FROM items i JOIN vendors v ON v.id = i.vendor_id WHERE v.is_demo = 1")!.n,
   holds: get<{ n: number }>("SELECT COUNT(*) n FROM holds h JOIN vendors v ON v.id = h.vendor_id WHERE v.is_demo = 1")!.n,
   enquiries: get<{ n: number }>("SELECT COUNT(*) n FROM enquiries e JOIN vendors v ON v.id = e.vendor_id WHERE v.is_demo = 1")!.n,
@@ -47,7 +47,7 @@ test("seed:demo is idempotent and builds the Snap & Smile workspace", async () =
   const c1 = counts();
   const second = await D.seedDemo("demo-password");
   assert.deepEqual(counts(), c1, "running it twice gives the same result");
-  assert.deepEqual(c1, { demoVendors: 2, demoUsers: 2, items: 9, holds: 2, enquiries: 3, drafts: 3, partnerships: 1 });
+  assert.deepEqual(c1, { demoVendors: 3, demoUsers: 3, items: 10, holds: 2, enquiries: 3, drafts: 3, partnerships: 2 });
   assert.equal(second.bookedSaturday, first.bookedSaturday);
 
   const v = E.getVendor(second.vendorId)!;
@@ -58,6 +58,11 @@ test("seed:demo is idempotent and builds the Snap & Smile workspace", async () =
   assert.match(v.notes, /Sentosa or Jurong Island: \+S\$80/);
   assert.equal(login(D.DEMO_EMAIL, "demo-password"), get<{ id: number }>("SELECT id FROM users WHERE email = ?", D.DEMO_EMAIL)!.id);
   assert.ok(E.acceptedPartners(v.id).some((p) => p.name === "Rempah Kitchen" && p.is_demo));
+  const snapbox = E.acceptedPartners(v.id).find((p) => p.name === "Snapbox SG")!;
+  assert.deepEqual([snapbox.kind, snapbox.is_demo, snapbox.share_from_price], ["photobooth", 1, 1]);
+  assert.deepEqual(E.sharedFromPrice(snapbox), { price: 450, unit: "" });
+  assert.deepEqual(E.getItems(v.id).filter((i) => i.kind === "package").map((i) => [i.name, i.extra_hour_price]),
+    [["Classic Booth 2h", 180], ["Classic Booth 3h", 180], ["Classic Booth 4h", 180], ["360 Video Booth 3h", 350]]);
 
   // The booked Saturday is 3+ weeks out and full; the clashing D&D is drafted as unavailable.
   const booked = second.bookedSaturday;
@@ -70,6 +75,25 @@ test("seed:demo is idempotent and builds the Snap & Smile workspace", async () =
   assert.deepEqual(drafts.map((d) => d.channel), ["whatsapp", "instagram", "email"]);
   assert.equal(drafts[2].purpose, "unavailable");
   assert.equal(network.length, 0, "seeding sent nothing");
+
+  // The three drafts, as a prospect sees them.
+  const body = (channel: string) => get<{ body: string }>("SELECT m.body FROM messages m JOIN enquiries e ON e.id = m.enquiry_id WHERE e.vendor_id = ? AND e.channel = ? AND m.status = 'draft'", v.id, channel)!.body;
+  const enquiry = (channel: string) => get<{ quote: string | null; status: string }>("SELECT quote, status FROM enquiries WHERE vendor_id = ? AND channel = ?", v.id, channel)!;
+  // Sarah's wedding: quoted, with the bigger package's full total, the deposit and the hold deadline.
+  assert.match(body("whatsapp"), /Total: SGD 1,000/);
+  assert.match(body("whatsapp"), /Classic Booth 4h with the guestbook album is SGD 1,200/);
+  assert.match(body("whatsapp"), /A deposit of SGD 300 \(30%\)/);
+  assert.match(body("whatsapp"), /I'm holding the date for you until /);
+  // Kelly on Instagram, "how much": qualifying questions, no price.
+  assert.equal(drafts[1].purpose, "qualify");
+  assert.match(body("instagram"), /Happy to send exact pricing! What's the date and roughly how many guests\?/);
+  assert.doesNotMatch(body("instagram"), /SGD|\$/);
+  assert.equal(enquiry("instagram").quote, null);
+  // Bluewave's D&D on the booked Saturday: other dates, Snapbox SG with its shared price, not quoted.
+  assert.match(body("email"), /I'm free on .+, would (either|that) work\?/);
+  assert.match(body("email"), /our trusted partner Snapbox SG \(photobooth, from SGD 450\) may be free that evening/);
+  assert.doesNotMatch(body("email").replace("from SGD 450", ""), /SGD|\$/, "no price for the booked date");
+  assert.equal(enquiry("email").quote, null, "Not quoted, so the booking value stays empty");
 });
 
 test("demo accounts never reach WhatsApp or email, even with auto-send forced on", async () => {

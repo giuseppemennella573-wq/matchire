@@ -5,13 +5,16 @@ import { addDays, dayOfWeek, sgToday } from "./dates.ts";
 import type { Item } from "./types.ts";
 
 // The demo workspace we show prospects: Snap & Smile Photobooth with a partner
-// caterer, a fully booked Saturday and three enquiries drafted by the normal
-// pipeline. Both accounts are is_demo, so nothing they do is ever really sent
+// caterer and a partner photobooth (who shares their starting price, for the
+// date-clash referral), a fully booked Saturday and three enquiries drafted by
+// the normal pipeline. Both accounts are is_demo, so nothing they do is ever really sent
 // (see deliver() in channels.ts). Seeding resets them: running it twice gives
 // the same result.
 
 export const DEMO_EMAIL = "demo@matchire.ai";
 export const DEMO_PARTNER_EMAIL = "rempah-demo@matchire.ai";
+export const DEMO_BOOTH_PARTNER_EMAIL = "snapbox-demo@matchire.ai";
+export const DEMO_EMAILS = [DEMO_EMAIL, DEMO_PARTNER_EMAIL, DEMO_BOOTH_PARTNER_EMAIL];
 
 type NewItem = Omit<Item, "id" | "vendor_id" | "active" | "sort">;
 const item = (o: Partial<NewItem> & Pick<NewItem, "kind" | "name" | "pricing" | "price">): NewItem => ({
@@ -19,12 +22,12 @@ const item = (o: Partial<NewItem> & Pick<NewItem, "kind" | "name" | "pricing" | 
 });
 const CLASSIC = "Unlimited prints, props and an attendant";
 
-// Longer events step up to the next tier; extra hours (S$180) only extend the 4h package.
+// Every package has its own extra-hour rate, so 3.5h or 5h can be quoted.
 const PRICE_LIST: NewItem[] = [
-  item({ kind: "package", name: "Classic Booth 2h", pricing: "flat", price: 650, included_hours: 2, description: CLASSIC }),
-  item({ kind: "package", name: "Classic Booth 3h", pricing: "flat", price: 850, included_hours: 3, description: CLASSIC }),
+  item({ kind: "package", name: "Classic Booth 2h", pricing: "flat", price: 650, included_hours: 2, extra_hour_price: 180, description: CLASSIC }),
+  item({ kind: "package", name: "Classic Booth 3h", pricing: "flat", price: 850, included_hours: 3, extra_hour_price: 180, description: CLASSIC }),
   item({ kind: "package", name: "Classic Booth 4h", pricing: "flat", price: 1050, included_hours: 4, extra_hour_price: 180, description: CLASSIC }),
-  item({ kind: "package", name: "360 Video Booth 3h", pricing: "flat", price: 1200, included_hours: 3, description: "Slow-motion 360 videos, shared instantly" }),
+  item({ kind: "package", name: "360 Video Booth 3h", pricing: "flat", price: 1200, included_hours: 3, extra_hour_price: 350, description: "Slow-motion 360 videos, shared instantly" }),
   item({ kind: "addon", name: "Custom backdrop", pricing: "flat", price: 120 }),
   item({ kind: "addon", name: "Guestbook album", pricing: "flat", price: 150 }),
   item({ kind: "addon", name: "Digital gallery + GIFs", pricing: "flat", price: 90 }),
@@ -47,7 +50,7 @@ const longDate = (iso: string) =>
 
 /** Delete the demo accounts, refusing to touch a real account that happens to use a demo email. */
 function removeDemoAccounts() {
-  for (const email of [DEMO_EMAIL, DEMO_PARTNER_EMAIL]) {
+  for (const email of DEMO_EMAILS) {
     const v = get<{ vendor_id: number; is_demo: number }>(
       "SELECT u.vendor_id, v.is_demo FROM users u JOIN vendors v ON v.id = u.vendor_id WHERE u.email = ?", email,
     );
@@ -84,6 +87,12 @@ export async function seedDemo(password = process.env.DEMO_PASSWORD, now = new D
     addItems(kitchen, [item({ kind: "package", name: "Buffet", pricing: "per_pax", price: 16, min_pax: 50, description: "Local favourites, halal-certified kitchen" })]);
     run("INSERT INTO partnerships (requester_id, partner_id, status) VALUES (?, ?, 'accepted')", booth, kitchen);
 
+    // A partner photobooth who shares their starting price (SGD 450, as on the landing page): offered when Snap & Smile is booked.
+    const snapbox = createAccount({ email: DEMO_BOOTH_PARTNER_EMAIL, password: token(24), name: "Ana", business: "Snapbox SG", kind: "photobooth" }).vendorId;
+    run("UPDATE vendors SET is_demo = 1, auto_send = 0, share_from_price = 1 WHERE id = ?", snapbox);
+    addItems(snapbox, [item({ kind: "package", name: "Classic booth 2h", pricing: "flat", price: 450, included_hours: 2, extra_hour_price: 120, description: "Unlimited prints, props and an attendant" })]);
+    run("INSERT INTO partnerships (requester_id, partner_id, status) VALUES (?, ?, 'accepted')", booth, snapbox);
+
     // A fully booked Saturday (2 jobs a day, so two bookings).
     const booked = saturdayFrom(21, today);
     run("INSERT INTO holds (vendor_id, date, kind, note) VALUES (?, ?, 'booking', 'Lim family party (afternoon)')", booth, booked);
@@ -106,6 +115,7 @@ export async function seedDemo(password = process.env.DEMO_PASSWORD, now = new D
     return {
       vendorId: booth,
       partnerId: kitchen,
+      boothPartnerId: snapbox,
       bookedSaturday: booked,
       weddingSaturday: wedding,
       enquiries: all<{ id: number }>("SELECT id FROM enquiries WHERE vendor_id = ?", booth).length,
