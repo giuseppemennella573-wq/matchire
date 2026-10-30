@@ -29,6 +29,8 @@ export interface Vendor {
   referral_fee_pct: number;
   /** Partners may see (and mention to their clients) this vendor's lowest live package price. Off by default. */
   share_from_price: number;
+  /** The connected WhatsApp number as Meta shows it ("+65 9647 2283"), fetched when the connection is saved. */
+  wa_display_number: string | null;
   /** Demo account for showing prospects: nothing it does is ever really sent. */
   is_demo: number;
   deposit_note: string;

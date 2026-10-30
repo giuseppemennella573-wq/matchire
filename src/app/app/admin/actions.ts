@@ -2,19 +2,16 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireVendor } from "@/lib/auth";
-import { deleteAccount, deleteSignup, isAdmin, notifySignup, setAccountContacted, setContacted } from "@/lib/early-access";
+import { requireAdmin } from "@/lib/auth";
+import { deleteAccount, deleteSignup, notifySignup, setAccountContacted, setContacted } from "@/lib/early-access";
 import { createBackup } from "@/lib/backup";
 import { get } from "@/lib/db";
 import { requestPasswordReset } from "@/lib/password-reset";
 import { appUrl } from "@/lib/app-url";
 import { seedDemo } from "@/lib/demo";
+import { channelChangesFromForm, updateChannels } from "@/lib/channel-settings";
 import { emailReady } from "@/lib/channels";
 
-async function requireAdmin() {
-  const { user } = await requireVendor();
-  if (!isAdmin(user)) redirect("/app");
-}
 
 const signupId = (f: FormData) => {
   const n = Number(f.get("id"));
@@ -100,4 +97,21 @@ export async function resetDemoAction() {
   }
   revalidatePath("/app", "layout");
   redirect(`/app/admin/accounts?${kind}=${encodeURIComponent(msg)}`);
+}
+
+export async function saveVendorChannelsAction(form: FormData) {
+  const { user } = await requireAdmin();
+  const vendorId = Number(form.get("vendorId"));
+  if (!Number.isInteger(vendorId) || vendorId <= 0) throw new Error("Bad request");
+  const back = `/app/admin/channels/${vendorId}`;
+  let msg: string, kind = "msg";
+  try {
+    const changed = await updateChannels(vendorId, { ...channelChangesFromForm(form), rotateInbound: form.get("rotate_inbound") === "on" }, { id: user.id, email: user.email, admin: true });
+    msg = changed.length ? `Saved: ${changed.join(", ")}.` : "Nothing changed.";
+  } catch (e) {
+    msg = e instanceof Error ? e.message : String(e);
+    kind = "error";
+  }
+  revalidatePath("/app", "layout");
+  redirect(`${back}?${kind}=${encodeURIComponent(msg)}`);
 }

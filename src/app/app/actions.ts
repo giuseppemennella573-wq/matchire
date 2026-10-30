@@ -8,6 +8,9 @@ import * as E from "@/lib/engine";
 import { aiEnabled, aiImportPriceList } from "@/lib/ai";
 import { addItems, token } from "@/lib/accounts";
 import { changePassword } from "@/lib/password-reset";
+import { channelChangesFromForm, requestChannelSetup, updateChannels } from "@/lib/channel-settings";
+import { isAdmin } from "@/lib/early-access";
+import { appUrl } from "@/lib/app-url";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE } from "@/lib/auth";
 import { isValidIsoDate } from "@/lib/dates";
@@ -235,12 +238,12 @@ export async function respondPartnerAction(form: FormData) {
 // ---------- Settings ----------
 
 export async function saveSettingsAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { user, vendor } = await requireVendor();
   const n = (k: string, fallback: number, min = 0) => Math.max(min, num(form, k) ?? fallback);
   run(
     `UPDATE vendors SET name = ?, kind = ?, tone = ?, signoff = ?, notes = ?, deposit_note = ?, capacity = ?, jobs_per_day = ?, min_spend = ?,
-     offpeak_discount = ?, auto_send = ?, hold_hours = ?, followup_days = ?, bundle_suggestions = ?, share_from_price = ?, referral_fee_pct = ?,
-     wa_phone_number_id = ?, wa_token = COALESCE(NULLIF(?, ''), wa_token), wa_templates_approved = ? WHERE id = ?`,
+     offpeak_discount = ?, auto_send = ?, hold_hours = ?, followup_days = ?, bundle_suggestions = ?, share_from_price = ?, referral_fee_pct = ?
+     WHERE id = ?`,
     str(form, "name") || vendor.name,
     (str(form, "kind") || vendor.kind) as VendorKind,
     str(form, "tone") || vendor.tone,
@@ -257,18 +260,17 @@ export async function saveSettingsAction(form: FormData) {
     form.get("bundle_suggestions") === "on" ? 1 : 0,
     form.get("share_from_price") === "on" ? 1 : 0,
     Math.min(50, n("referral_fee_pct", 10)),
-    str(form, "wa_phone_number_id") || null,
-    str(form, "wa_token"),
-    form.get("wa_templates_approved") === "on" ? 1 : 0,
     vendor.id,
   );
-  if (form.get("wa_disconnect") === "on") run("UPDATE vendors SET wa_phone_number_id = NULL, wa_token = NULL WHERE id = ?", vendor.id);
+  // Channel connections (tokens, IDs) are set by Matchire admins only; anyone else's fields are ignored.
+  if (isAdmin(user)) await updateChannels(vendor.id, channelChangesFromForm(form), { id: user.id, email: user.email, admin: true });
   revalidatePath("/app", "layout");
   back("/app/settings", "Settings saved.");
 }
 
-export async function rotateInboundTokenAction() {
+export async function rotateInboundTokenAction(form: FormData) {
   const { vendor } = await requireVendor();
+  if (form.get("confirm") !== "on") back("/app/settings", "Tick the box to confirm you want a new address.", "error");
   run("UPDATE vendors SET inbound_token = ? WHERE id = ?", token(12).toLowerCase().replace(/[^a-z0-9]/g, "x"), vendor.id);
   back("/app/settings", "New inbound email address generated. Update your forwarding rule.");
 }
@@ -285,4 +287,15 @@ export async function changePasswordAction(form: FormData) {
   const error = changePassword(user.id, String(form.get("current_password") ?? ""), next, session);
   if (error) back("/app/settings", error, "error");
   back("/app/settings", "Password changed. You've been logged out on other devices.");
+}
+
+export async function requestSetupAction(form: FormData) {
+  const { user, vendor } = await requireVendor();
+  const channel = form.get("channel") === "email" ? "email" : "whatsapp";
+  const label = channel === "email" ? "email forwarding" : "WhatsApp";
+  const r = await requestChannelSetup(vendor, user, channel, appUrl());
+  if (r === "sent") back("/app/settings", `Request sent. We'll be in touch to set up ${label}.`);
+  if (r === "already_requested") back("/app/settings", `You've already asked for ${label} setup today. We'll be in touch.`);
+  if (r === "demo") back("/app/settings", "Demo account: the request was simulated, nothing was sent.");
+  back("/app/settings", `Couldn't send the request (${r.replace(/\.$/, "")}). Email us at hello@matchire.ai instead.`, "error");
 }

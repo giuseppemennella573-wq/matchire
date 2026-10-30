@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { userForSession } from "./accounts.ts";
 import { getVendor } from "./engine.ts";
+import { adminForSession } from "./channel-settings.ts";
 
 export const SESSION_COOKIE = "matchire_session";
 
@@ -22,4 +23,19 @@ export async function requireVendor() {
 export async function setSessionCookie(token: string, expires: Date) {
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", expires });
+}
+
+/** The signed-in Matchire admin, or null. Use for routes, which answer 404 to everyone else. */
+export async function currentAdmin() {
+  const jar = await cookies();
+  return adminForSession(jar.get(SESSION_COOKIE)?.value);
+}
+
+/** The signed-in Matchire admin and their vendor; anyone else is sent back to /app. */
+export async function requireAdmin() {
+  const admin = await currentAdmin();
+  if (!admin) redirect("/app");
+  const vendor = getVendor(admin.vendor_id);
+  if (!vendor) redirect("/login");
+  return { user: admin, vendor };
 }

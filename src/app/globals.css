@@ -92,6 +92,7 @@ tr:last-child td { border-bottom: 0; }
 .alert-ok { background: var(--ok-soft); color: var(--ok); }
 .alert-warn { background: var(--amber-soft); color: var(--amber); }
 .alert-err { background: var(--red-soft); color: var(--red); }
+.soon { display: inline-block; padding: .1rem .45rem; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font: 600 .66rem/1.4 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
 .banner { margin-bottom: 18px; line-height: 1.5; }
 
 /* App shell */
@@ -158,6 +159,7 @@ tr:last-child td { border-bottom: 0; }
 dl.facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: .9rem; }
 dl.facts dt { color: var(--muted); }
 dl.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+details > summary { cursor: pointer; }
 details.more > summary { cursor: pointer; font-weight: 600; font-size: .88rem; color: var(--muted); list-style: none; }
 details.more > summary::-webkit-details-marker { display: none; }
 details.more[open] > summary { margin-bottom: 10px; }

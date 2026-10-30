@@ -1,6 +1,4 @@
-import { redirect } from "next/navigation";
-import { requireVendor } from "@/lib/auth";
-import { isAdmin } from "@/lib/early-access";
+import { requireAdmin } from "@/lib/auth";
 import { backupTo, listBackups } from "@/lib/backup";
 import { emailReady } from "@/lib/channels";
 import { formatDateTime } from "@/lib/dates";
@@ -12,8 +10,7 @@ export const metadata = { title: "Backups" };
 const size = (b: number) => (b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1048576).toFixed(1)} MB`);
 
 export default async function Backups({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string }> }) {
-  const { user } = await requireVendor();
-  if (!isAdmin(user)) redirect("/app");
+  await requireAdmin();
   const { msg, error } = await searchParams;
   const rows = listBackups();
   const last = rows[0];

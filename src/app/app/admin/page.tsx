@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
-import { requireVendor } from "@/lib/auth";
-import { ALERT_TO, isAdmin, listSignups, whatsappLink } from "@/lib/early-access";
+import { requireAdmin } from "@/lib/auth";
+import { ALERT_TO, listSignups, whatsappLink } from "@/lib/early-access";
 import { emailReady } from "@/lib/channels";
 import { formatDateTime } from "@/lib/dates";
 import { deleteSignupAction, resendAlertAction, toggleContactedAction } from "./actions";
@@ -9,8 +8,7 @@ import { ConfirmSubmit } from "@/components/confirm-submit";
 export const metadata = { title: "Early access" };
 
 export default async function Admin({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string }> }) {
-  const { user } = await requireVendor();
-  if (!isAdmin(user)) redirect("/app");
+  await requireAdmin();
   const { msg, error } = await searchParams;
   const rows = listSignups();
   const waiting = rows.filter((r) => !r.contacted_at).length;

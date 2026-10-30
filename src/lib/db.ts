@@ -145,6 +145,23 @@ CREATE TABLE IF NOT EXISTS backups (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
+CREATE TABLE IF NOT EXISTS channel_audit (
+  id INTEGER PRIMARY KEY,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  actor_user_id INTEGER,
+  actor_email TEXT NOT NULL,
+  field TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS channel_audit_vendor ON channel_audit(vendor_id);
+
+CREATE TABLE IF NOT EXISTS setup_requests (
+  id INTEGER PRIMARY KEY,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  channel TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS app_status (
   key TEXT PRIMARY KEY,
   value TEXT,
@@ -198,6 +215,7 @@ const COLUMNS: [table: string, column: string, definition: string][] = [
   ["vendors", "share_from_price", "INTEGER NOT NULL DEFAULT 0"],
   ["users", "admin_contacted_at", "TEXT"],
   ["vendors", "is_demo", "INTEGER NOT NULL DEFAULT 0"],
+  ["vendors", "wa_display_number", "TEXT"],
 ];
 
 function migrate(conn: DatabaseSync) {
