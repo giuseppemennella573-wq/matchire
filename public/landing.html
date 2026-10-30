@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Matchire.ai · Match. Hire. Booked. · The AI booking desk for event vendors</title>
-<meta name="description" content="Matchire.ai answers your WhatsApp and email enquiries in minutes with a priced quote, follows up for you, and matches you with partner vendors. Built for photobooths, venues, caterers and AV in Singapore.">
+<meta name="description" content="Matchire.ai answers your WhatsApp and email enquiries in minutes, asks the right questions, then sends an exact quote from your own packages, holds the date and follows up. Built for event vendors in Singapore.">
 <meta property="og:title" content="Matchire.ai · The AI booking desk for event vendors">
 <meta property="og:description" content="Every enquiry answered, quoted and followed up, even while you're working an event.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://matchire.ai/">
 <meta name="theme-color" content="#073B39">
 <link rel="icon" href="/favicon.svg">
-<meta property="og:image" content="https://app.matchire.ai/logo.jpg">
+<meta property="og:image" content="https://matchire.ai/logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -490,7 +490,7 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
           <div class="timeline" aria-label="Example enquiry timeline">
             <div class="tl"><span class="mono">23:14</span><span>Enquiry arrives on WhatsApp</span></div>
             <div class="tl"><span class="mono">23:15</span><span>Asks for the date and guest count</span></div>
-            <div class="tl hi"><span class="mono">23:19</span><span>Exact quote sent, date held until Sun 4pm</span></div>
+            <div class="tl hi"><span class="mono">23:19</span><span>Exact quote sent, date held for 48 hours</span></div>
             <div class="tl"><span class="mono">+24h</span><span>Gentle follow-up if no reply</span></div>
             <div class="tl"><span class="mono">Later</span><span>Before the hold ends: last call</span></div>
             <div class="tl hi"><span class="mono"></span><span>Client confirms, booking locked in</span></div>
@@ -508,7 +508,7 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
       </div>
       <div class="steps">
         <div class="step"><span class="step-n">STEP 1</span><h3>Connect your channels</h3><p>Use your existing WhatsApp Business number. During early access we set it up with you, step by step. We connect your email inbox for you, and you get an enquiry form for your website.</p></div>
-        <div class="step"><span class="step-n">STEP 2</span><h3>Upload your price list</h3><p>Upload your rate card as a PDF, a photo, or paste it in. We set them up and you approve them.</p></div>
+        <div class="step"><span class="step-n">STEP 2</span><h3>Upload your price list</h3><p>Upload your rate card as a PDF, a photo, or paste it in. We turn it into packages, you check and approve them.</p></div>
         <div class="step"><span class="step-n">STEP 3</span><h3>Choose how hands-off to be</h3><p>Start with Matchire drafting replies for you to approve. Switch on auto-send for routine enquiries once you trust it.</p></div>
       </div>
     </div>
@@ -586,7 +586,7 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
       <div class="faq">
         <details><summary>Will my clients know they're talking to AI?</summary><p>Replies go out from your own number and in your tone. You can add a line like 'Replies assisted by Matchire' to your sign-off, and you can step into any conversation at any time.</p></details>
         <details><summary>What if it quotes the wrong price?</summary><p>Matchire only quotes from the packages and rules you approve. If an enquiry needs something outside your price list, it drafts a reply and waits for you instead of guessing. Each package can have its own extra-hour rate, so longer events are priced correctly.</p></details>
-        <details id="faq-custom"><summary>My services are custom. Will Matchire quote wrong prices?</summary><p>No. Switch on Brief mode: Matchire asks the client the right questions, holds the date and sends you a clean brief. You write the quote, Matchire follows up.</p></details>
+        <details id="faq-custom"><summary>My services are custom. Can Matchire still help?</summary><p>No. Switch on Brief mode: Matchire asks the client the right questions, holds the date and sends you a clean brief. You write the quote, Matchire follows up.</p></details>
         <details id="faq-fishing"><summary>What if someone is just collecting prices?</summary><p>Matchire doesn't give prices until it knows the date and one more detail. If someone keeps asking for your full price list without giving a date, the enquiry is flagged and prices stop going out automatically.</p></details>
         <details><summary>Do I need to change my WhatsApp number?</summary><p>No. Use your existing WhatsApp Business number. During early access we set it up with you, step by step.</p></details>
         <details><summary>I'm a one-person business. Is this overkill?</summary><p>The Solo plan is built for owner-operators. If you miss enquiries while you're working an event, that's exactly the gap Matchire fills.</p></details>
@@ -655,13 +655,24 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
   const fmt=n=>"SGD "+Math.round(n).toLocaleString("en-SG");
   $("yr").textContent=new Date().getFullYear();
 
+  // A Saturday about three weeks out that the sample photobooth is fully booked on, so the sample never goes stale.
+  const BOOKED=(()=>{
+    const WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+21+((6-d.getDay()+7)%7));
+    const near=n=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+    const fri=near(-1),sun=near(1),lab=x=>`${WD[x.getDay()]} ${x.getDate()} ${MO[x.getMonth()]}`;
+    const n=d.getDate(),nth=n+(n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th");
+    return {label:lab(d),day:n,mon:MO[d.getMonth()],nth,
+      alts:fri.getMonth()===sun.getMonth()?`${WD[5]} ${fri.getDate()} or ${lab(sun)}`:`${lab(fri)} or ${lab(sun)}`};
+  })();
   // Sample vendors with sample price lists (demo only)
   const V={
-    photo:{biz:"Snapbox SG",kind:"photobooth",samples:[
+    photo:{biz:"Snap & Smile Photobooth",kind:"photobooth",booked:true,samples:[
       "Hi! Looking for a photobooth for my daughter's 21st on Sat 15 Nov, evening, about 80 guests. 3 hours. Do you do custom print frames? Budget around $900",
       "Hello, corporate D&D at a hotel ballroom early Dec, 250 pax. Interested in a 360 booth for 4 hrs. Can send quote?",
       "hey do u have availability next tuesday afternoon? company family day, 2 hours",
-      "hi how much for photobooth?"],
+      "hi how much for photobooth?",
+      `Hi, photobooth for a wedding ${BOOKED.label} evening, 100 guests, 3h?`],
       quote(b){const h=b.hours||3;const is360=/360/.test(b.raw);const base=is360?650:450;const L=[{k:(is360?"360 booth":"Classic booth")+" · first 2h",v:base}];if(h>2)L.push({k:`Extra ${h-2}h`,v:(h-2)*(is360?180:120)});if(/frame|custom|logo|brand/i.test(b.raw))L.push({k:"Custom print frame",v:80});L.push({k:"Setup & transport",v:60});return L;},
       partner:b=>b.type==="party"||b.type==="wedding"?"<b>Partner suggestion:</b> Rempah Kitchen (catering) can quote you directly for a buffet for "+(b.pax||"your")+" guests. Include in the reply?":null},
     venue:{biz:"The Loft, Telok Ayer",kind:"venue",cap:60,samples:[
@@ -732,6 +743,16 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     b.needs.forEach(n=>tags.push(`<span class="tag">${n}</span>`));
     if(b.offpeak)tags.push(`<span class="tag">Off-peak slot</span>`);
     $("extract").innerHTML=tags.join("");
+    // A booked date is said straight away, as in the app: other dates, a partner in the same category, no price.
+    if(v.booked&&new RegExp(`\\b${BOOKED.day}(?:st|nd|rd|th)?\\s+${BOOKED.mon}`,"i").test(b.raw)){
+      $("extract").innerHTML+=`<span class="tag miss">Date taken</span>`;
+      $("quote").hidden=true;$("quote").innerHTML="";
+      const when=`${BOOKED.label}${b.slot?" "+b.slot:""}`;
+      $("reply").textContent=`Hi! Thanks for reaching out to ${v.biz} 😊\n\nUnfortunately we're fully booked on ${when}. I'm free on ${BOOKED.alts}, would either work?\n\nIf the ${BOOKED.nth} is fixed, our trusted partner Snapbox SG (photobooth, from SGD 450) may be free that ${b.slot||"day"}. Happy to connect you.\n\nThanks,\n${v.biz}`;
+      $("lead").className="lead warm";$("lead").innerHTML=`<i></i>Date taken, lead kept`;
+      $("partner").hidden=true;$("sendMsg").textContent="";
+      return;
+    }
     // No price until there's a date plus one more detail (guests, venue, hours or event type), as in the app.
     const qualified=b.exact&&!!(b.pax||b.venue||b.hours||b.type);
     const capWarn=v.cap&&b.pax&&b.pax>v.cap;
@@ -753,8 +774,10 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     const missing=[];if(!b.date)missing.push("your event date");if(!b.pax&&v.kind!=="AV")missing.push("the number of guests");if(!b.slot&&v.kind!=="caterer")missing.push("the start time");
     let r=`Hi! Thanks for reaching out to ${v.biz} 😊\n\n`;
     if(capWarn)r+=`Our space fits up to ${v.cap} guests, so ${b.pax} would be too many for us. Happy to recommend a partner venue that fits!\n\n`;
-    else r+=`${b.date?`Good news, we're available ${niceDate(b.date)}${b.slot?" "+b.slot:""}. `:""}Here's your quote: ${fmt(total)} all-in${b.offpeak?", including our 25% weekday daytime rate":""}.\n\n`;
-    if(missing.length)r+=`Could you share ${missing.join(" and ")}? Then I'll confirm availability.\n\n`;
+    else r+=`${b.date&&!missing.length?`Good news, we're available ${niceDate(b.date)}${b.slot?" "+b.slot:""}. `:""}Here's your quote: ${fmt(total)} all-in${b.offpeak?", including our 25% weekday daytime rate":""}.\n\n`;
+    // Still missing something: don't promise the date yet.
+    if(missing.length&&!capWarn)r+=`Share ${missing.map(m=>m.replace(/^the start time$/,"your start time")).join(" and ")} and I'll confirm and hold the date.\n\n`;
+    else if(missing.length)r+=`Could you share ${missing.join(" and ")}?\n\n`;
     if(!capWarn)r+=`A deposit of ${fmt(Math.round(total*.3))} (30%) secures the date.\n\n`;
     if(!missing.length&&!capWarn)r+=`I'm holding the date for you until ${holdEnds()}. Shall I go ahead and confirm?\n\n`;
     r+=`Thanks,\n${v.biz}`;
