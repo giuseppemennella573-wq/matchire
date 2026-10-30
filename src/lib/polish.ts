@@ -63,6 +63,25 @@ export function upsellFor(pkg: Item, items: Item[], addons: Item[], input: Omit<
   return { name: bigger.name, total: q.total, text: `Want more time? ${bigger.name}${with_} is ${fmtMoney(q.total)}.` };
 }
 
+/**
+ * For "too expensive": a smaller package in the same family (else any cheaper
+ * package), priced in full with the same add-ons. Only real prices; never a
+ * discount that isn't on the price list.
+ */
+export function downsellFor(pkg: Item, current: Quote, items: Item[], addons: Item[], input: Omit<QuoteInput, "pkg" | "addons" | "hours">): { name: string; total: number; text: string } | null {
+  const others = items.filter((i) => i.kind === "package" && i.active && !i.manual_quote && i.id !== pkg.id);
+  const smaller = others
+    .filter((i) => i.pricing === "flat" && pkg.included_hours && i.included_hours && i.included_hours < pkg.included_hours && family(i.name) === family(pkg.name))
+    .sort((a, b) => b.included_hours! - a.included_hours!);
+  for (const p of [...smaller, ...others.sort((a, b) => a.price - b.price)]) {
+    const q = buildQuote({ ...input, pkg: p, addons, hours: p.included_hours });
+    if (q.issues.length || q.total >= current.total) continue;
+    const extras = addons.map((a) => a.name.charAt(0).toLowerCase() + a.name.slice(1));
+    return { name: p.name, total: q.total, text: `If it helps, ${p.name}${extras.length ? ` with the ${extras.join(" and ")}` : ""} is ${fmtMoney(q.total)}.` };
+  }
+  return null;
+}
+
 /** A blank line before "Total:", wherever the draft came from, so it never sticks to the last line ("SGD 150Total: …"). */
 export function normalizeReply(text: string): string {
   return text.replace(/[ \t]*\n?[ \t]*(\*{0,2}Total\b\s*:)/g, (m, total: string, offset: number, all: string) => {

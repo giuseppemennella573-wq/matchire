@@ -116,7 +116,12 @@ export const OPEN_STATUSES: EnquiryStatus[] = ["new", "awaiting_info", "quoted"]
 
 export type Slot = "morning" | "afternoon" | "evening" | "full_day";
 export type EventType = "wedding" | "birthday" | "corporate" | "launch" | "private_party" | "other";
-export type Intent = "new_enquiry" | "accepts_quote" | "question" | "declines" | "other";
+/**
+ * declines: a clear refusal, closes the enquiry. soft_decline: "no thanks" / "cancel" / "we'll pass", often about one item, so
+ * the vendor checks it. undecided: "not sure yet", "let me check with my boss", with no new details and no question.
+ * price_concern: "too expensive", "over budget".
+ */
+export type Intent = "new_enquiry" | "accepts_quote" | "question" | "declines" | "soft_decline" | "undecided" | "price_concern" | "other";
 
 /** What Matchire understood from the conversation so far. */
 export interface Details {
@@ -138,6 +143,8 @@ export interface Details {
   addon_ids: number[];
   needs: string[];
   questions: string[];
+  /** The planner's latest message hesitates ("not sure yet", "let me check with my partner"). */
+  undecided?: boolean;
   needs_owner: boolean;
   owner_reason: string | null;
   intent: Intent;

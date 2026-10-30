@@ -10,7 +10,7 @@ import { maybeDailyBackup } from "./backup.ts";
 import { asksPrice, qualification, qualifyQuestion, requiredFields } from "./qualify.ts";
 import { fishingSignal } from "./fishing.ts";
 import { briefAsks, briefText, buildBrief, type Brief } from "./brief.ts";
-import { depositLine, holdSentence, holdUntil, normalizeReply, upsellFor } from "./polish.ts";
+import { depositLine, downsellFor, holdSentence, holdUntil, normalizeReply, upsellFor } from "./polish.ts";
 
 // The booking desk. An enquiry flows: ingest → understand → quote → draft →
 // (approve) → send → hold the date → follow up → booked / lost / expired.
@@ -278,6 +278,13 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
       const priced = f.askedPrice ? "Happy to send exact pricing! " : "I'd love to help. ";
       return `${hi}Thanks for reaching out to ${vendor.name} 😊\n\n${priced}${f.missing[0] ?? "What's the date?"}${sign}`;
     }
+    case "undecided":
+      return `${hi}No rush at all! Take your time, and just let me know once you've had a chance to check. Happy to answer any questions in the meantime.${sign}`;
+    case "price_concern": {
+      const opts = [f.cheaperText, f.offpeakText].filter(Boolean);
+      const body = opts.length ? `${opts.join("\n\n")}\n\nHappy to work out what fits best.` : "Is there a budget you have in mind? I'll see what fits best.";
+      return `${hi}Thanks for letting me know, I completely understand.\n\n${body}${sign}`;
+    }
     case "brief": {
       // The vendor writes this quote. Never a price here, not even a range.
       let r = `${hi}Thanks for all the details! ${vendor.name} will send you a tailored quote within ${f.briefHours ?? 24} hours.`;
@@ -354,6 +361,22 @@ export const countFishingFlags = (vendorId: number) =>
 
 const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
 
+/** The real cheaper options for a planner who finds the quote too expensive. */
+function priceConcernOptions(vendor: Vendor, pkg: Item, quote: Quote, items: Item[], addons: Item[], d: Details, enquiryId: number, today: string) {
+  const cheaper = downsellFor(pkg, quote, items, addons, { vendor, pax: d.pax, date: d.event_date, slot: d.slot });
+  let offpeak: { total: number; text: string } | null = null;
+  if (vendor.offpeak_discount > 0 && !quote.offpeak && d.event_date) {
+    // The nearest free Mon–Thu within a week, priced as a daytime slot.
+    const day = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7].map((k) => addDays(d.event_date!, k))
+      .find((x) => x > today && dayOfWeek(x) >= 1 && dayOfWeek(x) <= 4 && availability(vendor, x, enquiryId).available);
+    if (day) {
+      const q = buildQuote({ vendor, pkg, addons, hours: d.hours, pax: d.pax, date: day, slot: "afternoon" });
+      if (q.offpeak && q.total < quote.total) offpeak = { total: q.total, text: `On a weekday daytime slot, like ${formatDate(day).replace(",", "")} afternoon, the same booking is ${fmtMoney(q.total)} with our ${vendor.offpeak_discount}% off-peak rate.` };
+    }
+  }
+  return { cheaper, offpeak };
+}
+
 function leadScore(d: Details, q: Quote | null, available: boolean | null, missing: string[], overCap: boolean): "hot" | "warm" | "cold" {
   if (overCap || available === false) return "cold";
   if (q && d.budget && d.budget < q.total * 0.7) return "cold";
@@ -403,6 +426,12 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
       if (latest.event_date) Object.assign(details, { event_date: latest.event_date, date_text: latest.date_text, date_is_approximate: latest.date_is_approximate });
     }
   }
+  // How the latest message reads, whoever extracted it: only a clear refusal closes the enquiry, and "not sure yet"
+  // is undecided only when the message has no new details and no question.
+  const latest = !isFirst && inbound.length ? parseEnquiry(inbound[inbound.length - 1].body, items, today) : null;
+  details.undecided = !!latest?.undecided;
+  if (latest && details.intent === "declines" && latest.intent !== "declines") details.intent = latest.intent === "other" || latest.intent === "question" ? latest.intent : "soft_decline";
+  if (latest && details.intent === "undecided" && latest.intent !== "undecided") details.intent = latest.intent;
   // "Sunday works": the planner took one of the dates we offered.
   if (!isFirst && prev?.alternatives?.length && inbound.length) {
     const pick = pickAlternative(inbound[inbound.length - 1].body, prev.alternatives);
@@ -431,6 +460,12 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   const reasons: string[] = [];
   if (details.intent === "declines") purpose = "answer";
   else if (details.intent === "accepts_quote" && !isFirst && (e.status === "quoted" || e.status === "expired")) { purpose = "confirm"; reasons.push("Planner wants to book: confirm the deposit and booking."); }
+  else if (details.intent === "soft_decline" && !isFirst) {
+    purpose = "answer";
+    reasons.push(`The planner wrote “${inbound[inbound.length - 1].body.trim().slice(0, 120)}”. Check whether they mean the whole booking or one item; the enquiry and hold stay as they are.`);
+  }
+  else if (details.intent === "price_concern" && !isFirst) { purpose = "price_concern"; reasons.push("Price concern: the planner finds it too expensive. Check the options before replying."); }
+  else if (details.intent === "undecided" && !isFirst) purpose = "undecided";
   else if (overCap) { purpose = "over_capacity"; reasons.push(`${details.pax} guests is over your ${vendor.capacity} capacity. Consider referring to a partner.`); }
   else if (available === false && !details.date_is_approximate) { purpose = "unavailable"; reasons.push(`You're fully booked on ${formatDate(details.event_date)}. Offer another date or refer to a partner.`); }
   else if (!quotable) purpose = "qualify";
@@ -464,6 +499,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   const shared = partners.map(partnerView);
   const partnerSuggestions = shared.map((s) => s.view);
   const partnerPrices = shared.flatMap((s) => (s.price != null ? [s.price] : []));
+  // "Too expensive": a smaller package and an off-peak slot, both from the price list, if there are any.
+  const priceOptions = purpose === "price_concern" && quote && pkg ? priceConcernOptions(vendor, pkg, quote, items, addons, details, enquiryId, today) : { cheaper: null, offpeak: null };
   if (fixedDatePrice != null) partnerPrices.push(fixedDatePrice);
 
   // A brief holds the date as soon as it's free; a quote waits until nothing's missing.
@@ -478,6 +515,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
       : purpose === "brief" ? briefAsks(details, vendor, msgs.filter((m) => m.direction === "out" && m.status !== "draft").map((m) => m.body))
       : missing,
     briefHours: vendor.brief_hours,
+    cheaperText: priceOptions.cheaper?.text ?? null,
+    offpeakText: priceOptions.offpeak?.text ?? null,
     alternatives: alternatives.length ? [formatDateChoice(alternatives)] : [],
     fixedDatePartner,
     askedPrice: purpose === "qualify" && inbound.some((m) => asksPrice(m.body)),
@@ -503,6 +542,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
       const noPrices = purpose === "qualify" || briefMode;
       const draft = await aiDraft({ vendor, items: noPrices ? [] : items.filter((i) => !i.manual_quote), messages: msgs, facts });
       const polish = [quote ? depositLine(vendor, quote.total)?.amount : null, pkg && quote ? upsellFor(pkg, items, addons, { vendor, pax: details.pax, date: details.event_date, slot: details.slot })?.total : null].filter((x): x is number => x != null);
+      polish.push(...[priceOptions.cheaper?.total, priceOptions.offpeak?.total].filter((x): x is number => x != null));
       const allowed = draftAllowedAmounts(noPrices ? "qualify" : purpose, quote, items, [...partnerPrices, ...polish, details.budget ?? 0, vendor.min_spend]);
       const bad = unknownAmounts(draft.reply, allowed);
       if (bad.length) {
@@ -536,6 +576,12 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
     if (details.intent === "declines") {
       run("UPDATE holds SET status = 'released' WHERE enquiry_id = ? AND status = 'active' AND kind = 'hold'", enquiryId);
       run("UPDATE enquiries SET next_followup_at = NULL WHERE id = ?", enquiryId);
+    }
+    // Undecided: the planner's message stopped the follow-ups (ingest clears them); start them again.
+    if (details.undecided && (e.status === "quoted" || e.status === "awaiting_info")) {
+      const held = get<{ id: number }>("SELECT id FROM holds WHERE enquiry_id = ? AND status = 'active' AND kind = 'hold'", enquiryId);
+      const nudge = hoursFrom(now, held ? Math.min(vendor.followup_days * 24, vendor.hold_hours / 2) : vendor.followup_days * 24);
+      run("UPDATE enquiries SET next_followup_at = ? WHERE id = ?", nudgeTime(vendor, getEnquiry(vendorId, enquiryId)!, now, nudge), enquiryId);
     }
     return run("INSERT INTO messages (enquiry_id, direction, body, status, purpose, hold_until, created_at) VALUES (?, 'out', ?, 'draft', ?, ?, ?)",
       enquiryId, body, purpose, facts.holdText ? holdUntil(draftedAt, vendor.hold_hours) : null, now);

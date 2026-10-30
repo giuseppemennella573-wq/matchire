@@ -5,7 +5,7 @@ import { parseDetails, parseQuote } from "@/lib/engine";
 import { qualifySummary } from "@/lib/qualify";
 import { fmtMoney } from "@/lib/pricing";
 import { formatDateTime } from "@/lib/dates";
-import { CHANNEL_LABEL, STATUS_LABEL, type Channel, type Enquiry, type EnquiryStatus } from "@/lib/types";
+import { CHANNEL_LABEL, OPEN_STATUSES, STATUS_LABEL, type Channel, type Enquiry, type EnquiryStatus } from "@/lib/types";
 import { newEnquiryAction } from "../actions";
 import { Submit } from "@/components/submit";
 
@@ -65,6 +65,8 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
                   <span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span>
                   {e.has_draft ? <span className="badge badge-brand">Reply ready</span> : null}
                   {e.fishing_reason && <span className="badge badge-amber" title={e.fishing_reason}>Possible price-fishing</span>}
+                  {d.undecided && OPEN_STATUSES.includes(e.status) && <span className="badge badge-amber">Undecided</span>}
+                  {d.intent === "price_concern" && OPEN_STATUSES.includes(e.status) && <span className="badge badge-amber">Price concern</span>}
                   <span className="badge">{CHANNEL_LABEL[e.channel as Channel]}</span>
                 </div>
                 <p className="preview">{e.last}</p>

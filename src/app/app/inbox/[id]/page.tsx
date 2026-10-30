@@ -15,7 +15,7 @@ import { ConfirmSubmit } from "@/components/confirm-submit";
 export const metadata = { title: "Enquiry" };
 
 const PURPOSE_LABEL: Record<string, string> = {
-  qualify: "Asks for details before pricing", brief: "Brief: your quote to follow", quote: "Quote", ask_info: "Asks for details", answer: "Answer", confirm: "Booking confirmation", unavailable: "Date unavailable",
+  qualify: "Asks for details before pricing", undecided: "No-rush reply", price_concern: "Price concern", brief: "Brief: your quote to follow", quote: "Quote", ask_info: "Asks for details", answer: "Answer", confirm: "Booking confirmation", unavailable: "Date unavailable",
   over_capacity: "Over capacity", referred: "Referral note", followup: "Follow-up", last_call: "Last call",
   phone_reply: "from your WhatsApp app",
 };
@@ -61,6 +61,8 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
             <span className="badge">{STATUS_LABEL[e.status]}</span>
             {e.lead && <span className="badge"><span className={`dot dot-${e.lead}`} /> {e.lead === "hot" ? "Hot lead" : e.lead === "warm" ? "Needs info" : "Unlikely"}</span>}
             {e.fishing_reason && <span className="badge badge-amber">Possible price-fishing</span>}
+            {open && d.undecided && <span className="badge badge-amber">Undecided</span>}
+            {open && d.intent === "price_concern" && <span className="badge badge-amber">Price concern</span>}
             {e.contact_handle && <span className="muted">{e.contact_handle}</span>}
             {e.contact_email && e.contact_email !== e.contact_handle && <span className="muted">{e.contact_email}</span>}
           </div>

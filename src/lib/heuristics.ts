@@ -100,7 +100,8 @@ export function parseEnquiry(text: string, items: Item[], today: string = sgToda
   const nm = text.match(/\b(?:i'?m|i am|this is|my name is|name'?s)\s+([A-Z][a-z]+)/);
   d.contact_name = nm ? nm[1] : null;
 
-  d.intent = detectIntent(low);
+  d.intent = detectIntent(low, hasEventDetails(d));
+  d.undecided = HESITANT.test(low) && (d.intent === "undecided" || d.intent === "question");
   const label = type ? type[0].toUpperCase() + type.slice(1).replace("_", " ") : null;
   d.summary = [label, d.pax ? `${d.pax} pax` : null, d.event_date ? formatDate(d.event_date) : null].filter(Boolean).join(" · ") || null;
   return d;
@@ -117,9 +118,29 @@ export function findLocation(text: string): string | null {
   return null;
 }
 
-export function detectIntent(low: string): Intent {
-  if (/\b(not|no longer|won'?t|cancel|found another|went with|too expensive|pass)\b/.test(low) && !/\?/.test(low)) return "declines";
-  if (/\b(go ahead|confirm|book it|let'?s do|sounds good|ok(ay)? let'?s|deal|how (do|can) (i|we) pay|deposit|yes please)\b/.test(low)) return "accepts_quote";
-  if (/\?/.test(low)) return "question";
+/** Only these close an enquiry on their own. */
+const CLEAR_DECLINE = /\b((went|go(ing)?|gone) with|booked|found|chose|picked) (someone|somebody|another|a different|other)\b|\bno longer need|\bnot needed any ?more\b|\bnot interested\b|\bdecided not to\b/;
+/** Often about one item ("no thanks on the 4h"), so the vendor decides. */
+const SOFT_DECLINE = /\bno,? thanks?\b|\bno thank you\b|\bcancel(led|ling)?\b|\b(we'?ll|i'?ll|we will|i will|gonna|going to) pass\b/;
+const PRICE_CONCERN = /\btoo (expensive|pricey|much|costly|high)\b|\b(over|above|beyond|out of) (our |my |the )?budget\b|\bcan'?t afford\b|\bcheaper\b/;
+const HESITANT = /\bnot (sure|decided|certain)\b|\bmaybe\b|\bperhaps\b|\bhaven'?t decided\b|\bstill (deciding|thinking|checking|comparing)\b|\bthinking about it\b|\b(let me|i'?ll|i will|need to|have to|gotta|must) (check|ask|think|discuss|confirm with|talk)\b|\bcheck with (my|our)\b|\b(get|come) back to you\b|\bundecided\b/;
+
+/** The message gives event details of its own (a date, guests, venue, hours or event type). */
+export const hasEventDetails = (d: Pick<Details, "event_date" | "pax" | "location" | "hours" | "event_type">) =>
+  !!(d.event_date || d.pax || d.location || d.hours || d.event_type);
+
+/**
+ * What one message is doing. A message with "?" is never read as declining.
+ * "Not sure yet" counts as undecided only with no new details and no question:
+ * "maybe around 80 guests" is details, "not sure, does it include props?" is a question.
+ */
+export function detectIntent(low: string, hasDetails = false): Intent {
+  const q = /\?/.test(low);
+  if (!q && CLEAR_DECLINE.test(low)) return "declines";
+  if (PRICE_CONCERN.test(low)) return "price_concern";
+  if (!q && SOFT_DECLINE.test(low)) return "soft_decline";
+  if (/\b(go ahead|confirm|book it|let'?s do|sounds good|ok(ay)? let'?s|deal|how (do|can) (i|we) pay|deposit|yes please)\b/.test(low) && !HESITANT.test(low)) return "accepts_quote";
+  if (q) return "question";
+  if (HESITANT.test(low) && !hasDetails) return "undecided";
   return "other";
 }

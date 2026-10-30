@@ -88,7 +88,8 @@ const DetailsSchema = z.object({
   questions: z.array(z.string()).describe("Questions the planner asked that the reply must answer"),
   needs_owner: z.boolean().describe("True if a human should handle this: complaints, custom requests not on the price list, negotiation, anything unusual or sensitive"),
   owner_reason: z.string().nullable(),
-  intent: z.enum(["new_enquiry", "accepts_quote", "question", "declines", "other"]).describe("What the planner's latest message is doing"),
+  intent: z.enum(["new_enquiry", "accepts_quote", "question", "declines", "soft_decline", "undecided", "price_concern", "other"])
+    .describe("What the planner's latest message is doing. declines: only a clear refusal of the whole booking (went with someone else, no longer needed, not interested). soft_decline: 'no thanks', 'cancel', 'we'll pass', which may be about one item. undecided: hesitating ('not sure yet', 'let me check with my partner') with no new details and no question. price_concern: 'too expensive', 'over budget'."),
   summary: z.string().nullable().describe("One-line summary, e.g. '21st birthday, 80 pax, Sat 15 Nov evening'"),
 });
 
@@ -134,7 +135,7 @@ const ReplySchema = z.object({
 });
 
 export interface DraftFacts {
-  purpose: "qualify" | "brief" | "quote" | "ask_info" | "answer" | "confirm" | "unavailable" | "over_capacity" | "referred" | "followup" | "last_call";
+  purpose: "qualify" | "brief" | "undecided" | "price_concern" | "quote" | "ask_info" | "answer" | "confirm" | "unavailable" | "over_capacity" | "referred" | "followup" | "last_call";
   details: Details;
   quote: Quote | null;
   available: boolean | null;
@@ -149,6 +150,9 @@ export interface DraftFacts {
   holdText?: string | null;
   depositText?: string | null;
   upsellText?: string | null;
+  /** Price concern: real cheaper options, said exactly as written. */
+  cheaperText?: string | null;
+  offpeakText?: string | null;
   /** Date unavailable: nearby free dates to offer ("Fri 20 Nov"). */
   alternatives?: string[];
   /** Date unavailable: a same-category partner who may be free. Named only if they share their starting price. */
@@ -176,6 +180,8 @@ Rules:
 - If purpose is "brief": the owner writes this quote personally. Thank the planner, say the owner will send a tailored quote within briefHours hours, mention the date is pencilled in if holdHours is set, and ask the questions in "missing" (at most 2). Never mention any price, range or "from" price.
 - If purpose is "unavailable": say kindly that the date is booked. Offer the dates in "alternatives" exactly as given (if any). If fixedDatePartner is set, add one line offering to connect them with a trusted partner who may be free; name the partner and mention its from_price only if fixedDatePartner is an object. Never quote a price for the booked date.
 - If holdText, depositText or upsellText are given, include each sentence exactly as written. Put a blank line before the "Total:" line.
+- If purpose is "undecided": a short, warm "no rush" reply; no pressure, no price.
+- If purpose is "price_concern": acknowledge it kindly and offer only the options in cheaperText and offpeakText, exactly as written. Never invent a discount or a new price; if there are no options, ask what budget they have in mind.
 - If the quote has unpriced_hours, don't price that extra time: say the owner will confirm the price for it.
 - Partners: if partnerSuggestions is not empty, you may suggest them by name and category. Mention a partner's price only when its from_price is given, exactly as written; otherwise say they can quote the planner directly. You know nothing else about partners' prices.
 - If the facts list missing details, ask for them in one friendly line.
