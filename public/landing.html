@@ -172,7 +172,7 @@ section.band{padding-block:84px;border-top:1px solid var(--line)}
 .feat h3 .new,.feat h3 .soon{vertical-align:3px}
 .new{display:inline-block;margin-left:6px;padding:.1rem .45rem;border-radius:999px;border:1px solid var(--orchid);background:var(--orchid-soft);color:var(--glow);font:600 .66rem/1.4 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .feat.flow{gap:14px}
-.feat.flow .timeline{grid-template-columns:repeat(5,1fr)}
+.feat.flow .timeline{grid-template-columns:repeat(6,1fr)}
 .feat.flow .tl{grid-template-columns:1fr;gap:6px;align-content:start}
 @media (max-width:900px){.feat-grid{grid-template-columns:1fr 1fr}.feat.flow .timeline{grid-template-columns:1fr}.feat.flow .tl{grid-template-columns:62px 1fr}}
 @media (max-width:560px){.feat-grid{grid-template-columns:1fr}}
@@ -268,7 +268,7 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
       <div>
         <p class="eyebrow">AI booking desk for event vendors · Singapore</p>
         <h1>Win the bookings you're losing to <em>slow replies.</em></h1>
-        <p class="lede">When a planner messages five photobooths, the first real price usually wins. Matchire answers your WhatsApp and email enquiries in minutes with a quote from your own packages, holds the date and follows up, even while you're running an event. Can't take the date? Pass it to a partner and earn a referral fee.</p>
+        <p class="lede">When a planner messages five photobooths, the first real price usually wins. Matchire answers your WhatsApp and email enquiries in minutes, asks the right questions, then sends an exact quote from your own packages, holds the date and follows up, even mid-event. Can't take the date? Pass it to a partner and earn a referral fee.</p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="#calculator">See what you're missing</a>
           <a class="watch" href="#video" id="watchBtn" aria-haspopup="dialog">
@@ -469,9 +469,10 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
           <p class="feat-label">One enquiry, start to finish</p>
           <div class="timeline" aria-label="Example enquiry timeline">
             <div class="tl"><span class="mono">23:14</span><span>Enquiry arrives on WhatsApp</span></div>
-            <div class="tl hi"><span class="mono">23:16</span><span>Quote sent, date held for 48h</span></div>
+            <div class="tl"><span class="mono">23:15</span><span>Asks for the date and guest count</span></div>
+            <div class="tl hi"><span class="mono">23:19</span><span>Exact quote sent, date held until Sun 4pm</span></div>
             <div class="tl"><span class="mono">+24h</span><span>Gentle follow-up if no reply</span></div>
-            <div class="tl"><span class="mono">+36h</span><span>Last call before the hold ends</span></div>
+            <div class="tl"><span class="mono">Later</span><span>Before the hold ends: last call</span></div>
             <div class="tl hi"><span class="mono"></span><span>Client confirms, booking locked in</span></div>
           </div>
         </div>
@@ -637,27 +638,31 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     photo:{biz:"Snapbox SG",kind:"photobooth",samples:[
       "Hi! Looking for a photobooth for my daughter's 21st on Sat 15 Nov, evening, about 80 guests. 3 hours. Do you do custom print frames? Budget around $900",
       "Hello, corporate D&D at a hotel ballroom early Dec, 250 pax. Interested in a 360 booth for 4 hrs. Can send quote?",
-      "hey do u have availability next tuesday afternoon? company family day, 2 hours"],
+      "hey do u have availability next tuesday afternoon? company family day, 2 hours",
+      "hi how much for photobooth?"],
       quote(b){const h=b.hours||3;const is360=/360/.test(b.raw);const base=is360?650:450;const L=[{k:(is360?"360 booth":"Classic booth")+" · first 2h",v:base}];if(h>2)L.push({k:`Extra ${h-2}h`,v:(h-2)*(is360?180:120)});if(/frame|custom|logo|brand/i.test(b.raw))L.push({k:"Custom print frame",v:80});L.push({k:"Setup & transport",v:60});return L;},
-      partner:b=>b.type==="party"||b.type==="wedding"?"<b>Partner suggestion:</b> Rempah Kitchen (caterer) can add a buffet for "+(b.pax||"your")+" guests. Include in the reply?":null},
+      partner:b=>b.type==="party"||b.type==="wedding"?"<b>Partner suggestion:</b> Rempah Kitchen (catering) can quote you directly for a buffet for "+(b.pax||"your")+" guests. Include in the reply?":null},
     venue:{biz:"The Loft, Telok Ayer",kind:"venue",cap:60,samples:[
       "Hi, need a space for our team offsite next Tuesday afternoon, about 35 pax, 4 hours. Need projector. Budget about $3k",
       "Looking for a venue for a 40th birthday party, Fri 28 Nov evening, 50 guests. Do you allow outside catering?",
-      "Hello, product launch for 120 people in December, evening. What's the min spend?"],
+      "Hello, product launch for 120 people in December, evening. What's the min spend?",
+      "hi how much to rent your space?"],
       quote(b){const h=Math.max(3,b.hours||3);const op=b.offpeak;const full=280*h;const L=[{k:`Venue hire · ${h}h`,v:op?full*.75:full,full:op?full:null}];if(/projector|screen|slides|present/i.test(b.raw))L.push({k:"Projector & screen",v:0,note:"included"});L.push({k:"Cleaning",v:80});return L;},
       partner:b=>"<b>Partner suggestion:</b> Snapbox SG photobooth from SGD 450, and Rempah Kitchen (catering), who can quote you directly. Add as options?"},
     cater:{biz:"Rempah Kitchen",kind:"caterer",min:30,samples:[
       "Hi, need halal buffet for 60 pax, office event next Thursday lunch at Raffles Place. Budget $2000",
       "Wedding solemnisation Sun 7 Dec, 40 guests, mostly vegetarian. Do you do canapés?",
-      "Can you do bento for 25 people tomorrow morning?"],
+      "Can you do bento for 25 people tomorrow morning?",
+      "hi how much for a buffet?"],
       quote(b){const pax=b.pax||30;const per=/canap/i.test(b.raw)?28:/bento/i.test(b.raw)?16:32;const L=[{k:`${/canap/i.test(b.raw)?"Canapés":/bento/i.test(b.raw)?"Bento sets":"Buffet"} · ${pax} pax × ${per}`,v:pax*per}];if(pax<30&&!/bento/i.test(b.raw))L.push({k:"Small-group surcharge",v:60});L.push({k:"Delivery & setup",v:60});return L;},
-      partner:b=>b.type==="wedding"||b.type==="party"?"<b>Partner suggestion:</b> The Loft, Telok Ayer has the date open. Offer the venue too?":null},
+      partner:b=>b.type==="wedding"||b.type==="party"?"<b>Partner suggestion:</b> The Loft, Telok Ayer (venue) can quote you directly. Include in the reply?":null},
     av:{biz:"Clearwave AV",kind:"AV",samples:[
       "Need PA system and 2 wireless mics for a town hall, 150 pax, Wed 3 Dec morning at our office",
       "Hi, wedding dinner Sat 13 Dec, need projector + screen for slideshow and mics for speeches",
-      "Product launch next month, 200 guests, need LED wall and sound. Budget 8k"],
+      "Product launch next month, 200 guests, need LED wall and sound. Budget 8k",
+      "hi how much for a sound system?"],
       quote(b){const L=[];if(/pa\b|sound|mic|speech/i.test(b.raw))L.push({k:"PA + 2 wireless mics",v:b.pax>120?420:280});if(/projector|screen|slide/i.test(b.raw))L.push({k:"Projector & screen",v:220});if(/led/i.test(b.raw))L.push({k:"LED wall 3×2m",v:3200});if(!L.length)L.push({k:"PA + 2 wireless mics",v:280});L.push({k:"Technician on site",v:180});return L;},
-      partner:b=>b.type==="wedding"||b.type==="launch"?"<b>Partner suggestion:</b> Snapbox SG photobooth pairs well with this event. Include it?":null}
+      partner:b=>b.type==="wedding"||b.type==="launch"?"<b>Partner suggestion:</b> Snapbox SG (photobooth, from SGD 450) can quote you directly. Include in the reply?":null}
   };
 
   const MONTHS="january|february|march|april|may|june|july|august|september|sept|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec";
@@ -675,6 +680,9 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     // A bare "may" is usually the verb, so May needs a day or "in"/"early" before it.
     const dm=low.match(new RegExp(`\\b((?:next\\s+)?(?:${WEEKDAYS})\\b\\.?(?:,?\\s+\\d{1,2}(?:st|nd|rd|th)?\\s+(?:${MONTHS})\\b)?|\\d{1,2}(?:st|nd|rd|th)?\\s+(?:${MONTHS})\\b|(?:early|mid|late|in)\\s+(?:${MONTHS})\\b|(?:${MONTHS_NOT_MAY})\\b|tomorrow|next month)`));
     b.date=dm?dm[1].replace(/^in\s+/,""):null;
+    // Like the app: "early Dec", "in December" or "next month" isn't a date yet.
+    b.exact=!!b.date&&!new RegExp(`^(?:(?:early|mid|late)\\s+(?:${MONTHS})|(?:${MONTHS_NOT_MAY})|next month)$`).test(b.date);
+    const vm=raw.match(/(?:\b[Aa]t|@)\s+((?:the\s+)?[A-Z][\w&'.-]*(?:\s+[A-Z][\w&'.-]*)*)/);b.venue=vm?vm[1]:null;
     b.slot=/morning|breakfast/.test(low)?"morning":/afternoon|lunch/.test(low)?"afternoon":/evening|night|dinner/.test(low)?"evening":null;
     const wd=b.date&&b.date.match(/mon|tue|wed|thu/);
     b.offpeak=!!(wd&&b.slot&&b.slot!=="evening");
@@ -692,26 +700,41 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     $("bizName").textContent="to "+v.biz;
     // extracted tags
     const tags=[];
-    tags.push(b.date?`<span class="tag">📅 ${cap(niceDate(b.date))}</span>`:`<span class="tag miss">Date missing</span>`);
+    tags.push(b.date?`<span class="tag${b.exact?"":" miss"}">📅 ${cap(niceDate(b.date))}${b.exact?"":" (not exact)"}</span>`:`<span class="tag miss">Date missing</span>`);
     tags.push(b.pax?`<span class="tag">${b.pax} pax</span>`:`<span class="tag miss">Headcount missing</span>`);
     if(b.slot)tags.push(`<span class="tag">${cap(b.slot)}</span>`);
     if(b.hours)tags.push(`<span class="tag">${b.hours}h</span>`);
+    if(b.venue)tags.push(`<span class="tag">${b.venue}</span>`);
     if(b.budget)tags.push(`<span class="tag">Budget ${fmt(b.budget)}</span>`);
     if(b.type)tags.push(`<span class="tag">${TYPE[b.type]}</span>`);
     b.needs.forEach(n=>tags.push(`<span class="tag">${n}</span>`));
     if(b.offpeak)tags.push(`<span class="tag">Off-peak slot</span>`);
     $("extract").innerHTML=tags.join("");
+    // No price until there's a date plus one more detail (guests, venue, hours or event type), as in the app.
+    const qualified=b.exact&&!!(b.pax||b.venue||b.hours||b.type);
+    const capWarn=v.cap&&b.pax&&b.pax>v.cap;
+    if(!qualified&&!capWarn){
+      const asks=[];if(!b.exact)asks.push("date");if(!(b.pax||b.venue||b.hours||b.type))asks.push("guests");
+      const q=asks[0]==="date"?`What's the date${asks[1]?" and roughly how many guests":""}?`:"Could you share roughly how many guests?";
+      const pricey=/how much|price|pricing|rate|cost|quote/i.test(b.raw);
+      $("quote").hidden=true;$("quote").innerHTML="";
+      $("reply").textContent=`Hi! Thanks for reaching out to ${v.biz} 😊\n\n${pricey?"Happy to send exact pricing! ":"I'd love to help. "}${q}\n\nThanks,\n${v.biz}`;
+      $("lead").className="lead warm";$("lead").innerHTML=`<i></i>Needs info · no price yet`;
+      $("partner").hidden=true;$("sendMsg").textContent="";
+      return;
+    }
+    $("quote").hidden=capWarn;
     // quote
     const L=v.quote(b);const total=L.reduce((s,l)=>s+l.v,0);
     $("quote").innerHTML=L.map(l=>`<div class="qline"><span>${l.k}</span><span class="mono">${l.full?`<span class="strike">${fmt(l.full)}</span>`:""}${l.note?l.note:fmt(l.v)}</span></div>`).join("")+`<div class="qtotal"><span>Quote total</span><span class="mono">${fmt(total)}</span></div>`;
     // reply
     const missing=[];if(!b.date)missing.push("your event date");if(!b.pax&&v.kind!=="AV")missing.push("the number of guests");if(!b.slot&&v.kind!=="caterer")missing.push("the start time");
-    const capWarn=v.cap&&b.pax&&b.pax>v.cap;
     let r=`Hi! Thanks for reaching out to ${v.biz} 😊\n\n`;
     if(capWarn)r+=`Our space fits up to ${v.cap} guests, so ${b.pax} would be too many for us. Happy to recommend a partner venue that fits!\n\n`;
     else r+=`${b.date?`Good news, we're available ${niceDate(b.date)}${b.slot?" "+b.slot:""}. `:""}Here's your quote: ${fmt(total)} all-in${b.offpeak?", including our 25% weekday daytime rate":""}.\n\n`;
     if(missing.length)r+=`Could you share ${missing.join(" and ")}? Then I'll confirm availability.\n\n`;
-    else if(!capWarn)r+=`I can hold the date for you for 48 hours. Shall I go ahead?\n\n`;
+    if(!capWarn)r+=`A deposit of ${fmt(Math.round(total*.3))} (30%) secures the date.\n\n`;
+    if(!missing.length&&!capWarn)r+=`I'm holding the date for you until ${holdEnds()}. Shall I go ahead and confirm?\n\n`;
     r+=`Thanks,\n${v.biz}`;
     $("reply").textContent=r;
     // lead score
@@ -723,6 +746,12 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     $("sendMsg").textContent="";
   }
   function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+  // 48 hours from now, on the hour, in Singapore time: "Sun 1 Nov, 4pm"
+  function holdEnds(){
+    const t=new Date(Date.now()+48*3600e3);if(t.getUTCMinutes()||t.getUTCSeconds())t.setUTCHours(t.getUTCHours()+1,0,0,0);
+    const p=Object.fromEntries(new Intl.DateTimeFormat("en-SG",{timeZone:"Asia/Singapore",weekday:"short",day:"numeric",month:"short",hour:"numeric",hour12:true}).formatToParts(t).map(x=>[x.type,x.value]));
+    return `${p.weekday} ${p.day} ${p.month}, ${p.hour}${(p.dayPeriod||"").toLowerCase().replace(/\./g,"")}`;
+  }
   // "sat 15 nov" → "Sat 15 Nov", "next tuesday" → "next Tuesday"
   function niceDate(s){return s.replace(new RegExp(`\\b(?:${WEEKDAYS}|${MONTHS})\\b`,"g"),cap)}
 
