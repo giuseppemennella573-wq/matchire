@@ -71,8 +71,10 @@ test("missing details → ask for them; over capacity → owner + referral", asy
   const a = E.ingest({ vendorId: venue, channel: "email", email: "hr@corp.sg", text: "Hi, do you have space for a team event? Need a projector." });
   await E.processEnquiry(venue, a.enquiryId);
   const d = E.pendingDraft(a.enquiryId)!;
-  assert.equal(d.purpose, "ask_info");
-  assert.match(d.body, /event date/);
+  // No date yet, so it qualifies first (Pack 04): asks for the date, no price.
+  assert.equal(d.purpose, "qualify");
+  assert.match(d.body, /What's the date/);
+  assert.doesNotMatch(d.body, /SGD|\$/);
 
   run("INSERT INTO partnerships (requester_id, partner_id, status) VALUES (?, ?, 'accepted')", venue, booth);
   const b = E.ingest({ vendorId: venue, channel: "web", email: "big@party.sg", text: "Product launch for 120 people on 12 Dec evening, 4 hours" });

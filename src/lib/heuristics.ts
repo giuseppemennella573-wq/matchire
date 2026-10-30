@@ -71,11 +71,13 @@ export function parseEnquiry(text: string, items: Item[], today: string = sgToda
   const tm = low.match(/\b(\d{1,2}(?::\d{2})?\s?(?:am|pm))\b/);
   d.start_time = tm ? tm[1] : null;
 
-  const type: EventType | null = /wedding|solemni|rom\b|bride|groom/.test(low) ? "wedding"
+  const type: EventType | null = /wedding|solemni|\brom\b|bride|groom/.test(low) ? "wedding"
     : /launch/.test(low) ? "launch"
     : /birthday|21st|\d0th|bday|party|celebration/.test(low) ? "birthday"
     : /offsite|town hall|corporate|office|company|d&d|dinner and dance|family day|team|conference|seminar/.test(low) ? "corporate" : null;
   d.event_type = type;
+
+  d.location = findLocation(text);
 
   const needs: [string, string][] = [["halal", "Halal"], ["vegetarian", "Vegetarian"], ["vegan", "Vegan"], ["projector", "Projector"], ["360", "360 booth"], ["frame", "Custom print frame"], ["logo", "Branding"], ["led", "LED wall"], ["outside catering", "Outside catering"], ["min spend", "Minimum spend"], ["parking", "Parking"], ["mic", "Microphones"]];
   for (const [k, label] of needs) if (low.includes(k)) d.needs.push(label);
@@ -93,6 +95,17 @@ export function parseEnquiry(text: string, items: Item[], today: string = sgToda
   const label = type ? type[0].toUpperCase() + type.slice(1).replace("_", " ") : null;
   d.summary = [label, d.pax ? `${d.pax} pax` : null, d.event_date ? formatDate(d.event_date) : null].filter(Boolean).join(" · ") || null;
   return d;
+}
+
+const NOT_PLACES = /^(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|(?:mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?|sun)(?:day)?|singapore)\b/i;
+
+/** "at Raffles Hotel", "in Marina Bay", "@ The Loft": a capitalised place name after at / in / @. */
+export function findLocation(text: string): string | null {
+  for (const m of text.matchAll(/(?:\b[Aa]t|\b[Ii]n|@)\s+((?:the\s+)?[A-Z][\w&'.-]*(?:\s+(?:[A-Z][\w&'.-]*|of|de))*)/g)) {
+    const place = m[1].replace(/\s+(of|de)$/, "").trim();
+    if (!NOT_PLACES.test(place)) return place;
+  }
+  return null;
 }
 
 export function detectIntent(low: string): Intent {

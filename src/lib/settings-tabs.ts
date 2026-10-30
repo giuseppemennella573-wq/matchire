@@ -1,4 +1,5 @@
 import type { Vendor, VendorKind } from "./types.ts";
+import { QUALIFY_FIELDS } from "./qualify.ts";
 
 // The Settings page is split into tabs, and each tab saves only its own
 // fields. This file is the single list of which column belongs to which tab,
@@ -65,7 +66,10 @@ export function settingsUpdate(tab: SettingsTab, form: Form, v: Vendor): Columns
         referral_fee_pct: Math.min(50, atLeast(form, "referral_fee_pct", 10)),
       };
     case "ai":
-      return { auto_send: !v.is_demo && form.get("auto_send") === "on" ? 1 : 0 }; // locked off on demo accounts
+      return {
+        auto_send: !v.is_demo && form.get("auto_send") === "on" ? 1 : 0, // locked off on demo accounts
+        qualify_fields: QUALIFY_FIELDS.filter((f) => form.get(`qualify_${f.id}`) === "on").map((f) => f.id).join(","),
+      };
     default:
       return {}; // channels and account have their own actions
   }

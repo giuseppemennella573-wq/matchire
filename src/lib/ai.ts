@@ -133,11 +133,13 @@ const ReplySchema = z.object({
 });
 
 export interface DraftFacts {
-  purpose: "quote" | "ask_info" | "answer" | "confirm" | "unavailable" | "over_capacity" | "referred" | "followup" | "last_call";
+  purpose: "qualify" | "quote" | "ask_info" | "answer" | "confirm" | "unavailable" | "over_capacity" | "referred" | "followup" | "last_call";
   details: Details;
   quote: Quote | null;
   available: boolean | null;
   missing: string[];
+  /** The planner asked what it costs (used when qualifying). */
+  askedPrice?: boolean;
   holdHours: number | null;
   partnerSuggestions: PartnerView[];
   referredTo: string | null;
@@ -157,6 +159,7 @@ Sign off as: ${vendor.signoff || vendor.name}
 
 Rules:
 - Use only the facts provided. Every price you mention must appear in the quote or price list given (or be a partner's from_price); never estimate, round or invent a price, discount or availability.
+- If purpose is "qualify": you don't know enough to price this yet. Reply warmly in one short message, ask for the details in "missing" (at most 2 questions), and never mention any price, range, "from" price or package cost, even if the planner asks. If they asked about price, say you're happy to send exact pricing once you have those details.
 - Partners: if partnerSuggestions is not empty, you may suggest them by name and category. Mention a partner's price only when its from_price is given, exactly as written; otherwise say they can quote the planner directly. You know nothing else about partners' prices.
 - If the facts list missing details, ask for them in one friendly line.
 - Answer the planner's questions only from the price list and business notes. If you can't answer one, say the owner will confirm, and set needs_owner.

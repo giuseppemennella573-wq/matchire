@@ -39,6 +39,8 @@ export interface Vendor {
   wa_token: string | null;
   /** The vendor has quote_nudge and quote_last_call approved in their WhatsApp Business account. */
   wa_templates_approved: number;
+  /** "Before quoting, ask for": comma-separated field ids beyond the date ("pax,venue"). Empty: date plus any one detail. */
+  qualify_fields: string;
   inbound_token: string;
   created_at: string;
 }
@@ -186,6 +188,8 @@ export interface Enquiry {
   next_followup_at: string | null;
   won_value: number | null;
   referred_from: number | null;
+  /** The vendor chose "Send price anyway" before the enquiry was qualified. */
+  price_override: number;
   created_at: string;
   updated_at: string;
 }

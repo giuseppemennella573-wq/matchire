@@ -20,7 +20,7 @@ test("each tab saves only its own fields", () => {
   assert.deepEqual(keys("business"), ["kind", "name", "notes", "signoff", "tone"]);
   assert.deepEqual(keys("bookings"), ["capacity", "deposit_note", "followup_days", "hold_hours", "jobs_per_day", "min_spend", "offpeak_discount"]);
   assert.deepEqual(keys("partners"), ["bundle_suggestions", "referral_fee_pct", "share_from_price"]);
-  assert.deepEqual(keys("ai"), ["auto_send"]);
+  assert.deepEqual(keys("ai"), ["auto_send", "qualify_fields"]);
   assert.deepEqual(keys("channels"), []);
   assert.deepEqual(keys("account"), []);
 });
@@ -43,8 +43,8 @@ test("an unticked checkbox saves as off, and limits still apply", () => {
 });
 
 test("auto-send stays off on demo accounts", () => {
-  assert.deepEqual(settingsUpdate("ai", form({ auto_send: "on" }), { ...vendor, is_demo: 1 }), { auto_send: 0 });
-  assert.deepEqual(settingsUpdate("ai", form({ auto_send: "on" }), vendor), { auto_send: 1 });
+  assert.equal(settingsUpdate("ai", form({ auto_send: "on" }), { ...vendor, is_demo: 1 }).auto_send, 0);
+  assert.equal(settingsUpdate("ai", form({ auto_send: "on" }), vendor).auto_send, 1);
 });
 
 test("old and new addresses open the right tab", () => {

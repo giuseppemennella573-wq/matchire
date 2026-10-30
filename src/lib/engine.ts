@@ -7,6 +7,7 @@ import { aiEnabled, aiExtract, aiDraft, type DraftFacts } from "./ai.ts";
 import { formatDate, formatDateTime, sgToday } from "./dates.ts";
 import { deliver, deliverTemplate, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
 import { maybeDailyBackup } from "./backup.ts";
+import { asksPrice, qualification, qualifyQuestion, requiredFields } from "./qualify.ts";
 
 // The booking desk. An enquiry flows: ingest → understand → quote → draft →
 // (approve) → send → hold the date → follow up → booked / lost / expired.
@@ -206,9 +207,15 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
     case "confirm":
       return `${hi}Wonderful, thank you! 🎉 We'd love to have you on ${when || "your date"}.${f.quote ? `\n\nTotal: ${fmtMoney(f.quote.total)}` : ""}\n\n${f.depositNote || "I'll send the deposit details shortly to lock in your booking."}${sign}`;
     case "followup":
+      if (!f.quote) return `${hi}Just checking in about ${when || "your event"}. Whenever you're ready, share a few details and I'll send you exact pricing.${sign}`;
       return `${hi}Just checking in on the quote for ${when || "your event"}${f.quote ? ` (${fmtMoney(f.quote.total)})` : ""}. Happy to adjust anything, or answer any questions. Shall I keep the date for you?${sign}`;
     case "last_call":
       return `${hi}A quick heads-up: I'm holding ${when || "your date"} for you until tomorrow, after which it opens up for other enquiries. Just reply "yes" if you'd like to go ahead!${sign}`;
+    case "qualify": {
+      // No price yet, not even a "from" price: ask for what's needed to quote.
+      const priced = f.askedPrice ? "Happy to send exact pricing! " : "I'd love to help. ";
+      return `${hi}Thanks for reaching out to ${vendor.name} 😊\n\n${priced}${f.missing[0] ?? "What's the date?"}${sign}`;
+    }
     case "answer":
     case "ask_info":
     case "quote":
@@ -224,6 +231,11 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
       return r + sign;
     }
   }
+}
+
+/** Amounts a draft may mention. A qualifying reply may mention none. */
+export function draftAllowedAmounts(purpose: DraftFacts["purpose"], quote: Quote | null, items: Item[], extra: number[]): Set<number> {
+  return purpose === "qualify" ? new Set() : allowedAmounts(quote, items, extra);
 }
 
 function leadScore(d: Details, q: Quote | null, available: boolean | null, missing: string[], overCap: boolean): "hot" | "warm" | "cold" {
@@ -276,7 +288,10 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
 
   const pkg = items.find((i) => i.id === details.package_id && i.active) ?? null;
   const addons = items.filter((i) => details.addon_ids.includes(i.id) && i.active && i.kind === "addon");
-  const quote = pkg ? buildQuote({ vendor, pkg, addons, hours: details.hours, pax: details.pax, date: details.event_date, slot: details.slot }) : null;
+  // No price until the enquiry is qualified (or the vendor said "Send price anyway").
+  const qual = qualification(details, requiredFields(vendor.qualify_fields));
+  const quotable = qual.qualified || !!e.price_override;
+  const quote = pkg && quotable ? buildQuote({ vendor, pkg, addons, hours: details.hours, pax: details.pax, date: details.event_date, slot: details.slot }) : null;
   const avail = details.event_date ? availability(vendor, details.event_date, enquiryId) : null;
   const available = avail ? avail.available : null;
   const overCap = Boolean(vendor.capacity && details.pax && details.pax > vendor.capacity);
@@ -285,9 +300,10 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   let purpose: DraftFacts["purpose"] = "quote";
   const reasons: string[] = [];
   if (details.intent === "declines") purpose = "answer";
-  else if (details.intent === "accepts_quote" && !isFirst) { purpose = "confirm"; reasons.push("Planner wants to book: confirm the deposit and booking."); }
+  else if (details.intent === "accepts_quote" && !isFirst && (e.status === "quoted" || e.status === "expired")) { purpose = "confirm"; reasons.push("Planner wants to book: confirm the deposit and booking."); }
   else if (overCap) { purpose = "over_capacity"; reasons.push(`${details.pax} guests is over your ${vendor.capacity} capacity. Consider referring to a partner.`); }
   else if (available === false && !details.date_is_approximate) { purpose = "unavailable"; reasons.push(`You're fully booked on ${formatDate(details.event_date)}. Offer another date or refer to a partner.`); }
+  else if (!quotable) purpose = "qualify";
   else if (!pkg) { purpose = "ask_info"; reasons.push("No package on your price list fits this enquiry."); }
   else if (missing.length) purpose = "ask_info";
   else if (!isFirst && details.intent === "question") purpose = "answer";
@@ -305,7 +321,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
     details,
     quote,
     available,
-    missing,
+    missing: purpose === "qualify" ? [qualifyQuestion(qual.missing)] : missing,
+    askedPrice: purpose === "qualify" && inbound.some((m) => asksPrice(m.body)),
     holdHours: willHold ? vendor.hold_hours : null,
     partnerSuggestions,
     referredTo: null,
@@ -319,8 +336,9 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   let body = templateDraft(vendor, facts);
   if (usedAI) {
     try {
-      const draft = await aiDraft({ vendor, items, messages: msgs, facts });
-      const allowed = allowedAmounts(quote, items, [...partnerPrices, details.budget ?? 0, vendor.min_spend]);
+      // Before qualifying, the AI doesn't see the price list, and any amount at all sends it back to the template.
+      const draft = await aiDraft({ vendor, items: purpose === "qualify" ? [] : items, messages: msgs, facts });
+      const allowed = draftAllowedAmounts(purpose, quote, items, [...partnerPrices, details.budget ?? 0, vendor.min_spend]);
       const bad = unknownAmounts(draft.reply, allowed);
       if (bad.length) {
         reasons.push(`The AI draft mentioned prices not on your list (${bad.map(fmtMoney).join(", ")}), so Matchire used the standard template instead.`);
@@ -502,6 +520,7 @@ function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string) {
       break;
     }
     case "ask_info":
+    case "qualify":
       run("UPDATE enquiries SET status = 'awaiting_info', followup_stage = 0, next_followup_at = ? WHERE id = ?", nudgeTime(vendor, e, now, followup), e.id);
       break;
     case "answer":
@@ -584,6 +603,13 @@ export function markLost(vendorId: number, enquiryId: number) {
 export function deleteEnquiry(vendorId: number, enquiryId: number) {
   if (!getEnquiry(vendorId, enquiryId)) throw new Error("Enquiry not found");
   run("DELETE FROM enquiries WHERE id = ? AND vendor_id = ?", enquiryId, vendorId);
+}
+
+/** "Send price anyway": quote this enquiry even though it isn't qualified yet. */
+export async function sendPriceAnyway(vendorId: number, enquiryId: number) {
+  if (!getEnquiry(vendorId, enquiryId)) throw new Error("Enquiry not found");
+  run("UPDATE enquiries SET price_override = 1 WHERE id = ?", enquiryId);
+  return processEnquiry(vendorId, enquiryId);
 }
 
 export function reopen(vendorId: number, enquiryId: number) {

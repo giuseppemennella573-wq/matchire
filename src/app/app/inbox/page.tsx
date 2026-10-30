@@ -2,8 +2,9 @@ import Link from "next/link";
 import { requireVendor } from "@/lib/auth";
 import { all } from "@/lib/db";
 import { parseDetails, parseQuote } from "@/lib/engine";
+import { qualifySummary } from "@/lib/qualify";
 import { fmtMoney } from "@/lib/pricing";
-import { formatDate, formatDateTime } from "@/lib/dates";
+import { formatDateTime } from "@/lib/dates";
 import { CHANNEL_LABEL, STATUS_LABEL, type Channel, type Enquiry, type EnquiryStatus } from "@/lib/types";
 import { newEnquiryAction } from "../actions";
 import { Submit } from "@/components/submit";
@@ -66,7 +67,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
                   <span className="badge">{CHANNEL_LABEL[e.channel as Channel]}</span>
                 </div>
                 <p className="preview">{e.last}</p>
-                <p className="small muted">{[d.event_date && formatDate(d.event_date), d.pax && `${d.pax} pax`, q?.total ? fmtMoney(q.total) : null].filter(Boolean).join(" · ")}</p>
+                <p className="small muted">{[qualifySummary(d), q?.total ? fmtMoney(q.total) : null].filter(Boolean).join(" · ")}</p>
               </div>
               <span className="small muted">{formatDateTime(e.updated_at)}</span>
             </Link>

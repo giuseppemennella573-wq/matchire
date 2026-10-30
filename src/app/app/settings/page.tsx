@@ -1,6 +1,7 @@
 import { requireVendor } from "@/lib/auth";
 import { VENDOR_KINDS } from "@/lib/types";
 import { SETTINGS_TABS, notesPlaceholder, type SettingsTab } from "@/lib/settings-tabs";
+import { QUALIFY_FIELDS, requiredFields } from "@/lib/qualify";
 import { SettingsTabs } from "@/components/settings-tabs";
 import { aiEnabled } from "@/lib/ai";
 import { emailReady } from "@/lib/channels";
@@ -206,6 +207,17 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               ) : (
                 <p className="muted"><span className="badge">Off</span> Matchire is in rules mode: it reads enquiries with built-in rules and replies from templates. AI reading, drafting and rate-card import are switched off on this server.</p>
               )}
+            </section>
+            <section className="card stack">
+              <h2>AI replies</h2>
+              <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0, gap: 8 }}>
+                <legend className="small" style={{ fontWeight: 700, marginBottom: 6 }}>Before quoting, ask for</legend>
+                <label className="check"><input type="checkbox" checked disabled readOnly /><span>Event date <span className="small muted">(always)</span></span></label>
+                {QUALIFY_FIELDS.map((f) => (
+                  <label key={f.id} className="check"><input type="checkbox" name={`qualify_${f.id}`} defaultChecked={requiredFields(v.qualify_fields).includes(f.id)} /><span>{f.label}</span></label>
+                ))}
+              </fieldset>
+              <p className="small muted">Matchire never sends a price, range or &quot;from&quot; price until it has these. Leave the others unticked to quote once it has the date plus any one of guest count, venue, duration or event type. You can always choose &quot;Send price anyway&quot; on an enquiry.</p>
             </section>
             <section className="card stack">
               <h2>Sending</h2>

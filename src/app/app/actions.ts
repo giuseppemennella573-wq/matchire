@@ -73,7 +73,10 @@ export async function draftAction(form: FormData) {
   try {
     if (intent === "discard") E.discardDraft(vendor.id, mid);
     else if (intent === "manual") E.markDraftSentManually(vendor.id, mid, body);
-    else if (intent === "regenerate") {
+    else if (intent === "price_anyway") {
+      await E.sendPriceAnyway(vendor.id, eid);
+      back(path, "Quote drafted. Check it before it goes out.");
+    } else if (intent === "regenerate") {
       E.discardDraft(vendor.id, mid);
       await E.processEnquiry(vendor.id, eid);
     } else {

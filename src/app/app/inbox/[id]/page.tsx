@@ -14,7 +14,7 @@ import { ConfirmSubmit } from "@/components/confirm-submit";
 export const metadata = { title: "Enquiry" };
 
 const PURPOSE_LABEL: Record<string, string> = {
-  quote: "Quote", ask_info: "Asks for details", answer: "Answer", confirm: "Booking confirmation", unavailable: "Date unavailable",
+  qualify: "Asks for details before pricing", quote: "Quote", ask_info: "Asks for details", answer: "Answer", confirm: "Booking confirmation", unavailable: "Date unavailable",
   over_capacity: "Over capacity", referred: "Referral note", followup: "Follow-up", last_call: "Last call",
   phone_reply: "from your WhatsApp app",
 };
@@ -88,6 +88,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
                 <span className="small muted">{draft.template ? "WhatsApp template: sent exactly as approved" : "Edit freely before sending"}</span>
               </div>
               {e.owner_reason && <p className="alert alert-warn">{e.owner_reason}</p>}
+              {draft.purpose === "qualify" && <p className="small muted">No price yet: Matchire quotes once it knows the date and one more detail.</p>}
               <label className="field"><span className="hide">Reply</span><textarea id="draft-body" name="body" defaultValue={draft.body} readOnly={!!draft.template} /></label>
               <div className="row">
                 {draft.purpose === "confirm" ? (
@@ -99,6 +100,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
                 <CopyButton target="draft-body" />
                 <Submit className="btn btn-ghost btn-sm" name="intent" value="regenerate" pending="Redrafting…">Redraft</Submit>
                 <Submit className="btn btn-danger btn-sm" name="intent" value="discard">Discard</Submit>
+                {draft.purpose === "qualify" && <Submit className="btn btn-ghost btn-sm" name="intent" value="price_anyway" pending="Pricing…">Send price anyway</Submit>}
               </div>
             </form>
           ) : open ? (
