@@ -172,6 +172,16 @@ section.band{padding-block:84px;border-top:1px solid var(--line)}
 .feat h3 .new,.feat h3 .soon{vertical-align:3px}
 .new{display:inline-block;margin-left:6px;padding:.1rem .45rem;border-radius:999px;border:1px solid var(--orchid);background:var(--orchid-soft);color:var(--glow);font:600 .66rem/1.4 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .feat.flow{gap:14px}
+.feat[id]{scroll-margin-top:84px}
+/* "New in early access" strip under the hero */
+.newstrip{border-top:1px solid var(--line);background:var(--card)}
+.newstrip .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding-block:14px;font-size:.92rem;color:var(--muted)}
+.newstrip .new{margin-left:0}
+.newstrip-lead{color:var(--ink);font-weight:600}
+.newstrip a{color:var(--glow);text-decoration:none;font-weight:600}
+.newstrip a:hover{text-decoration:underline}
+@media (max-width:560px){.newstrip .wrap span[aria-hidden]{display:none}.newstrip .wrap{gap:6px 14px}}
+.feat p.feat-label{font-size:.72rem;color:var(--muted)}
 .feat.flow .timeline{grid-template-columns:repeat(6,1fr)}
 .feat.flow .tl{grid-template-columns:1fr;gap:6px;align-content:start}
 @media (max-width:900px){.feat-grid{grid-template-columns:1fr 1fr}.feat.flow .timeline{grid-template-columns:1fr}.feat.flow .tl{grid-template-columns:62px 1fr}}
@@ -320,6 +330,16 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
       </div>
     </div>
   </section>
+
+  <nav class="newstrip" aria-label="New in early access">
+    <div class="wrap">
+      <span class="new">New</span><span class="newstrip-lead">New in early access:</span>
+      <a href="#feat-asks">Asks before it quotes</a><span aria-hidden="true">·</span>
+      <a href="#feat-brief">Brief mode</a><span aria-hidden="true">·</span>
+      <a href="#feat-date-taken">Date-taken rescue</a><span aria-hidden="true">·</span>
+      <a href="#feat-fishing">Price-fishing flag</a>
+    </div>
+  </nav>
 
   <section class="band" id="calculator">
     <div class="wrap">

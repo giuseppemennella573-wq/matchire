@@ -43,11 +43,11 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 | Email inbox | Assisted setup | "We set it up with you" |
 | "Replies are assisted" note | No setting | Say "add it to your sign-off" |
 | Billing / plan limits / trial | Not enforced (early access) | OK to show plans; free during early access |
-| Qualify before quoting | Live | Claim it: "Asks for the date and a detail before quoting, so every price is real." |
-| Price-fishing flag | Live | OK as a proof point: "Spots price-shoppers and holds prices back for your approval." Never say we accuse or block clients. |
-| Brief mode (custom services) | Live | Claim it for custom services: "Brief mode: Matchire qualifies, holds the date and sends you a brief; you write the quote." The FAQ copy needs Giuseppe's OK before it goes on the site. |
-| Date unavailable: other dates + partner | Live | "Booked? Matchire offers nearby dates and a partner instead of a no." |
-| Per-package extra-hour rates | Live | Claim freely |
+| Qualify before quoting | Live | Site (features card "Asks before it quotes", timeline, demo, FAQ): "No price goes out until Matchire knows the date and one more detail, like guest count or venue. Price-shoppers get questions, real clients get an exact quote." |
+| Price-fishing flag | Live | Site (card "Spots price-fishers", FAQ "What if someone is just collecting prices?"): "Enquiries that keep asking for the full price list without giving a date get flagged, and prices stop going out automatically." Never say we accuse or block clients. |
+| Brief mode (custom services) | Live | Site (card "Brief mode for custom work", FAQ "My services are custom…", approved by Giuseppe): "Matchire asks the right questions, holds the date and sends you a clean brief. You write the quote." |
+| Date unavailable: other dates + partner | Live | Site (card "Date taken? Keep the lead", network line): "If you're booked, Matchire offers your nearest free dates and can suggest a trusted partner." Partner price only if that partner shares it. |
+| Per-package extra-hour rates | Live | Site (card "Exact quotes from your packages", FAQ "What if it quotes the wrong price?"): "Each package can have its own extra-hour rate, so longer events are priced correctly." Every quote states the deposit in SGD and when the hold ends. |
 | "Not sure yet" / "Too expensive" keep the lead open (Undecided / Price concern) | Live | "Knows 'maybe' from 'no': 'Not sure yet' keeps the date held and follow-ups running. 'Too expensive' comes to you with real options from your price list, never an invented discount." Only clear refusals close an enquiry. |
 
 ## Open decisions (ask Giuseppe before acting)
@@ -63,3 +63,4 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 - 2026-10-28: Rates are private per business. "Share my starting price with partners" setting, default off (existing accounts off too); when on, partners see one "from" price, never the rate card. Partner suggestions without it read "Our partner X (category) can quote you directly." Site copy no longer promises partner prices. (Approved by Giuseppe, 2026-10-28.)
 - 2026-10-28: Nav button "Start free trial" renamed "Join early access" to match the pricing note; no "trial" wording left on the site. (Approved by Giuseppe, 2026-10-28.)
 - 2026-10-30: Pack 04. No price (total, range or "from" price) goes to a planner until Matchire knows the event date plus one more detail (guests, venue, hours or event type), unless the vendor chooses "Send price anyway". (Approved by Giuseppe, 2026-10-30.)
+- 2026-10-30: Pack 05. Landing page shows Pack 04 features; Brief-mode and price-fishing FAQ added (approved by Giuseppe).
