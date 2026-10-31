@@ -21,7 +21,7 @@ DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT/silent.mp
 
 # 4. Each voice line starts at its scene (seconds); keep in step with the captions in index.html.
 #    The music sits low and ducks further while she speaks.
-OFFSETS=(0.5 4.4 9.0 16.8 22.0 27.4 31.9 36.95)
+OFFSETS=(0.4 3.2 6.8 11.0 18.8 23.8 27.6 31.2 36.6)
 INPUTS=(); FILTER=""; MIX=""
 for i in "${!OFFSETS[@]}"; do
   INPUTS+=(-i "$OUT/voice/line-$i.wav")
@@ -31,14 +31,14 @@ for i in "${!OFFSETS[@]}"; do
 done
 M=$(( ${#OFFSETS[@]} + 1 ))
 FILTER+="${MIX}amix=inputs=${#OFFSETS[@]}:normalize=0,apad,atrim=0:${DUR},aformat=channel_layouts=stereo,asplit[vox][key];"
-FILTER+="[$M:a]volume=0.1[bed];[bed][key]sidechaincompress=threshold=0.02:ratio=4:attack=30:release=600[duck];"
+FILTER+="[$M:a]volume=0.065[bed];[bed][key]sidechaincompress=threshold=0.02:ratio=4:attack=30:release=600[duck];"
 FILTER+="[vox][duck]amix=inputs=2:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,aformat=channel_layouts=stereo[aout]"
 ffmpeg -v error -y -i "$OUT/silent.mp4" "${INPUTS[@]}" -i "$OUT/music.wav" -filter_complex "$FILTER" -map 0:v -map "[aout]" \
   -c:v copy -c:a aac -profile:a aac_low -ar 48000 -b:a 128k -movflags +faststart "$ROOT/public/matchire-explainer.mp4"
 
-# 5. Poster (the quote scene) and the small thumbnail on the landing page button.
-ffmpeg -v error -y -ss 15.5 -i "$ROOT/public/matchire-explainer.mp4" -frames:v 1 -vf scale=1280:720 -q:v 3 "$ROOT/public/explainer-poster.jpg"
-ffmpeg -v error -y -ss 15.5 -i "$ROOT/public/matchire-explainer.mp4" -frames:v 1 -vf scale=240:135 -q:v 4 "$ROOT/public/explainer-thumb.jpg"
+# 5. Poster (the cover) and the small thumbnail on the landing page button.
+ffmpeg -v error -y -ss 1.0 -i "$ROOT/public/matchire-explainer.mp4" -frames:v 1 -vf scale=1280:720 -q:v 3 "$ROOT/public/explainer-poster.jpg"
+ffmpeg -v error -y -ss 1.0 -i "$ROOT/public/matchire-explainer.mp4" -frames:v 1 -vf scale=240:135 -q:v 4 "$ROOT/public/explainer-thumb.jpg"
 
 ls -l "$ROOT/public/matchire-explainer.mp4"
 ffprobe -v error -show_entries format=duration -of csv=p=0 "$ROOT/public/matchire-explainer.mp4"

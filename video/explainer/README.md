@@ -1,7 +1,8 @@
 # Landing page explainer
 
-The source of `public/matchire-explainer.mp4` (about 42 s, 1920×1080, 30 fps, with a female
-voiceover, background music and captions), plus its poster and thumbnail.
+The source of `public/matchire-explainer.mp4` (about 43 s, 1920×1080, 30 fps, with a female
+voiceover, background music and captions). It's aimed at solo event vendors who are busy running
+events, opens on a warm orange cover (also the poster) and alternates teal and cream scenes. The folder also makes its poster and thumbnail.
 
 ```
 KOKORO_DIR=/path/to/kokoro-models bash video/explainer/build.sh
@@ -14,12 +15,12 @@ That one command makes the voiceover, renders every frame and writes
 
 | File | What it is |
 |---|---|
-| `index.html` | The video: eight scenes on a timeline. Each element has `data-in` / `data-out` times in seconds; `render(t)` draws the frame at time `t`. Open it in a browser and call `render(12)` in the console to see a moment. |
+| `index.html` | The video: a cover and eight scenes on a timeline. Each element has `data-in` / `data-out` times in seconds; `render(t)` draws the frame at time `t`. Open it in a browser and call `render(12)` in the console to see a moment. |
 | `lines.json` | The voiceover, one line per scene. "Match-hire" and "dot A.I." are spelled that way so the voice says them right. |
-| `voice.py` | Turns `lines.json` into `out/voice/line-N.wav` (Kokoro, voice `af_heart`, 1.12×) and prints each length. |
+| `voice.py` | Turns `lines.json` into `out/voice/line-N.wav` (Kokoro, voice `af_heart`, 1.18× by default; set `VOICE_SPEED` to change it) and prints each length. |
 | `render.cjs` | Renders `index.html` frame by frame with Playwright, piped straight into ffmpeg (no frame dumps). |
 | `frames.cjs` | Stills for checking: `node video/explainer/frames.cjs 3 15.5 25` → `out/still-3.png` … |
-| `music.py` | Makes the background music from scratch (synth pad, soft bass, light beat, pluck arpeggio; 96 bpm), so there's no licence to check. `out/music.wav`. |
+| `music.py` | Makes the background music from scratch (upbeat pop groove: bright pad, bouncy bass, kick, claps, hi-hats, pluck arpeggio; 118 bpm), so there's no licence to check. `out/music.wav`. |
 | `build.sh` | Runs all of the above, mixes each voice line in at its scene over the music (which ducks while she speaks) and writes the outputs. `SKIP_RENDER=1` reuses the last frames render when only the sound changed. |
 
 When you change a line, run `voice.py` to see its new length, then check the scene times in

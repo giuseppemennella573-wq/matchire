@@ -3,21 +3,29 @@
 <head>
 <meta charset="utf-8">
 <title>Matchire explainer</title>
-<!-- The landing page explainer (public/matchire-explainer.mp4). Every element has a start (data-in) and end
-     (data-out) time in seconds; render(t) draws the frame at time t. See README.md to render it. -->
+<!-- The landing page explainer (public/matchire-explainer.mp4), for solo event vendors. Every element has a start
+     (data-in) and end (data-out) time in seconds; render(t) draws the frame at time t. See README.md to render it. -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=block">
 <style>
 :root{
   --paper:#073B39; --card:#0C4B48; --ink:#EAF6F5; --muted:#A9CFCC; --line:#17625E;
   --orchid:#EF5439; --glow:#FFB37A; --leaf:#7FE3D3; --leaf-soft:#0F5A55;
-  --bubble:#105451; --bubble-out:#14695F; --wa:#25D366;
+  --cream:#FFF4EA; --cream-ink:#073B39; --cream-muted:#4E6B69;
+  --bubble:#105451; --bubble-out:#14695F;
   --flame:linear-gradient(90deg,#EF5439,#F28A3A);
   --f-display:"Nunito",system-ui,sans-serif; --f-body:"Figtree",system-ui,sans-serif; --f-mono:"JetBrains Mono",monospace;
 }
 *{box-sizing:border-box;margin:0}
 html,body{width:1920px;height:1080px;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--f-body);-webkit-font-smoothing:antialiased}
-#stage{position:relative;width:1920px;height:1080px;background:radial-gradient(1200px 700px at 75% 10%,#0D4D4A 0%,transparent 60%),radial-gradient(900px 600px at 10% 100%,#0A4744 0%,transparent 60%),var(--paper)}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden}
 [data-in]{position:absolute;opacity:0;will-change:transform,opacity}
+
+/* scene backgrounds: teal, cream and the warm flame gradient take turns */
+.bg{left:0;top:0;width:1920px;height:1080px}
+.bg.teal{background:radial-gradient(1200px 700px at 75% 10%,#0D4D4A 0%,transparent 60%),radial-gradient(900px 600px at 10% 100%,#0A4744 0%,transparent 60%),var(--paper)}
+.bg.cream{background:radial-gradient(1100px 700px at 80% 0%,#FFE3CC 0%,transparent 60%),var(--cream)}
+.bg.fire{background:radial-gradient(1000px 800px at 85% 10%,#FFC38F 0%,transparent 60%),linear-gradient(120deg,#E8452C 0%,#F06A35 45%,#F7A04E 100%)}
+
 .logo{font-family:var(--f-display);font-weight:900;letter-spacing:-.01em;color:#fff;display:inline-flex;align-items:flex-end;line-height:1}
 .logo .ai{color:var(--glow)}
 .logo-i{position:relative;display:inline-block}
@@ -31,17 +39,29 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--paper);col
 .pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:8px 18px;font:600 20px var(--f-mono);letter-spacing:.04em}
 .pill.ok{background:var(--leaf-soft);color:var(--leaf)}
 .pill.hot{background:rgba(239,84,57,.18);color:#FFB3A3;border:1.5px solid var(--orchid)}
-.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:20px 44px;font:800 34px var(--f-body);background:var(--flame);color:#fff;box-shadow:0 18px 40px rgba(239,84,57,.35)}
+.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:22px 50px;font:800 38px var(--f-body);background:#fff;color:#E8452C;box-shadow:0 18px 40px rgba(120,30,10,.35)}
+
+/* on the cream scenes */
+.on-cream .h1{color:var(--cream-ink)} .on-cream .hl{color:var(--orchid)} .on-cream .eyebrow{color:var(--orchid)}
+.on-cream.msg.in{background:#fff;color:var(--cream-ink);border:2px solid #F3D9C4}
+.on-cream .who{color:var(--cream-muted)}
 
 /* captions carry the story with the sound off */
-.caption{left:200px;right:200px;bottom:54px;text-align:center;font:600 36px/1.3 var(--f-body);color:var(--ink);text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.caption{left:200px;right:200px;bottom:52px;text-align:center;font:700 36px/1.3 var(--f-body);color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.45)}
+.caption.dark{color:var(--cream-ink);text-shadow:none}
+
+/* cover */
+.cover-h{font:900 150px/1 var(--f-display);letter-spacing:-.025em;color:#fff;text-shadow:0 10px 40px rgba(120,30,10,.25)}
+.cover-p{font:700 46px/1.3 var(--f-body);color:#FFF4EA;margin-top:30px}
+.badge-m{width:150px;height:150px;border-radius:38px;background:#073B39;display:grid;place-items:center;box-shadow:0 20px 50px rgba(120,30,10,.35)}
+.prop{font-size:110px;filter:drop-shadow(0 12px 18px rgba(120,30,10,.3))}
 
 /* scene 1: phone */
 .phone{left:1130px;top:120px;width:480px;height:800px;border-radius:56px;background:#04201F;border:3px solid #1C6B66;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:96px 26px 0}
 .notch{position:absolute;left:50%;top:22px;width:150px;height:30px;border-radius:99px;background:#0A3532;transform:translateX(-50%)}
 .badge{left:440px;top:-26px;width:84px;height:84px;border-radius:50%;background:var(--orchid);border:6px solid var(--paper);display:grid;place-items:center;font:900 36px var(--f-display);color:#fff}
 .note{left:26px;right:26px;height:116px;border-radius:24px;background:var(--card);border:1.5px solid var(--line);display:flex;gap:18px;align-items:center;padding:0 22px}
-.note .ic{flex:none;width:62px;height:62px;border-radius:16px;display:grid;place-items:center}
+.note .ic{flex:none;width:62px;height:62px;border-radius:16px;display:grid;place-items:center;font-size:32px}
 .note small{display:block;font:500 19px var(--f-body);color:var(--muted)}
 .note b{display:block;font:700 26px var(--f-body);margin-top:2px}
 
@@ -54,9 +74,10 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--paper);col
 /* chat */
 .msg{max-width:640px;padding:18px 24px;border-radius:24px;font:500 30px/1.38 var(--f-body)}
 .msg.in{background:var(--bubble);border-bottom-left-radius:6px}
-.msg.out{background:var(--bubble-out);border-bottom-right-radius:6px}
+.msg.out{background:var(--bubble-out);color:#fff;border-bottom-right-radius:6px}
 .msg small{display:block;margin-top:8px;font:400 17px var(--f-mono);color:var(--muted)}
 .who{font:600 20px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.msg.out .who{color:#BDEBE4}
 
 /* quote card */
 .quote{left:1180px;top:250px;width:600px;padding:34px 38px}
@@ -80,11 +101,12 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--paper);col
 .brief .row{display:flex;gap:16px;font:500 26px/1.35 var(--f-body);padding:7px 0}
 .brief .row b{flex:none;width:140px;font:600 21px/1.6 var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .quoteblock{margin-top:12px;padding:16px 20px;border-left:4px solid var(--glow);background:#0A4542;border-radius:0 14px 14px 0;font:500 italic 26px/1.4 var(--f-body)}
-.inbox{left:1150px;top:230px;width:700px;height:640px;padding:22px 30px;border-style:dashed;background:rgba(12,75,72,.4)}
+.inbox{left:1150px;top:230px;width:700px;height:640px;padding:22px 30px;border:2px dashed #E9C7AE;border-radius:26px;background:rgba(255,255,255,.55)}
+.inbox .who{color:var(--cream-muted)}
 
 /* scene 6: chips */
 .chip{left:0;right:0;margin:auto;width:1080px;height:150px;border-radius:28px;background:var(--card);border:2px solid var(--line);display:flex;align-items:center;gap:30px;padding:0 40px}
-.chip .ic{flex:none;width:86px;height:86px;border-radius:22px;background:#0A4542;display:grid;place-items:center}
+.chip .ic{flex:none;width:86px;height:86px;border-radius:22px;background:#0A4542;display:grid;place-items:center;font-size:44px}
 .chip b{display:block;font:800 40px var(--f-display)}
 .chip span{display:block;font:500 26px var(--f-body);color:var(--muted);margin-top:4px}
 
@@ -98,65 +120,86 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--paper);col
 </head>
 <body>
 <div id="stage">
+  <!-- backgrounds (fade between scenes) -->
+  <div class="bg fire"  data-in="0"    data-out="3.0"  data-fx="bg"></div>
+  <div class="bg teal"  data-in="2.8"  data-out="11.0" data-fx="bg"></div>
+  <div class="bg cream" data-in="10.8" data-out="18.8" data-fx="bg"></div>
+  <div class="bg teal"  data-in="18.6" data-out="23.8" data-fx="bg"></div>
+  <div class="bg cream" data-in="23.6" data-out="27.6" data-fx="bg"></div>
+  <div class="bg teal"  data-in="27.4" data-out="31.2" data-fx="bg"></div>
+  <div class="bg cream" data-in="31.0" data-out="36.6" data-fx="bg"></div>
+  <div class="bg fire"  data-in="36.4" data-out="99"   data-fx="bg"></div>
 
-  <!-- ============ 1 · Mid-event (0–4.2s) ============ -->
-  <div style="left:180px;top:330px" data-in="0.1" data-out="4.0" data-fx="up">
-    <div class="h1" style="font-size:150px">Mid-event.</div>
+  <!-- ============ 0 · Cover (0–3.0s) ============ -->
+  <div style="left:170px;top:150px" data-in="0" data-out="2.8" data-fx="pop">
+    <div class="badge-m"><span class="logo" style="font-size:96px;position:relative">M<svg viewBox="0 0 10 14" style="position:absolute;left:66%;top:-26px;width:38px;height:53px"><path d="M5 0C6.5 3 9.5 5 9.5 9a4.5 4.5 0 0 1-9 0C.5 6.5 2.5 5 3 2.5 4 4 4.3 4.6 5 5.2 5.2 3.4 5.3 1.8 5 0z" fill="#EF5439"/><path d="M5 6.5c1 1.2 2 2 2 3.4a2 2 0 0 1-4 0c0-1.1.9-1.9 2-3.4z" fill="#F7C9A0"/></svg></span></div>
+  </div>
+  <div style="left:170px;top:380px" data-in="0" data-out="2.8" data-fx="up">
+    <div class="cover-h">Flying solo<br>in events?</div>
+    <div class="cover-p">Matchire answers every enquiry<br>while you're busy running them.</div>
+  </div>
+  <div class="prop" style="left:1330px;top:190px" data-in="0" data-out="2.8" data-fx="pop" data-bob="0">📸</div>
+  <div class="prop" style="left:1560px;top:400px" data-in="0" data-out="2.8" data-fx="pop" data-bob="1">🎈</div>
+  <div class="prop" style="left:1230px;top:520px" data-in="0" data-out="2.8" data-fx="pop" data-bob="2">🎤</div>
+  <div class="prop" style="left:1590px;top:620px" data-in="0" data-out="2.8" data-fx="pop" data-bob="3">🎉</div>
+  <div style="left:1370px;top:860px" data-in="0" data-out="2.8" data-fx="fade"><span class="logo" style="font-size:56px">Match<span class="logo-i">ı<svg viewBox="0 0 10 14" aria-hidden="true"><path d="M5 0C6.5 3 9.5 5 9.5 9a4.5 4.5 0 0 1-9 0C.5 6.5 2.5 5 3 2.5 4 4 4.3 4.6 5 5.2 5.2 3.4 5.3 1.8 5 0z" fill="#073B39"/><path d="M5 6.5c1 1.2 2 2 2 3.4a2 2 0 0 1-4 0c0-1.1.9-1.9 2-3.4z" fill="#F7C9A0"/></svg></span>re<span style="color:#073B39">.ai</span></span></div>
+
+  <!-- ============ 1 · On site, hands full (3.0–6.8s) ============ -->
+  <div style="left:180px;top:330px" data-in="3.0" data-out="6.6" data-fx="up">
+    <div class="h1" style="font-size:130px">On site.</div>
     <div class="h1 hl" style="font-size:62px;margin-top:26px;font-weight:800">Hands full. Phone buzzing.</div>
   </div>
-  <div style="left:760px;top:170px;font-size:80px" data-in="0.4" data-out="4.0" data-fx="pop">🎉</div>
-  <div style="left:820px;top:780px;font-size:76px" data-in="0.6" data-out="4.0" data-fx="pop">🕶️</div>
-  <div class="phone" data-in="0.2" data-out="4.0" data-fx="right">
+  <div class="phone" data-in="3.1" data-out="6.6" data-fx="right">
     <div class="notch"></div>
-    <div class="badge" data-in="0.9" data-out="99" data-fx="pop" data-count="0.9:4,1.5:7,2.1:11,2.7:14">4</div>
-    <div class="note" style="top:96px" data-in="0.9" data-out="99" data-fx="up"><span class="ic" style="background:#1FAA59">💬</span><span><small>WhatsApp · Corporate</small><b>Hello?? 👀</b></span></div>
-    <div class="note" style="top:232px" data-in="1.5" data-out="99" data-fx="up"><span class="ic" style="background:#3B7BE8">✉️</span><span><small>Email · Wedding</small><b>Can we get a quote?</b></span></div>
-    <div class="note" style="top:368px" data-in="2.1" data-out="99" data-fx="up"><span class="ic" style="background:#E8873B">📝</span><span><small>Web form · Birthday</small><b>How much for 3 hrs?</b></span></div>
-    <div class="note" style="top:504px" data-in="2.7" data-out="99" data-fx="up"><span class="ic" style="background:#1FAA59">💬</span><span><small>WhatsApp · Planner</small><b>Free on 12 Dec? 📸</b></span></div>
+    <div class="badge" data-in="3.5" data-out="99" data-fx="pop" data-count="3.5:4,4.1:7,4.7:11,5.3:14">4</div>
+    <div class="note" style="top:96px" data-in="3.5" data-out="99" data-fx="up"><span class="ic" style="background:#1FAA59">💬</span><span><small>WhatsApp · Corporate</small><b>Hello?? 👀</b></span></div>
+    <div class="note" style="top:232px" data-in="4.1" data-out="99" data-fx="up"><span class="ic" style="background:#3B7BE8">✉️</span><span><small>Email · Wedding</small><b>Can we get a quote?</b></span></div>
+    <div class="note" style="top:368px" data-in="4.7" data-out="99" data-fx="up"><span class="ic" style="background:#E8873B">📝</span><span><small>Web form · Birthday</small><b>How much for 3 hrs?</b></span></div>
+    <div class="note" style="top:504px" data-in="5.3" data-out="99" data-fx="up"><span class="ic" style="background:#1FAA59">💬</span><span><small>WhatsApp · Planner</small><b>Free on 12 Dec? 📸</b></span></div>
   </div>
 
-  <!-- ============ 2 · One planner, five vendors (4.2–8.4s) ============ -->
-  <div class="center" style="top:110px" data-in="4.3" data-out="8.2" data-fx="up"><div class="h1" style="font-size:84px">One planner. <span class="hl">Five vendors.</span></div></div>
-  <div class="planner" data-in="4.5" data-out="8.2" data-fx="pop">🙋‍♀️</div>
-  <svg data-in="4.6" data-out="8.2" data-fx="fade" style="left:0;top:0;width:1920px;height:1080px">
+  <!-- ============ 2 · One planner, five vendors (6.8–11.0s) ============ -->
+  <div class="center" style="top:110px" data-in="6.8" data-out="10.8" data-fx="up"><div class="h1" style="font-size:84px">One planner. <span class="hl">Five vendors.</span></div></div>
+  <div class="planner" data-in="7.0" data-out="10.8" data-fx="pop">🙋‍♀️</div>
+  <svg data-in="7.1" data-out="10.8" data-fx="fade" style="left:0;top:0;width:1920px;height:1080px">
     <g stroke="#2A8F88" stroke-width="3" stroke-dasharray="10 10" fill="none">
       <path d="M520 490 C 800 490, 900 300, 1170 300"/><path d="M520 490 C 800 490, 900 410, 1170 410"/>
       <path d="M520 490 C 800 490, 900 520, 1170 520"/><path d="M520 490 C 800 490, 900 630, 1170 630"/>
       <path d="M520 490 C 800 490, 900 740, 1170 740"/>
     </g>
   </svg>
-  <div class="vrow" style="top:254px" data-in="4.8" data-out="8.2" data-fx="right">Booth Bros<small>typing…</small></div>
-  <div class="vrow" style="top:364px" data-in="4.95" data-out="8.2" data-fx="right">Flash Co.<small>typing…</small></div>
-  <div class="vrow you" style="top:474px" data-in="5.1" data-out="8.2" data-fx="right">You<span class="pill hot" data-in="6.4" data-out="99" data-fx="pop" style="position:static">👑 Wins</span></div>
-  <div class="vrow" style="top:584px" data-in="5.25" data-out="8.2" data-fx="right">Pose Party<small>typing…</small></div>
-  <div class="vrow" style="top:694px" data-in="5.4" data-out="8.2" data-fx="right">Click Studio<small>typing…</small></div>
-  <div class="center" style="top:830px" data-in="6.2" data-out="8.2" data-fx="up"><div class="h1" style="font-size:52px;font-weight:800">The first real reply <span class="hl">usually wins.</span></div></div>
+  <div class="vrow" style="top:254px" data-in="7.2" data-out="10.8" data-fx="right">Booth Bros<small>typing…</small></div>
+  <div class="vrow" style="top:364px" data-in="7.3" data-out="10.8" data-fx="right">Flash Co.<small>typing…</small></div>
+  <div class="vrow you" style="top:474px" data-in="7.4" data-out="10.8" data-fx="right">You<span class="pill hot" data-in="8.6" data-out="99" data-fx="pop" style="position:static">👑 Wins</span></div>
+  <div class="vrow" style="top:584px" data-in="7.5" data-out="10.8" data-fx="right">Pose Party<small>typing…</small></div>
+  <div class="vrow" style="top:694px" data-in="7.6" data-out="10.8" data-fx="right">Click Studio<small>typing…</small></div>
+  <div class="center" style="top:830px" data-in="8.4" data-out="10.8" data-fx="up"><div class="h1" style="font-size:52px;font-weight:800">The first real reply <span class="hl">wins.</span></div></div>
 
-  <!-- ============ 3 · Asks before it quotes (8.4–16.6s) ============ -->
-  <div style="left:140px;top:96px" data-in="8.5" data-out="16.4" data-fx="up">
-    <div class="eyebrow">New</div>
-    <div class="h1" style="font-size:76px;margin-top:14px">It asks <span class="hl">before it quotes.</span></div>
+  <!-- ============ 3 · Replies for you, asks first (11.0–18.8s, cream) ============ -->
+  <div class="on-cream" style="left:140px;top:96px" data-in="11.0" data-out="18.6" data-fx="up">
+    <div class="eyebrow">While you work</div>
+    <div class="h1" style="font-size:76px;margin-top:14px">It replies for you, <span class="hl">and asks first.</span></div>
   </div>
-  <div style="left:140px;top:300px;width:900px;height:560px" data-in="8.7" data-out="16.4" data-fx="fade">
-    <div class="msg in" style="left:0;top:0" data-in="9.0" data-out="99" data-fx="up"><span class="who">Planner</span><br>how much for photobooth?</div>
-    <div class="msg out" style="right:0;top:150px" data-in="10.2" data-out="99" data-fx="up"><span class="who">Matchire, for you</span><br>Happy to send exact pricing! What's the date and roughly how many guests?</div>
-    <div class="msg in" style="left:0;top:350px" data-in="11.8" data-out="99" data-fx="up"><span class="who">Planner</span><br>Sat 12 Dec, 80 guests, 3h + guestbook</div>
+  <div style="left:140px;top:300px;width:900px;height:560px" data-in="11.1" data-out="18.6" data-fx="fade">
+    <div class="msg in on-cream" style="left:0;top:0" data-in="11.3" data-out="99" data-fx="up"><span class="who">Planner</span><br>how much for photobooth?</div>
+    <div class="msg out" style="right:0;top:150px" data-in="12.3" data-out="99" data-fx="up"><span class="who">Matchire, for you</span><br>Happy to send exact pricing! What's the date and roughly how many guests?</div>
+    <div class="msg in on-cream" style="left:0;top:350px" data-in="13.6" data-out="99" data-fx="up"><span class="who">Planner</span><br>Sat 12 Dec, 80 guests, 3h + guestbook</div>
   </div>
-  <div class="card quote" data-in="12.8" data-out="16.4" data-fx="right">
+  <div class="card quote" data-in="14.6" data-out="18.6" data-fx="right">
     <div class="who" style="margin-bottom:10px">Exact quote · Snap &amp; Smile</div>
     <div class="qline"><span>Classic Booth 3h</span><span>SGD 850</span></div>
     <div class="qline"><span>Guestbook album</span><span>SGD 150</span></div>
     <div class="qtotal"><span>Total</span><span>SGD 1,000</span></div>
-    <div class="qdep" data-in="13.6" data-out="99" data-fx="up" style="position:relative"><span>Deposit (30%)</span><span>SGD 300</span></div>
-    <div style="position:relative;margin-top:24px" data-in="14.4" data-out="99" data-fx="pop"><span class="pill ok">📅 Date held until Mon 4pm</span></div>
+    <div class="qdep" data-in="15.4" data-out="99" data-fx="up" style="position:relative"><span>Deposit (30%)</span><span>SGD 300</span></div>
+    <div style="position:relative;margin-top:24px" data-in="16.2" data-out="99" data-fx="pop"><span class="pill ok">📅 Date held until Mon 4pm</span></div>
   </div>
 
-  <!-- ============ 4 · Date taken? Keep the lead (16.6–21.8s) ============ -->
-  <div style="left:200px;top:96px" data-in="16.7" data-out="21.6" data-fx="up">
-    <div class="eyebrow">New</div>
-    <div class="h1" style="font-size:76px;margin-top:14px">Date taken? <span class="hl">Keep the lead.</span></div>
+  <!-- ============ 4 · Already booked? (18.8–23.8s) ============ -->
+  <div style="left:200px;top:96px" data-in="18.8" data-out="23.6" data-fx="up">
+    <div class="eyebrow">Already booked?</div>
+    <div class="h1" style="font-size:76px;margin-top:14px">Don't lose the lead. <span class="hl">Earn from it.</span></div>
   </div>
-  <div class="card cal" data-in="16.9" data-out="21.6" data-fx="left">
+  <div class="card cal" data-in="18.9" data-out="23.6" data-fx="left">
     <div class="who">November</div>
     <div class="grid">
       <div class="d wd">Mon</div><div class="d wd">Tue</div><div class="d wd">Wed</div><div class="d wd">Thu</div><div class="d wd">Fri</div><div class="d wd">Sat</div><div class="d wd">Sun</div>
@@ -165,19 +208,16 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--paper);col
     </div>
     <div style="position:relative;margin-top:22px;font:500 22px var(--f-body)" class="muted"><span style="color:#FFB3A3">■</span> Booked &nbsp; <span style="color:var(--leaf)">■</span> Free</div>
   </div>
-  <div class="msg out" style="left:940px;top:330px;max-width:800px" data-in="17.8" data-out="21.6" data-fx="up"><span class="who">Matchire, for you</span><br>21 Nov is booked, but I'm free Fri 20 or Sun 22. Or my partner Snapbox SG can help.</div>
-  <div style="left:940px;top:610px" data-in="19.6" data-out="21.6" data-fx="pop"><span class="pill hot" style="font-size:26px;padding:12px 24px">🤝 Referral fee when they book</span></div>
+  <div class="msg out" style="left:940px;top:330px;max-width:800px" data-in="19.6" data-out="23.6" data-fx="up"><span class="who">Matchire, for you</span><br>21 Nov is booked, but I'm free Fri 20 or Sun 22. Or my partner Snapbox SG can help.</div>
+  <div style="left:940px;top:610px" data-in="21.0" data-out="23.6" data-fx="pop"><span class="pill hot" style="font-size:26px;padding:12px 24px">🤝 Referral fee when they book</span></div>
 
-  <!-- ============ 5 · Brief mode (21.8–27.2s) ============ -->
-  <div style="left:140px;top:96px" data-in="21.9" data-out="27.0" data-fx="up">
-    <div class="eyebrow">New</div>
-    <div class="h1" style="font-size:76px;margin-top:14px">Custom work? <span class="hl">Brief mode.</span></div>
+  <!-- ============ 5 · Custom job? Brief mode (23.8–27.6s, cream) ============ -->
+  <div class="on-cream" style="left:140px;top:96px" data-in="23.8" data-out="27.4" data-fx="up">
+    <div class="eyebrow">Custom job?</div>
+    <div class="h1" style="font-size:76px;margin-top:14px">You get a <span class="hl">clean brief.</span></div>
   </div>
-  <div class="card inbox" data-in="22.0" data-out="27.0" data-fx="fade"><div class="who">Your inbox</div></div>
-  <div style="left:140px;top:430px" data-in="24.6" data-out="27.0" data-fx="up">
-    <div class="h1" style="font-size:60px;font-weight:800">You write the quote.<br><span class="hl">Matchire follows up.</span></div>
-  </div>
-  <div class="card brief" data-in="22.3" data-out="27.0" data-fx="slide" data-from="140,270" data-to="1180,286" data-dur="1.4">
+  <div class="inbox" data-in="23.9" data-out="27.4" data-fx="fade"><div class="who">Your inbox</div></div>
+  <div class="card brief" data-in="24.0" data-out="27.4" data-fx="slide" data-from="140,270" data-to="1180,286" data-dur="1.0">
     <div style="display:flex;justify-content:space-between;align-items:center"><span style="font:800 34px var(--f-display)">New brief</span><span class="pill ok">📅 Date held</span></div>
     <div style="margin-top:14px">
       <div class="row"><b>Date</b>Sat 19 Dec</div>
@@ -188,89 +228,96 @@ html,body{width:1920px;height:1080px;overflow:hidden;background:var(--paper);col
     </div>
     <div class="quoteblock">“We'd love a floral photo backdrop and booth styling.”</div>
   </div>
-
-  <!-- ============ 6 · Stays in control (27.2–31.8s) ============ -->
-  <div class="center" style="top:110px" data-in="27.3" data-out="31.6" data-fx="up"><div class="h1" style="font-size:76px">And it <span class="hl">keeps you in control.</span></div></div>
-  <div class="chip" style="top:300px" data-in="27.6" data-out="31.6" data-fx="up"><span class="ic">🚩</span><span><b>Spots price-fishers</b><span>No date, just your full price list? Flagged, and prices stop going out.</span></span></div>
-  <div class="chip" style="top:480px" data-in="28.6" data-out="31.6" data-fx="up"><span class="ic">🤔</span><span><b>Knows “maybe” from “no”</b><span>“Not sure yet” keeps the date held and the follow-ups running.</span></span></div>
-  <div class="chip" style="top:660px" data-in="29.6" data-out="31.6" data-fx="up"><span class="ic">🔔</span><span><b>Follow-ups that don't nag</b><span>One nudge, then a last call before the hold ends.</span></span></div>
-
-  <!-- ============ 7 · Flying solo (31.8–36.8s) ============ -->
-  <div style="left:180px;top:330px" data-in="31.9" data-out="36.6" data-fx="up">
-    <div class="h1" style="font-size:130px">Flying<br>solo? 😎</div>
-    <div class="h1" style="font-size:48px;font-weight:800;margin-top:28px;color:var(--muted)">There's a plan for that.</div>
+  <div class="on-cream" style="left:140px;top:450px" data-in="25.6" data-out="27.4" data-fx="up">
+    <div class="h1" style="font-size:60px;font-weight:800">You write the quote.<br><span class="hl">Matchire follows up.</span></div>
   </div>
-  <div class="card plan" data-in="32.2" data-out="36.6" data-fx="right">
+
+  <!-- ============ 6 · Busywork, handled (27.6–31.2s) ============ -->
+  <div class="center" style="top:110px" data-in="27.6" data-out="31.0" data-fx="up"><div class="h1" style="font-size:76px">The busywork? <span class="hl">Handled.</span></div></div>
+  <div class="chip" style="top:300px" data-in="27.8" data-out="31.0" data-fx="up"><span class="ic">🚩</span><span><b>Spots price-fishers</b><span>No date, just your full price list? Flagged, and prices stop going out.</span></span></div>
+  <div class="chip" style="top:480px" data-in="28.4" data-out="31.0" data-fx="up"><span class="ic">🤔</span><span><b>Knows “maybe” from “no”</b><span>“Not sure yet” keeps the date held and the follow-ups running.</span></span></div>
+  <div class="chip" style="top:660px" data-in="29.0" data-out="31.0" data-fx="up"><span class="ic">🔔</span><span><b>Follows up for you</b><span>One friendly nudge, then a last call before the hold ends.</span></span></div>
+
+  <!-- ============ 7 · Built for solo owners (31.2–36.6s, cream) ============ -->
+  <div class="on-cream" style="left:180px;top:300px" data-in="31.2" data-out="36.4" data-fx="up">
+    <div class="eyebrow">Built for solo owners</div>
+    <div class="h1" style="font-size:120px;margin-top:20px">Your booking<br>desk, <span class="hl">sorted.</span></div>
+  </div>
+  <div class="card plan" data-in="31.4" data-out="36.4" data-fx="right">
     <div class="eyebrow" style="color:var(--muted)">Solo plan</div>
     <div class="price">S$79<small>/month</small></div>
-    <span class="pill ok" data-in="33.6" data-out="99" data-fx="pop" style="position:relative;font-size:24px">Free during early access</span>
+    <span class="pill ok" data-in="32.6" data-out="99" data-fx="pop" style="position:relative;font-size:24px">Free during early access</span>
     <ul>
       <li>1 user</li>
       <li>WhatsApp + email</li>
       <li>Up to 150 enquiries a month</li>
     </ul>
   </div>
-  <div style="left:180px;top:800px" data-in="34.4" data-out="36.6" data-fx="pop"><span class="pill hot" style="font-size:26px;padding:12px 24px">Early access: 30% off your first year</span></div>
+  <div style="left:180px;top:780px" data-in="33.4" data-out="36.4" data-fx="pop"><span class="pill" style="font-size:26px;padding:12px 24px;background:#073B39;color:#FFB37A">Early access: 30% off your first year</span></div>
 
-  <!-- ============ 8 · Close (36.8s–end) ============ -->
-  <div class="center" style="top:250px" data-in="36.9" data-out="99" data-fx="pop">
-    <span class="logo" style="font-size:150px">Match<span class="logo-i">ı<svg viewBox="0 0 10 14" aria-hidden="true"><path d="M5 0C6.5 3 9.5 5 9.5 9a4.5 4.5 0 0 1-9 0C.5 6.5 2.5 5 3 2.5 4 4 4.3 4.6 5 5.2 5.2 3.4 5.3 1.8 5 0z" fill="#EF5439"/><path d="M5 6.5c1 1.2 2 2 2 3.4a2 2 0 0 1-4 0c0-1.1.9-1.9 2-3.4z" fill="#F7C9A0"/></svg></span>re<span class="ai">.ai</span></span>
+  <!-- ============ 8 · Close (36.6s–end, fire) ============ -->
+  <div class="center" style="top:200px" data-in="36.6" data-out="99" data-fx="pop">
+    <span class="logo" style="font-size:150px">Match<span class="logo-i">ı<svg viewBox="0 0 10 14" aria-hidden="true"><path d="M5 0C6.5 3 9.5 5 9.5 9a4.5 4.5 0 0 1-9 0C.5 6.5 2.5 5 3 2.5 4 4 4.3 4.6 5 5.2 5.2 3.4 5.3 1.8 5 0z" fill="#073B39"/><path d="M5 6.5c1 1.2 2 2 2 3.4a2 2 0 0 1-4 0c0-1.1.9-1.9 2-3.4z" fill="#F7C9A0"/></svg></span>re<span style="color:#073B39">.ai</span></span>
   </div>
-  <div class="center" style="top:480px" data-in="37.5" data-out="99" data-fx="up"><div class="h1" style="font-size:72px">Every enquiry answered,<br><span class="hl">even mid-event.</span></div></div>
-  <div class="center" style="top:730px" data-in="38.6" data-out="99" data-fx="pop" data-press="40.2"><span class="btn">Join early access</span></div>
-  <div class="center" style="top:860px" data-in="39.0" data-out="99" data-fx="fade"><span style="font:600 30px var(--f-mono);color:var(--muted)">matchire.ai</span></div>
+  <div class="center" style="top:430px" data-in="37.2" data-out="99" data-fx="up"><div class="h1" style="font-size:80px;color:#fff">Get back to your event.<br><span style="color:#073B39">We've got your enquiries.</span></div></div>
+  <div class="center" style="top:730px" data-in="38.6" data-out="99" data-fx="pop" data-press="40.4"><span class="btn">Join early access</span></div>
+  <div class="center" style="top:860px" data-in="39.0" data-out="99" data-fx="fade"><span style="font:700 32px var(--f-mono);color:#073B39">matchire.ai</span></div>
 
-  <!-- ============ captions (the voiceover, word for word) ============ -->
-  <!-- Scenes 1 and 2 say it in their headlines. -->
-  <div class="caption" data-in="9.0" data-out="16.4" data-fx="fade">Matchire asks before it quotes, then sends an exact quote from your packages, with the deposit, and holds the date.</div>
-  <div class="caption" data-in="16.8" data-out="21.6" data-fx="fade">Date taken? It offers other free dates, or a trusted partner. You earn the referral fee.</div>
-  <div class="caption" data-in="22.0" data-out="27.0" data-fx="fade">Brief mode sends you a clean brief. You write the quote. Matchire follows up.</div>
-  <div class="caption" data-in="27.4" data-out="31.6" data-fx="fade">It spots price-fishers, knows “maybe” from “no”, and follows up without nagging.</div>
-  <div class="caption" data-in="32.0" data-out="36.6" data-fx="fade">Solo is S$79 a month, and free during early access.</div>
+  <!-- ============ captions (the voiceover, nearly word for word) ============ -->
+  <div class="caption" data-in="3.2" data-out="6.6" data-fx="fade">You're on site, hands full, and the enquiries keep coming.</div>
+  <div class="caption dark" data-in="11.0" data-out="18.6" data-fx="fade">Matchire replies for you in minutes: it asks the right questions, sends an exact quote from your packages and holds the date.</div>
+  <div class="caption" data-in="18.8" data-out="23.6" data-fx="fade">Already booked? It offers other dates, or a trusted partner. You earn the referral fee.</div>
+  <div class="caption dark" data-in="23.8" data-out="27.4" data-fx="fade">Custom job? You get a clean brief, and you write the quote.</div>
+  <div class="caption" data-in="27.6" data-out="31.0" data-fx="fade">It spots price-fishers, and follows up, so you don't have to.</div>
+  <div class="caption dark" data-in="31.2" data-out="36.4" data-fx="fade">Built for solo owners: S$79 a month, and free during early access.</div>
 </div>
 
 <script>
-const ease = (p) => 1 - Math.pow(1 - p, 3);
+const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+// A little overshoot, so things pop in with some bounce.
+const easeBack = (p) => { const c = 1.9; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
 const clamp = (v) => Math.max(0, Math.min(1, v));
-const FX_IN = 0.55, FX_OUT = 0.35;
+const FX_IN = 0.42, FX_OUT = 0.3;
 const els = [...document.querySelectorAll("[data-in]")];
 
 window.render = function (t) {
   for (const el of els) {
     const tin = +el.dataset.in, tout = +el.dataset.out;
-    const pi = ease(clamp((t - tin) / FX_IN));
+    // Anything on the cover is already in place at t=0, so the first frame works as a thumbnail.
+    const lin = tin === 0 ? 1 : clamp((t - tin) / FX_IN);
+    const pi = easeOut(lin), pb = easeBack(lin);
     const po = clamp((t - tout) / FX_OUT);
-    let tr = "";
-    const k = 1 - pi;
+    let tr = "", op = pi * (1 - po);
     switch (el.dataset.fx) {
-      case "up": tr = `translateY(${k * 30}px)`; break;
-      case "pop": tr = `scale(${0.88 + 0.12 * pi})`; break;
-      case "left": tr = `translateX(${-k * 70}px)`; break;
-      case "right": tr = `translateX(${k * 70}px)`; break;
+      case "bg": op = (tin === 0 ? 1 : clamp((t - tin) / 0.25)) * (1 - clamp((t - tout) / 0.25)); break;
+      case "up": tr = `translateY(${(1 - pb) * 40}px)`; break;
+      case "pop": tr = `scale(${0.7 + 0.3 * pb})`; break;
+      case "left": tr = `translateX(${-(1 - pb) * 90}px)`; break;
+      case "right": tr = `translateX(${(1 - pb) * 90}px)`; break;
       case "slide": {
-        // Moves from one spot to another (the brief sliding over to the vendor).
         const [x1, y1] = el.dataset.from.split(",").map(Number), [x2, y2] = el.dataset.to.split(",").map(Number);
-        const m = ease(clamp((t - tin - 1.0) / +el.dataset.dur));
+        const m = easeOut(clamp((t - tin - 0.6) / +el.dataset.dur));
         el.style.left = x1 + (x2 - x1) * m + "px";
         el.style.top = y1 + (y2 - y1) * m + "px";
         break;
       }
     }
+    // The cover's props bob gently on the beat.
+    if (el.dataset.bob) tr += ` translateY(${Math.sin(t * Math.PI * 2 + +el.dataset.bob) * 12}px) rotate(${Math.sin(t * 2 + +el.dataset.bob) * 6}deg)`;
     if (el.dataset.press) {
       const d = t - +el.dataset.press;
       if (d > 0 && d < 0.5) tr += ` scale(${1 - 0.08 * Math.sin((d / 0.5) * Math.PI)})`;
     }
     if (el.dataset.count) {
-      // The unread badge counts up as messages land.
       let n = "";
       for (const step of el.dataset.count.split(",")) { const [at, v] = step.split(":"); if (t >= +at) n = v; }
       el.textContent = n;
     }
-    el.style.opacity = String(pi * (1 - po));
+    el.style.opacity = String(op);
     el.style.transform = tr;
   }
 };
-window.DURATION = 42.5;
+window.DURATION = 43;
 render(0);
 </script>
 </body>
