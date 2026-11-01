@@ -1,7 +1,7 @@
 import { Logo } from "@/components/logo";
 export const metadata = { title: "Privacy policy" };
 
-const UPDATED = "29 October 2026";
+const UPDATED = "1 November 2026";
 
 export default function Privacy() {
   return (
@@ -55,8 +55,8 @@ export default function Privacy() {
         <ul className="stack" style={{ margin: 0, paddingLeft: 20 }}>
           <li><b>Render</b> hosts the application and its database.</li>
           <li><b>Meta (WhatsApp Business Platform)</b> carries WhatsApp messages between planners and vendors.</li>
-          <li><b>Anthropic</b> provides the AI model that reads enquiries and drafts replies. Message content is sent to it for that purpose only.</li>
-          <li><b>Google Workspace</b> sends and receives our email, and keeps our daily database backups.</li>
+          <li><b>Anthropic</b> provides the AI model that reads enquiries, drafts replies and turns uploaded rate cards into price lists. A vendor&apos;s price list, business notes and enquiry messages are sent to it only to do that. Under Anthropic&apos;s commercial terms, it may not train its models on this content.</li>
+          <li><b>Google Workspace</b> sends and receives our email, and keeps our daily database backups, which are encrypted before they leave our server.</li>
         </ul>
         <p>These providers may process data outside Singapore. We use them under their business terms, which require them to protect the data.</p>
       </section>
@@ -67,6 +67,19 @@ export default function Privacy() {
           When a planner contacts a vendor, the vendor decides how that enquiry is handled, and Matchire processes it on the vendor&apos;s
           behalf. Questions about a specific booking are best sent to the vendor; we will help them respond.
         </p>
+      </section>
+
+      <section className="stack" id="vendor-data">
+        <h2>Vendor price lists and account access</h2>
+        <ul className="stack" style={{ margin: 0, paddingLeft: 20 }}>
+          <li>Other vendors and partners never see a vendor&apos;s price list. Partners see the vendor&apos;s business name and category, plus one starting price only if the vendor turns that on.</li>
+          <li>
+            Matchire staff open a vendor&apos;s account only when the vendor asks us to, and only through a logged, read-only support view.
+            Each visit records who opened it, why, when, and which pages were viewed. The vendor is emailed when a
+            visit starts and can see every visit in Settings → Account.
+          </li>
+          <li>We never sell vendor data, and we don&apos;t use a vendor&apos;s prices or enquiries to compete with them.</li>
+        </ul>
       </section>
 
       <section className="stack">
@@ -89,7 +102,10 @@ export default function Privacy() {
 
       <section className="stack">
         <h2>Security</h2>
-        <p>Data is sent over encrypted connections, passwords are hashed, and access to vendor data is limited to that vendor&apos;s account.</p>
+        <p>
+          Data is sent over encrypted connections, passwords are hashed, and our daily database backups are encrypted (AES-256) before they
+          are stored or emailed. Access to a vendor&apos;s data is limited to that vendor&apos;s account and to the logged support view described above.
+        </p>
       </section>
 
       <section className="stack">

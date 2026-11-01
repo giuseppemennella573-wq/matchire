@@ -49,6 +49,7 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 | Date unavailable: other dates + partner | Live | Site (card "Date taken? Keep the lead", network line): "If you're booked, Matchire offers your nearest free dates and can suggest a trusted partner." Partner price only if that partner shares it. |
 | Per-package extra-hour rates | Live | Site (card "Exact quotes from your packages", FAQ "What if it quotes the wrong price?"): "Each package can have its own extra-hour rate, so longer events are priced correctly." Every quote states the deposit in SGD and when the hold ends. |
 | "Not sure yet" / "Too expensive" keep the lead open (Undecided / Price concern) | Live | "Knows 'maybe' from 'no': 'Not sure yet' keeps the date held and follow-ups running. 'Too expensive' comes to you with real options from your price list, never an invented discount." Only clear refusals close an enquiry. |
+| Vendor data privacy (encrypted backups, logged support access) | Live | Site (first FAQ "Can Matchire see my prices?", approved by Giuseppe): "Other vendors never see your prices. We only look at your account if you ask us to, and if we do, it shows up in your own access log. Our backups are encrypted." Backups are AES-256 encrypted; staff open an account only through the read-only, 30-minute, logged Support view, and the vendor sees every visit in Settings → Account. Never say "nobody can ever see your data" (Render hosts it; Anthropic processes it to draft replies). |
 
 ## Open decisions (ask Giuseppe before acting)
 - None right now.
@@ -64,3 +65,4 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 - 2026-10-28: Nav button "Start free trial" renamed "Join early access" to match the pricing note; no "trial" wording left on the site. (Approved by Giuseppe, 2026-10-28.)
 - 2026-10-30: Pack 04. No price (total, range or "from" price) goes to a planner until Matchire knows the event date plus one more detail (guests, venue, hours or event type), unless the vendor chooses "Send price anyway". (Approved by Giuseppe, 2026-10-30.)
 - 2026-10-30: Pack 05. Landing page shows Pack 04 features; Brief-mode and price-fishing FAQ added (approved by Giuseppe).
+- 2026-11-01: Pack 06. Vendor data privacy is a key feature: 'Can Matchire see my prices?' is the first FAQ on the landing page (approved by Giuseppe).
