@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
-import { endSupport, startSupport, SUPPORT_COOKIE } from "@/lib/support";
+import { endSupport, notifySupportStart, startSupport, SUPPORT_COOKIE } from "@/lib/support";
+import { after } from "next/server";
 import { deleteAccount, deleteSignup, notifySignup, setAccountContacted, setContacted } from "@/lib/early-access";
 import { createBackup, deleteUnencryptedBackups } from "@/lib/backup";
 import { get } from "@/lib/db";
@@ -136,6 +137,8 @@ export async function startSupportAction(form: FormData) {
     redirect(`/app/admin/support/${vendorId}?error=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
   }
   const jar = await cookies();
+  const access = started.access;
+  after(() => notifySupportStart(access));
   jar.set(SUPPORT_COOKIE, started.token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", expires: new Date(started.access.expires_at) });
   revalidatePath("/app", "layout");
   redirect("/app");

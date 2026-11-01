@@ -9,6 +9,7 @@ import { channelView, ensureDisplayNumber } from "@/lib/channel-settings";
 import { isAdmin } from "@/lib/early-access";
 import { appUrl } from "@/lib/app-url";
 import { formatDateTime } from "@/lib/dates";
+import { supportVisits } from "@/lib/support";
 import { changePasswordAction, requestSetupAction, rotateInboundTokenAction, saveSettingsTabAction } from "../actions";
 import { CopyButton } from "@/components/copy-button";
 
@@ -49,6 +50,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const v = await ensureDisplayNumber(vendor);
   // Everything about channels on this page comes from this view; for vendors it holds no tokens, IDs or webhook URLs.
   const ch = channelView(v, { admin, appUrl: appUrl() });
+  const visits = supportVisits(vendor.id);
   const initialTab = SETTINGS_TABS.some((t) => t.id === tab) ? tab! : null;
 
   return (
@@ -266,6 +268,22 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               <div><button className="btn btn-ghost" type="submit">Change password</button></div>
             </form>
             <p className="small muted">Forgot it? Log out and use &quot;Forgot your password?&quot; on the login page.</p>
+          </section>
+
+          <section className="card stack" id="support-access">
+            <h2>Matchire support access</h2>
+            {visits.length === 0 ? <p>Nobody at Matchire has opened your account.</p> : (
+              <ul className="support-log">
+                {visits.map((s) => (
+                  <li key={s.id}>
+                    <div><b>{formatDateTime(s.started_at)}</b> <span className="small muted">SGT</span> · {s.admin_name} · {s.open ? "open now" : `${s.minutes} min`}</div>
+                    <div className="small">Reason: {s.reason}</div>
+                    <div className="small muted">Pages viewed: {s.pages.length ? s.pages.join(", ") : "none"}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="small muted">We only open your account when you ask us to. Every visit is listed here.</p>
           </section>
         </section>
       </SettingsTabs>

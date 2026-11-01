@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { all, get, run } from "./db.ts";
 import { isAdmin } from "./early-access.ts";
 import { TZ } from "./dates.ts";
+import { sendRawEmail } from "./channels.ts";
 
 // Support view: the only way Matchire staff can open a vendor's desk. It needs a
 // reason, is read-only, ends after 30 minutes, and every session and page is
@@ -125,3 +126,34 @@ export function supportVisits(vendorId: number, now = new Date()): SupportVisit[
 /** "14:32" in Singapore time. */
 export const sgClock = (iso: string) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(iso));
+
+/**
+ * Tells the vendor, at their login email, that support opened their account.
+ * Demo accounts: simulated, never sent. Returns "sent", "demo" or the error.
+ */
+export async function notifySupportStart(access: SupportAccess, send: typeof sendRawEmail = sendRawEmail): Promise<string> {
+  const vendor = get<{ name: string; is_demo: number }>("SELECT name, is_demo FROM vendors WHERE id = ?", access.vendor_id);
+  const owner = vendorOwner(access.vendor_id);
+  if (!vendor || !owner) return "No account to notify";
+  if (vendor.is_demo) {
+    console.log(`[demo] demo: not sent (support view notice, vendor ${access.vendor_id})`);
+    return "demo";
+  }
+  const error = await send({
+    to: owner.email,
+    subject: "Matchire support opened your account",
+    text: [
+      `Hi ${firstName(owner.name)},`,
+      "",
+      `Matchire support opened your account to: ${access.reason}. You can see this in Settings → Account.`,
+      "",
+      `${access.admin_name} can look but can't change, send or delete anything, and the session ends by itself after ${SUPPORT_MINUTES} minutes. Every page they open is listed there too.`,
+      "",
+      "If you didn't ask for this, just reply to this email.",
+      "",
+      "Matchire",
+    ].join("\n"),
+  }).catch((e) => (e instanceof Error ? e.message : String(e)));
+  if (error) console.warn(`[support] notice for vendor ${access.vendor_id} not sent: ${error}`);
+  return error ?? "sent";
+}

@@ -106,3 +106,36 @@ test("read-only: every vendor server action goes through requireVendorForAction,
   const gate = auth.slice(auth.indexOf("export async function requireVendorForAction"));
   assert.match(gate, /if \(await currentSupport\(user\)\) \{[\s\S]*?redirect\(`\$\{back\}\?readonly=1`\)/);
 });
+
+// ---------- Step 4: what the vendor sees, and the start email ----------
+
+test("the access log shows only this vendor's sessions, with an empty state otherwise", async () => {
+  const fresh = createAccount({ email: "new@vendor.sg", password: "password1", name: "Nia", business: "Nia Florals", kind: "decor" });
+  assert.deepEqual(S.supportVisits(fresh.vendorId, later(60)), [], "empty: 'Nobody at Matchire has opened your account.'");
+  const melVisits = S.supportVisits(mel.vendorId, later(60));
+  assert.ok(melVisits.length > 0);
+  const ids = new Set(all<{ id: number }>("SELECT id FROM support_access WHERE vendor_id = ?", mel.vendorId).map((r) => r.id));
+  for (const v of melVisits) assert.ok(ids.has(v.id), "never another vendor's session");
+  assert.ok(melVisits.every((v) => v.admin_name === "Giuseppe" && v.reason && !v.open));
+  // Settings shows the empty-state text and the promise underneath.
+  const page = readFileSync(path.join(import.meta.dirname, "..", "src", "app", "app", "settings", "page.tsx"), "utf8");
+  assert.ok(page.includes("Nobody at Matchire has opened your account."));
+  assert.ok(page.includes("We only open your account when you ask us to. Every visit is listed here."));
+});
+
+test("the start email goes to the vendor's login email, and never from a demo account", async () => {
+  const sent: { to: string; subject: string; text: string }[] = [];
+  const send = async (m: { to: string; subject: string; text: string }) => { sent.push(m); return null; };
+  const { access } = S.startSupport(user(admin), mel.vendorId, "Helping set up WhatsApp, vendor asked by email", T0);
+  assert.equal(await S.notifySupportStart(access, send), "sent");
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].to, "mel@snap.sg");
+  assert.ok(sent[0].text.includes("Matchire support opened your account to: Helping set up WhatsApp, vendor asked by email. You can see this in Settings → Account."));
+
+  const { run } = await import("../src/lib/db.ts");
+  run("UPDATE vendors SET is_demo = 1 WHERE id = ?", other.vendorId);
+  const demo = S.startSupport(user(admin), other.vendorId, "Showing the demo to a prospect", T0);
+  assert.equal(await S.notifySupportStart(demo.access, send), "demo");
+  assert.equal(sent.length, 1, "nothing sent for the demo account");
+  run("UPDATE vendors SET is_demo = 0 WHERE id = ?", other.vendorId);
+});

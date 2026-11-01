@@ -130,6 +130,10 @@ Reset it (same result every time, never duplicates) with **Reset demo** on Match
 
 The local development seed (`npm run seed`) is separate and logs in as `dev@matchire.ai`.
 
+## Support view (opening a vendor's account)
+
+Admins never need a vendor's password. On **Matchire admin → Accounts**, **Support view** asks for a reason and opens that vendor's desk **read-only for 30 minutes**: every vendor action (send, save, delete, settings) is refused, and a banner with **End now** stays on every page. Each session (admin, reason, start and end) and every page opened (path only) is stored in `support_access`, the vendor is emailed when it starts (never for demo accounts), and they see the full list in **Settings → Account → Matchire support access**. Vendor server actions must use `requireVendorForAction()`, which is what enforces read-only; a test checks this.
+
 ## Passwords
 
 Anyone can reset their own password from **Forgot your password?** on the login page: Matchire emails a one-time link that expires after an hour (only its hash is stored), and setting a new password logs the account out everywhere. Logged-in users can change it under **Settings → Password**, and admins can email anyone a reset link from **Matchire admin → Accounts**. Links use `APP_URL`, so it must be set in production.
@@ -146,6 +150,7 @@ src/lib/heuristics.ts  rules-based enquiry reader (no-key mode and fallback)
 src/lib/dates.ts       Singapore-time date parsing ("next tue", "15 Nov", "early Dec")
 src/lib/channels.ts    WhatsApp Cloud API and email (SMTP or Resend) delivery
 src/lib/backup.ts      daily encrypted database backups, kept 14 days and emailed off-site
+src/lib/support.ts     Support view: logged, read-only, 30-minute admin access to a vendor's desk
 src/lib/db.ts          SQLite schema
 src/app/app/*          the vendor app (server components + server actions)
 src/app/api/*          webhooks, cron, early-access
