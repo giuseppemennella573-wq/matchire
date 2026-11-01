@@ -1,4 +1,4 @@
-import { all, get, run, tx, nowIso } from "./db.ts";
+import { all, db, get, run, tx, nowIso } from "./db.ts";
 import type { Channel, Details, Enquiry, Hold, Item, Message, PartnerView, Quote, Vendor } from "./types.ts";
 import { EMPTY_DETAILS, OPEN_STATUSES, VENDOR_KINDS } from "./types.ts";
 import { buildQuote, allowedAmounts, unknownAmounts, fmtMoney } from "./pricing.ts";
@@ -19,6 +19,15 @@ import { depositLine, downsellFor, holdSentence, holdUntil, normalizeReply, upse
 
 export const getVendor = (id: number) => get<Vendor>("SELECT * FROM vendors WHERE id = ?", id);
 export const getItems = (vendorId: number) => all<Item>("SELECT * FROM items WHERE vendor_id = ? ORDER BY kind DESC, sort, id", vendorId);
+
+// Clearing the price list. Quotes already sent keep their prices (they're stored on the enquiry),
+// and business notes an import added stay; only this vendor's items are touched.
+/** Delete the items that aren't live yet, e.g. an import that came out wrong. Returns how many. */
+export const discardPendingItems = (vendorId: number) =>
+  Number(db().prepare("DELETE FROM items WHERE vendor_id = ? AND active = 0").run(vendorId).changes);
+/** Delete every package and add-on. Returns how many. */
+export const clearPriceList = (vendorId: number) =>
+  Number(db().prepare("DELETE FROM items WHERE vendor_id = ?").run(vendorId).changes);
 export const getEnquiry = (vendorId: number, id: number) => get<Enquiry>("SELECT * FROM enquiries WHERE id = ? AND vendor_id = ?", id, vendorId);
 export const getMessages = (enquiryId: number) => all<Message>("SELECT * FROM messages WHERE enquiry_id = ? ORDER BY id", enquiryId);
 export const pendingDraft = (enquiryId: number) =>

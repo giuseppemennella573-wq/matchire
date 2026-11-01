@@ -3,7 +3,8 @@ import { getItems } from "@/lib/engine";
 import { fmtMoney, priceListMode } from "@/lib/pricing";
 import { aiEnabled } from "@/lib/ai";
 import type { Item } from "@/lib/types";
-import { activateImportedAction, deleteItemAction, importPriceListAction, saveItemAction } from "../actions";
+import { activateImportedAction, clearPriceListAction, deleteItemAction, discardPendingItemsAction, importPriceListAction, saveItemAction } from "../actions";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { Submit } from "@/components/submit";
 
 export const metadata = { title: "Price list" };
@@ -108,7 +109,12 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
       {pending > 0 && (
         <div className="alert alert-warn row between">
           <span>{pending} item{pending > 1 ? "s aren't" : " isn't"} live yet. Check prices, then make them live.</span>
-          <form action={activateImportedAction}><button className="btn btn-ghost btn-sm" type="submit">Make all live</button></form>
+          <div className="row">
+            <form action={activateImportedAction}><button className="btn btn-ghost btn-sm" type="submit">Make all live</button></form>
+            <form action={discardPendingItemsAction}>
+              <ConfirmSubmit className="btn btn-danger btn-sm" message={`Discard the ${pending} item${pending > 1 ? "s" : ""} that ${pending > 1 ? "aren't" : "isn't"} live yet? Your live packages stay as they are.`}>Discard these</ConfirmSubmit>
+            </form>
+          </div>
         </div>
       )}
       {mode === "import-first" ? (
@@ -138,6 +144,18 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
           </div>
           {!aiEnabled() && <p className="alert alert-warn small">Importing needs AI, which is switched off on this server.</p>}
           <ImportForm />
+        </section>
+      )}
+
+      {items.length > 0 && (
+        <section className="card stack" id="clear">
+          <div className="stack" style={{ gap: 4 }}>
+            <h2>Start over</h2>
+            <p className="small muted">Delete every package and add-on, for example to import a new rate card from scratch. Quotes you&apos;ve already sent keep their prices, and your business notes stay.</p>
+          </div>
+          <form action={clearPriceListAction}>
+            <ConfirmSubmit message={`Delete all ${items.length} item${items.length > 1 ? "s" : ""} on your price list? This can't be undone. Quotes you've already sent aren't affected.`}>Delete all items</ConfirmSubmit>
+          </form>
         </section>
       )}
     </div>

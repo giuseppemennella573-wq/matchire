@@ -162,6 +162,18 @@ export async function deleteItemAction(form: FormData) {
   back("/app/prices", "Deleted.");
 }
 
+export async function discardPendingItemsAction() {
+  const { vendor } = await requireVendor();
+  const n = E.discardPendingItems(vendor.id);
+  back("/app/prices", `Discarded ${n} item${n === 1 ? "" : "s"} that weren't live.`);
+}
+
+export async function clearPriceListAction() {
+  const { vendor } = await requireVendor();
+  const n = E.clearPriceList(vendor.id);
+  back("/app/prices", `Deleted all ${n} item${n === 1 ? "" : "s"}. Your price list is empty.`);
+}
+
 export async function activateImportedAction() {
   const { vendor } = await requireVendor();
   run("UPDATE items SET active = 1 WHERE vendor_id = ? AND active = 0", vendor.id);
