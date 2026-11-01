@@ -90,25 +90,33 @@ Follow-ups and hold expiry run in-process every minute. On hosts that sleep idle
 
 ## Backups
 
-Every day at 3 am Singapore time the scheduler takes a clean copy of the database (SQLite `VACUUM INTO`, gzip-compressed), keeps the last 14 in `backups/` next to the database, and emails it to `BACKUP_EMAIL` (default: `EARLY_ACCESS_NOTIFY_EMAIL`, then giuseppe.mennella@matchire.ai) as the off-site copy. Admins can take one on demand and download any of them at `/app/admin/backups`. Render's own daily disk snapshots (kept at least 7 days) are a last resort on top.
+Every day at 3 am Singapore time the scheduler takes a clean copy of the database (SQLite `VACUUM INTO`, gzip-compressed), **encrypts it** (AES-256-GCM, key derived from `BACKUP_PASSWORD` with scrypt; random salt and IV in the file header), keeps the last 14 in `backups/` next to the database as `matchire-<time>.db.gz.enc`, and emails it to `BACKUP_EMAIL` (default: `EARLY_ACCESS_NOTIFY_EMAIL`, then giuseppe.mennella@matchire.ai) as the off-site copy. Admins can take one on demand and download any of them (still encrypted) at `/app/admin/backups`. Render's own daily disk snapshots (kept at least 7 days) are a last resort on top.
+
+- **`BACKUP_PASSWORD`**: set it in Render → Environment and keep it in your password manager. Without it nobody, including you, can open a backup. Changing it only affects new backups; older ones still need the old password.
+- **If it isn't set**, backups are still taken but stay on the server unencrypted (`.db.gz`) and are **not emailed**, and admins see a warning on every page.
+- Unencrypted backups from before (or taken without a password) are listed on `/app/admin/backups` with a **Delete unencrypted backups** button.
 
 ### Restoring a backup
 
 Restoring replaces all data with the backup's contents; anything since then is lost.
 
-1. Pick the backup on `/app/admin/backups` and note its file name, e.g. `matchire-2026-10-27T19-00-00Z.db.gz`.
+1. Pick the backup on `/app/admin/backups` and note its file name, e.g. `matchire-2026-10-27T19-00-00Z.db.gz.enc`.
 2. In Render, open the service's **Shell** and run, with that file name:
    ```bash
    cd /data
-   gunzip -c backups/matchire-2026-10-27T19-00-00Z.db.gz > restore.db
+   node /app/scripts/decrypt-backup.mjs backups/matchire-2026-10-27T19-00-00Z.db.gz.enc restore.db
+   ```
+   It uses `BACKUP_PASSWORD` from the environment (already set on Render), or asks for it. A wrong password stops with "Wrong password, or the backup file is damaged" and writes nothing. Old unencrypted `.db.gz` files work too, with no password.
+3. Then swap the files:
+   ```bash
    mv matchire.db matchire-before-restore.db
    rm -f matchire.db-wal matchire.db-shm
    mv restore.db matchire.db
    ```
-3. Straight away, choose **Manual Deploy → Restart service** so the app opens the restored file.
-4. Check the app. The previous database is kept as `matchire-before-restore.db` until you delete it.
+4. Straight away, choose **Manual Deploy → Restart service** so the app opens the restored file.
+5. Check the app. The previous database is kept as `matchire-before-restore.db` until you delete it.
 
-To restore from an emailed copy, upload the `.db.gz` to the server first (or ask for an upload-and-restore button).
+**From an emailed copy, on your laptop:** save the `.db.gz.enc` attachment, then in this repo run `node scripts/decrypt-backup.mjs ~/Downloads/matchire-….db.gz.enc` (Node 22+, no install needed). It asks for the password and writes `matchire-….db`, which you can open with any SQLite tool. To put it back on the server, upload it to `/data` and do steps 3–5 (or ask for an upload-and-restore button).
 
 ## Demo account
 
@@ -137,7 +145,7 @@ src/lib/ai.ts          Claude calls (structured outputs, refusal fallback), vali
 src/lib/heuristics.ts  rules-based enquiry reader (no-key mode and fallback)
 src/lib/dates.ts       Singapore-time date parsing ("next tue", "15 Nov", "early Dec")
 src/lib/channels.ts    WhatsApp Cloud API and email (SMTP or Resend) delivery
-src/lib/backup.ts      daily database backups, kept 14 days and emailed off-site
+src/lib/backup.ts      daily encrypted database backups, kept 14 days and emailed off-site
 src/lib/db.ts          SQLite schema
 src/app/app/*          the vendor app (server components + server actions)
 src/app/api/*          webhooks, cron, early-access

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { deleteAccount, deleteSignup, notifySignup, setAccountContacted, setContacted } from "@/lib/early-access";
-import { createBackup } from "@/lib/backup";
+import { createBackup, deleteUnencryptedBackups } from "@/lib/backup";
 import { get } from "@/lib/db";
 import { requestPasswordReset } from "@/lib/password-reset";
 import { appUrl } from "@/lib/app-url";
@@ -58,14 +58,21 @@ export async function backupNowAction() {
   let msg: string, kind = "msg";
   try {
     const b = await createBackup("manual");
-    if (b.emailed_at) msg = "Backup taken and emailed.";
-    else if (!emailReady()) msg = "Backup taken and saved here.";
+    if (b.emailed_at) msg = "Backup taken, encrypted and emailed.";
+    else if (!b.file.endsWith(".enc")) msg = "Backup taken and saved here. It isn't encrypted or emailed until BACKUP_PASSWORD is set.";
+    else if (!emailReady()) msg = "Backup taken, encrypted and saved here.";
     else { msg = `Backup taken and saved here, but not emailed: ${b.email_error}`; kind = "error"; }
   } catch (e) {
     msg = `Backup failed: ${e instanceof Error ? e.message : String(e)}`;
     kind = "error";
   }
   redirect(`/app/admin/backups?${kind}=${encodeURIComponent(msg)}`);
+}
+
+export async function deleteUnencryptedBackupsAction() {
+  await requireAdmin();
+  const n = deleteUnencryptedBackups();
+  redirect(`/app/admin/backups?msg=${encodeURIComponent(n ? `${n} unencrypted backup${n === 1 ? "" : "s"} deleted.` : "No unencrypted backups to delete.")}`);
 }
 
 export async function resendAlertAction(form: FormData) {

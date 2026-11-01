@@ -7,6 +7,7 @@ import { accountsWaiting, countSignupsWaiting, isAdmin } from "@/lib/early-acces
 import { Logo } from "@/components/logo";
 import { emailHealth, emailReady } from "@/lib/channels";
 import { formatDateTime } from "@/lib/dates";
+import { backupWarning } from "@/lib/backup";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   )?.n ?? 0;
   const admin = isAdmin(user);
   const email = admin ? emailHealth() : null;
+  const backupWarn = admin ? backupWarning() : null;
   return (
     <div className="shell">
       <aside className="side">
@@ -34,6 +36,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="main">
         {!!vendor.is_demo && (
           <p className="alert alert-warn banner" role="status"><b>Demo account.</b> Nothing is really sent: replies and follow-ups are only simulated.</p>
+        )}
+        {backupWarn && (
+          <p className="alert alert-warn banner" role="status">{backupWarn} <Link href="/app/admin/backups">See backups</Link></p>
         )}
         {admin && !emailReady() && (
           <p className="alert alert-err banner" role="alert">
