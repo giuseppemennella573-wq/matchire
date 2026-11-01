@@ -188,6 +188,29 @@ CREATE TABLE IF NOT EXISTS enquiry_flags (
   cleared_at TEXT
 );
 CREATE INDEX IF NOT EXISTS enquiry_flags_vendor ON enquiry_flags(vendor_id, kind);
+-- Matchire staff opening a vendor's desk in read-only Support view. Kept for
+-- the vendor to see in Settings → Account. Pages are paths only, never content.
+CREATE TABLE IF NOT EXISTS support_access (
+  id INTEGER PRIMARY KEY,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  admin_user_id INTEGER NOT NULL,
+  admin_email TEXT NOT NULL,
+  admin_name TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  started_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  ended_at TEXT,
+  ended_by TEXT
+);
+CREATE INDEX IF NOT EXISTS support_access_vendor ON support_access(vendor_id);
+CREATE TABLE IF NOT EXISTS support_access_pages (
+  id INTEGER PRIMARY KEY,
+  access_id INTEGER NOT NULL REFERENCES support_access(id) ON DELETE CASCADE,
+  path TEXT NOT NULL,
+  viewed_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS support_access_pages_access ON support_access_pages(access_id);
 CREATE TABLE IF NOT EXISTS early_access (
   id INTEGER PRIMARY KEY,
   name TEXT, business TEXT, vendor_type TEXT, enquiries_per_week TEXT,

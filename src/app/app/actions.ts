@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireVendor } from "@/lib/auth";
+import { requireVendorForAction } from "@/lib/auth";
 import { get, run } from "@/lib/db";
 import * as E from "@/lib/engine";
 import { aiEnabled, aiImportPriceList } from "@/lib/ai";
@@ -36,7 +36,7 @@ const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Something went
 // ---------- Enquiries ----------
 
 export async function newEnquiryAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const text = str(form, "text");
   if (!text) back("/app/inbox", "Paste the planner's message first.", "error");
   const contact = str(form, "contact");
@@ -53,7 +53,7 @@ export async function newEnquiryAction(form: FormData) {
 }
 
 export async function plannerReplyAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const eid = id(form, "enquiryId");
   const text = str(form, "text");
   if (text) {
@@ -64,7 +64,7 @@ export async function plannerReplyAction(form: FormData) {
 }
 
 export async function draftAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const mid = id(form, "messageId");
   const eid = id(form, "enquiryId");
   const body = str(form, "body");
@@ -93,7 +93,7 @@ export async function draftAction(form: FormData) {
 }
 
 export async function outcomeAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const eid = id(form, "enquiryId");
   const intent = str(form, "intent");
   if (intent === "booked") E.markBooked(vendor.id, eid, num(form, "value") ?? undefined);
@@ -107,21 +107,21 @@ export async function outcomeAction(form: FormData) {
 }
 
 export async function deleteEnquiryAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   E.deleteEnquiry(vendor.id, id(form, "enquiryId"));
   revalidatePath("/app", "layout");
   back("/app/inbox?filter=all", "Enquiry deleted.");
 }
 
 export async function noteAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const eid = id(form, "enquiryId");
   if (str(form, "body")) E.addNote(vendor.id, eid, str(form, "body"));
   redirect(`/app/inbox/${eid}`);
 }
 
 export async function referAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const eid = id(form, "enquiryId");
   try {
     await E.referToPartner(vendor.id, eid, id(form, "partnerId"));
@@ -134,7 +134,7 @@ export async function referAction(form: FormData) {
 // ---------- Price list ----------
 
 export async function saveItemAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const itemId = num(form, "id");
   const name = str(form, "name");
   const price = num(form, "price");
@@ -157,31 +157,31 @@ export async function saveItemAction(form: FormData) {
 }
 
 export async function deleteItemAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   run("DELETE FROM items WHERE id = ? AND vendor_id = ?", id(form, "id"), vendor.id);
   back("/app/prices", "Deleted.");
 }
 
 export async function discardPendingItemsAction() {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const n = E.discardPendingItems(vendor.id);
   back("/app/prices", `Discarded ${n} item${n === 1 ? "" : "s"} that weren't live.`);
 }
 
 export async function clearPriceListAction() {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const n = E.clearPriceList(vendor.id);
   back("/app/prices", `Deleted all ${n} item${n === 1 ? "" : "s"}. Your price list is empty.`);
 }
 
 export async function activateImportedAction() {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   run("UPDATE items SET active = 1 WHERE vendor_id = ? AND active = 0", vendor.id);
   back("/app/prices", "All items are live.");
 }
 
 export async function importPriceListAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   if (!aiEnabled()) back("/app/prices", "Importing a rate card needs AI to be switched on.", "error");
   const text = str(form, "text");
   const file = form.get("file");
@@ -204,7 +204,7 @@ export async function importPriceListAction(form: FormData) {
 // ---------- Calendar ----------
 
 export async function blockDateAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const date = str(form, "date");
   if (!isValidIsoDate(date)) back("/app/calendar", "Pick a date.", "error");
   E.blockDate(vendor.id, date, str(form, "note"));
@@ -212,7 +212,7 @@ export async function blockDateAction(form: FormData) {
 }
 
 export async function releaseHoldAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   E.releaseHold(vendor.id, id(form, "holdId"));
   back(str(form, "back") || "/app/calendar", "Released.");
 }
@@ -220,7 +220,7 @@ export async function releaseHoldAction(form: FormData) {
 // ---------- Partners ----------
 
 export async function invitePartnerAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const code = str(form, "code").toLowerCase().replace(/^.*\/e\//, "");
   const partner = get<{ id: number; name: string; is_demo: number }>("SELECT id, name, is_demo FROM vendors WHERE slug = ?", code);
   if (!partner) back("/app/partners", "No vendor has that partner code.", "error");
@@ -242,7 +242,7 @@ export async function invitePartnerAction(form: FormData) {
 }
 
 export async function respondPartnerAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   const pid = id(form, "id");
   const intent = str(form, "intent");
   if (intent === "remove") run("DELETE FROM partnerships WHERE id = ? AND (requester_id = ? OR partner_id = ?)", pid, vendor.id, vendor.id);
@@ -254,7 +254,7 @@ export async function respondPartnerAction(form: FormData) {
 
 /** Save one Settings tab. Only that tab's fields are written (see settingsUpdate). */
 export async function saveSettingsTabAction(form: FormData) {
-  const { user, vendor } = await requireVendor();
+  const { user, vendor } = await requireVendorForAction();
   const tab = tabFromHash(str(form, "tab"));
   const cols = Object.entries(settingsUpdate(tab, form, vendor));
   if (cols.length) run(`UPDATE vendors SET ${cols.map(([k]) => `${k} = ?`).join(", ")} WHERE id = ?`, ...cols.map(([, v]) => v), vendor.id);
@@ -272,7 +272,7 @@ export async function saveSettingsTabAction(form: FormData) {
 }
 
 export async function rotateInboundTokenAction(form: FormData) {
-  const { vendor } = await requireVendor();
+  const { vendor } = await requireVendorForAction();
   if (form.get("confirm") !== "on") back("/app/settings?tab=channels", "Tick the box to confirm you want a new address.", "error");
   run("UPDATE vendors SET inbound_token = ? WHERE id = ?", token(12).toLowerCase().replace(/[^a-z0-9]/g, "x"), vendor.id);
   back("/app/settings?tab=channels", "New forwarding address generated. Update your forwarding rule.");
@@ -283,7 +283,7 @@ function isRedirect(e: unknown): boolean {
 }
 
 export async function changePasswordAction(form: FormData) {
-  const { user } = await requireVendor();
+  const { user } = await requireVendorForAction();
   const next = String(form.get("new_password") ?? "");
   if (next !== String(form.get("confirm_password") ?? "")) back("/app/settings?tab=account", "The two new passwords don't match.", "error");
   const session = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -293,7 +293,7 @@ export async function changePasswordAction(form: FormData) {
 }
 
 export async function requestSetupAction(form: FormData) {
-  const { user, vendor } = await requireVendor();
+  const { user, vendor } = await requireVendorForAction();
   const channel = form.get("channel") === "email" ? "email" : "whatsapp";
   const label = channel === "email" ? "email forwarding" : "WhatsApp";
   const r = await requestChannelSetup(vendor, user, channel, appUrl());

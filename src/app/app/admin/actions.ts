@@ -1,8 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
+import { endSupport, startSupport, SUPPORT_COOKIE } from "@/lib/support";
 import { deleteAccount, deleteSignup, notifySignup, setAccountContacted, setContacted } from "@/lib/early-access";
 import { createBackup, deleteUnencryptedBackups } from "@/lib/backup";
 import { get } from "@/lib/db";
@@ -121,4 +123,30 @@ export async function saveVendorChannelsAction(form: FormData) {
   }
   revalidatePath("/app", "layout");
   redirect(`${back}?${kind}=${encodeURIComponent(msg)}`);
+}
+
+export async function startSupportAction(form: FormData) {
+  const { user } = await requireAdmin();
+  const vendorId = Number(form.get("vendorId"));
+  if (!Number.isInteger(vendorId) || vendorId <= 0) throw new Error("Bad request");
+  let started: ReturnType<typeof startSupport>;
+  try {
+    started = startSupport(user, vendorId, String(form.get("reason") ?? ""));
+  } catch (e) {
+    redirect(`/app/admin/support/${vendorId}?error=${encodeURIComponent(e instanceof Error ? e.message : String(e))}`);
+  }
+  const jar = await cookies();
+  jar.set(SUPPORT_COOKIE, started.token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", expires: new Date(started.access.expires_at) });
+  revalidatePath("/app", "layout");
+  redirect("/app");
+}
+
+/** Ends the support view now. (Once someone isn't an admin, the cookie no longer opens anything.) */
+export async function endSupportAction() {
+  await requireAdmin();
+  const jar = await cookies();
+  const ended = endSupport(jar.get(SUPPORT_COOKIE)?.value, "admin");
+  jar.delete(SUPPORT_COOKIE);
+  revalidatePath("/app", "layout");
+  redirect(`/app/admin/accounts?msg=${encodeURIComponent(ended ? "Support view ended." : "Support view already ended.")}`);
 }

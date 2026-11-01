@@ -1,4 +1,8 @@
-import { requireVendor } from "@/lib/auth";
+import { Suspense } from "react";
+import { READ_ONLY_MESSAGE, requireVendor } from "@/lib/auth";
+import { sgClock } from "@/lib/support";
+import { endSupportAction } from "./admin/actions";
+import { ReadOnlyNotice } from "@/components/read-only-notice";
 import { get } from "@/lib/db";
 import { Nav } from "@/components/nav";
 import { logoutAction } from "../(auth)/actions";
@@ -13,7 +17,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, vendor } = await requireVendor();
+  const { user, vendor, support } = await requireVendor();
   const attention = get<{ n: number }>(
     `SELECT COUNT(DISTINCT e.id) n FROM enquiries e JOIN messages m ON m.enquiry_id = e.id AND m.status = 'draft' WHERE e.vendor_id = ?`,
     vendor.id,
@@ -34,6 +38,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
       <main className="main">
+        {support && (
+          <form action={endSupportAction} className="alert alert-err banner support-banner" role="status">
+            <span><b>Support view: {vendor.name}</b> · read-only · ends {sgClock(support.expires_at)}</span>
+            <button className="btn btn-sm" type="submit">End now</button>
+          </form>
+        )}
+        {support && <Suspense fallback={null}><ReadOnlyNotice message={READ_ONLY_MESSAGE} /></Suspense>}
         {!!vendor.is_demo && (
           <p className="alert alert-warn banner" role="status"><b>Demo account.</b> Nothing is really sent: replies and follow-ups are only simulated.</p>
         )}

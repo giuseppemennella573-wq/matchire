@@ -9,6 +9,7 @@ import type { VendorKind } from "@/lib/types";
 import { notifyNewAccount } from "@/lib/early-access";
 import { requestPasswordReset, resetPassword } from "@/lib/password-reset";
 import { appUrl } from "@/lib/app-url";
+import { endSupport, SUPPORT_COOKIE } from "@/lib/support";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 
@@ -49,6 +50,8 @@ export async function logoutAction() {
   const t = jar.get(SESSION_COOKIE)?.value;
   if (t) deleteSession(t);
   jar.delete(SESSION_COOKIE);
+  endSupport(jar.get(SUPPORT_COOKIE)?.value, "logout");
+  jar.delete(SUPPORT_COOKIE);
   redirect("/login");
 }
 

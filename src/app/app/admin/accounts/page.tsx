@@ -38,7 +38,7 @@ export default async function Accounts({ searchParams }: { searchParams: Promise
         {accounts.length === 0 ? <p className="empty">No accounts yet.</p> : (
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Created</th><th>Who</th><th>Business</th><th>Email</th><th>Price list</th><th>Enquiries</th><th>Status</th><th /><th /><th /></tr></thead>
+              <thead><tr><th>Created</th><th>Who</th><th>Business</th><th>Email</th><th>Price list</th><th>Enquiries</th><th>Status</th><th /><th /><th /><th /></tr></thead>
               <tbody>
                 {accounts.map((a) => (
                   <tr key={a.id} style={newAccounts.has(a.id) ? undefined : { opacity: 0.6 }}>
@@ -59,6 +59,7 @@ export default async function Accounts({ searchParams }: { searchParams: Promise
                         </form>
                       )}
                     </td>
+                    <td>{!isAdmin(a) && <a className="btn btn-ghost btn-sm" href={`/app/admin/support/${a.vendor_id}`} title="Open their desk read-only for 30 minutes. Logged, and they can see it.">Support view</a>}</td>
                     <td><a className="btn btn-ghost btn-sm" href={`/app/admin/channels/${a.vendor_id}`}>Channels</a></td>
                     <td>
                       <form action={sendResetLinkAction}>
