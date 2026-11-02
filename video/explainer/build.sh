@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds the landing page explainer from this folder: voiceover → frames → mp4, poster and thumbnail.
 #   KOKORO_DIR=/path/to/kokoro-models bash video/explainer/build.sh
-# Writes public/matchire-explainer.mp4, public/explainer-poster.jpg and public/explainer-thumb.jpg.
+# Writes video/explainer/out/matchire-explainer.mp4 (plus poster and thumbnail). The landing page now uses a
+# newer video made elsewhere (Nov 2026), so this no longer writes to public/: copy by hand only if you mean to replace it.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
@@ -34,11 +35,11 @@ FILTER+="${MIX}amix=inputs=${#OFFSETS[@]}:normalize=0,apad,atrim=0:${DUR},aforma
 FILTER+="[$M:a]volume=0.065[bed];[bed][key]sidechaincompress=threshold=0.02:ratio=4:attack=30:release=600[duck];"
 FILTER+="[vox][duck]amix=inputs=2:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,aformat=channel_layouts=stereo[aout]"
 ffmpeg -v error -y -i "$OUT/silent.mp4" "${INPUTS[@]}" -i "$OUT/music.wav" -filter_complex "$FILTER" -map 0:v -map "[aout]" \
-  -c:v copy -c:a aac -profile:a aac_low -ar 48000 -b:a 128k -movflags +faststart "$ROOT/public/matchire-explainer.mp4"
+  -c:v copy -c:a aac -profile:a aac_low -ar 48000 -b:a 128k -movflags +faststart "$OUT/matchire-explainer.mp4"
 
 # 5. Poster (the cover) and the small thumbnail on the landing page button.
-ffmpeg -v error -y -ss 1.0 -i "$ROOT/public/matchire-explainer.mp4" -frames:v 1 -vf scale=1280:720 -q:v 3 "$ROOT/public/explainer-poster.jpg"
-ffmpeg -v error -y -ss 1.0 -i "$ROOT/public/matchire-explainer.mp4" -frames:v 1 -vf scale=240:135 -q:v 4 "$ROOT/public/explainer-thumb.jpg"
+ffmpeg -v error -y -ss 1.0 -i "$OUT/matchire-explainer.mp4" -frames:v 1 -vf scale=1280:720 -q:v 3 "$OUT/explainer-poster.jpg"
+ffmpeg -v error -y -ss 1.0 -i "$OUT/matchire-explainer.mp4" -frames:v 1 -vf scale=240:135 -q:v 4 "$OUT/explainer-thumb.jpg"
 
-ls -l "$ROOT/public/matchire-explainer.mp4"
-ffprobe -v error -show_entries format=duration -of csv=p=0 "$ROOT/public/matchire-explainer.mp4"
+ls -l "$OUT/matchire-explainer.mp4"
+ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT/matchire-explainer.mp4"

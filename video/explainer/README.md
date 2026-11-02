@@ -1,6 +1,11 @@
-# Landing page explainer
+# Landing page explainer (v3, retired)
 
-The source of `public/matchire-explainer.mp4` (about 43 s, 1920×1080, 30 fps, with a female
+> **Not the live video.** Since 2 Nov 2026 the landing page plays a newer 94-second explainer made outside this repo
+> (`public/matchire-explainer.mp4`, re-encoded to 5.7 MB). This folder is kept as the source of the earlier 43-second
+> version, and `build.sh` now writes to `video/explainer/out/`, so running it never overwrites the live video. The poster
+> and thumbnail in `public/` (the orange "Flying solo in events?" cover) are still from this version and are used with the new video.
+
+This was the source of `public/matchire-explainer.mp4` (about 43 s, 1920×1080, 30 fps, with a female
 voiceover, background music and captions). It's aimed at solo event vendors who are busy running
 events, opens on a warm orange cover (also the poster) and alternates teal and cream scenes. The folder also makes its poster and thumbnail.
 
@@ -9,7 +14,7 @@ KOKORO_DIR=/path/to/kokoro-models bash video/explainer/build.sh
 ```
 
 That one command makes the voiceover, renders every frame and writes
-`public/matchire-explainer.mp4`, `public/explainer-poster.jpg` and `public/explainer-thumb.jpg`.
+`matchire-explainer.mp4`, `explainer-poster.jpg` and `explainer-thumb.jpg` to `video/explainer/out/`.
 
 ## Files
 
