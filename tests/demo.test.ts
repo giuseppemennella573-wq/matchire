@@ -131,3 +131,16 @@ test("demo and real accounts can't be partners", () => {
   assert.equal(E.canPartner({ is_demo: 1 }, { is_demo: 1 }), true);
   assert.equal(E.canPartner({ is_demo: 0 }, { is_demo: 0 }), true);
 });
+
+test("the demo has a regular client and replies to learn a style from", async () => {
+  const { clientHistory, clientNote } = await import("../src/lib/clients.ts");
+  const { styleExamples } = await import("../src/lib/style.ts");
+  const r = await D.seedDemo("demo-password");
+  const sarah = get<{ id: number }>("SELECT id FROM enquiries WHERE vendor_id = ? AND contact_name = 'Sarah Tan' AND status NOT IN ('won','lost')", r.vendorId)!;
+  const h = clientHistory(E.getEnquiry(r.vendorId, sarah.id)!)!;
+  assert.equal(h.bookings, 1);
+  assert.match(clientNote(h), /^Booked with you 1× · last: Classic Booth 3h, /);
+  const ex = styleExamples(r.vendorId);
+  assert.ok(ex.length >= 2);
+  assert.ok(ex.every((x) => !/SGD \d|\d{3}/.test(x)), "demo examples are cleaned too");
+});

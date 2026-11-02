@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { clientHistory, clientNote } from "@/lib/clients";
 import { notFound } from "next/navigation";
 import { requireVendor } from "@/lib/auth";
 import { all, get } from "@/lib/db";
@@ -48,6 +49,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
   // A date the vendor can't do is never quoted, and its booking value isn't pre-filled.
   const dateUnavailable = open && !!d.event_date && !d.date_is_approximate && !E.availability(vendor, d.event_date, e.id).available;
   const brief: Brief | null = e.brief ? JSON.parse(e.brief) : null;
+  const regular = clientHistory(e);
   const missing = [!d.event_date && "Date", !d.pax && "Headcount", !d.slot && !d.start_time && vendor.kind !== "caterer" && "Start time"].filter(Boolean) as string[];
 
   return (
@@ -70,6 +72,17 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
       </div>
       {msg && <p className="alert alert-ok" role="status">{msg}</p>}
       {error && <p className="alert alert-err" role="alert">{error}</p>}
+      {regular && (
+        <div className="alert alert-ok regular-client">
+          <b>{regular.bookings ? "Regular client" : "Enquired before"}:</b> {clientNote(regular)}.{" "}
+          <span className="small">
+            Earlier: {regular.earlier.slice(0, 5).map((p, i) => (
+              <span key={p.id}>{i ? ", " : ""}<Link href={`/app/inbox/${p.id}`}>{p.event_date ? formatDate(p.event_date) : `#${p.id}`} ({STATUS_LABEL[p.status as keyof typeof STATUS_LABEL] ?? p.status})</Link></span>
+            ))}
+          </span>
+          {!regular.verified && <div className="small muted">Anyone can type a name and number into a form, so the reply doesn&apos;t treat them as a returning client.</div>}
+        </div>
+      )}
       {e.fishing_reason && (
         <form action={outcomeAction} className="alert alert-warn row between">
           <input type="hidden" name="enquiryId" value={e.id} />

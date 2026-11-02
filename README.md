@@ -148,6 +148,7 @@ src/lib/pricing.ts     quote engine and the "never invent a price" guardrail
 src/lib/ai.ts          Claude calls (structured outputs, refusal fallback), validated before use
 src/lib/ai-usage.ts    tokens and cost of every Claude call (Matchire admin → AI usage)
 src/lib/style.ts       the vendor's own replies, cleaned, as style examples for drafts
+src/lib/clients.ts     regular clients: earlier enquiries from the same number or email
 src/lib/heuristics.ts  rules-based enquiry reader (no-key mode and fallback)
 src/lib/dates.ts       Singapore-time date parsing ("next tue", "15 Nov", "early Dec")
 src/lib/channels.ts    WhatsApp Cloud API and email (SMTP or Resend) delivery

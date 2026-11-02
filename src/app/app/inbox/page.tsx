@@ -23,6 +23,8 @@ const STATUS_BADGE: Record<EnquiryStatus, string> = {
   new: "badge-brand", awaiting_info: "badge-amber", quoted: "", won: "badge-ok", lost: "", referred: "", expired: "",
 };
 
+import { clientHistory, clientNote } from "@/lib/clients";
+
 export default async function Inbox({ searchParams }: { searchParams: Promise<{ filter?: string; error?: string; msg?: string }> }) {
   const { vendor } = await requireVendor();
   const { filter = "open", error, msg } = await searchParams;
@@ -56,6 +58,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
         ) : rows.map((e) => {
           const d = parseDetails(e);
           const q = parseQuote(e);
+          const regular = clientHistory(e);
           return (
             <Link key={e.id} href={`/app/inbox/${e.id}`} className="list-row">
               <span className={`dot dot-${e.lead ?? "warm"}`} title={e.lead ? `${e.lead} lead` : undefined} />
@@ -67,6 +70,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
                   {e.fishing_reason && <span className="badge badge-amber" title={e.fishing_reason}>Possible price-fishing</span>}
                   {d.undecided && OPEN_STATUSES.includes(e.status) && <span className="badge badge-amber">Undecided</span>}
                   {d.intent === "price_concern" && OPEN_STATUSES.includes(e.status) && <span className="badge badge-amber">Price concern</span>}
+                  {regular && <span className={`badge ${regular.verified ? "badge-ok" : ""}`} title={clientNote(regular)}>{regular.bookings ? "Regular client" : "Enquired before"}</span>}
                   <span className="badge">{CHANNEL_LABEL[e.channel as Channel]}</span>
                 </div>
                 <p className="preview">{e.last}</p>

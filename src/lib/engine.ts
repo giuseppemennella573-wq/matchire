@@ -5,6 +5,7 @@ import { buildQuote, allowedAmounts, unknownAmounts, fmtMoney } from "./pricing.
 import { parseEnquiry } from "./heuristics.ts";
 import { aiEnabled, aiExtract, aiDraft, type DraftFacts } from "./ai.ts";
 import { sameText, styleExamples } from "./style.ts";
+import { clientHistory, returningForDraft } from "./clients.ts";
 import { addDays, dayOfWeek, formatDate, formatDateTime, sgToday } from "./dates.ts";
 import { deliver, deliverTemplate, sendRawEmail, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
 import { maybeDailyBackup } from "./backup.ts";
@@ -537,6 +538,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
     partnerSuggestions,
     referredTo: null,
     depositNote: vendor.deposit_note,
+    returningClient: returningForDraft(clientHistory(e)),
   };
 
   if (quote?.issues.length) reasons.push(...quote.issues);
