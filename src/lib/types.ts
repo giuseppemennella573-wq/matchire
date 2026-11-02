@@ -80,6 +80,8 @@ export interface Item {
   sort: number;
   /** "Always quote manually": an enquiry for this goes to Brief mode. */
   manual_quote?: number;
+  /** The equipment this item uses (limits how many can go out per day), or null. */
+  equipment_id?: number | null;
 }
 
 export type Channel = "whatsapp" | "email" | "web" | "instagram" | "manual" | "referral";

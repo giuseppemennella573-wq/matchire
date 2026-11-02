@@ -1,6 +1,7 @@
 import type { Item, Quote, Vendor } from "./types.ts";
 import { TZ } from "./dates.ts";
 import { buildQuote, fmtMoney, type QuoteInput } from "./pricing.ts";
+import { family } from "./equipment.ts";
 
 // Small things that make a drafted quote read like the vendor wrote it: the
 // deposit in dollars, the hold's actual deadline, a bigger package's full
@@ -44,7 +45,6 @@ export function formatHoldTime(iso: string): string {
 export const holdSentence = (iso: string) => `I'm holding the date for you until ${formatHoldTime(iso)}.`;
 
 /** "Classic Booth 3h" → "classic booth": packages in the same family differ only by hours. */
-const family = (name: string) => name.toLowerCase().replace(/\s*[\d.]+\s*(h|hr|hrs|hours?)\b.*$/, "").trim();
 
 /**
  * The next bigger package in the same family ("Classic Booth 4h" after "3h"),

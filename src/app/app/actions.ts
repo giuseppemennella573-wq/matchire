@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireVendorForAction } from "@/lib/auth";
+import * as EQ from "@/lib/equipment";
 import { get, run } from "@/lib/db";
 import * as E from "@/lib/engine";
 import { aiEnabled, aiImportPriceList } from "@/lib/ai";
@@ -141,19 +142,56 @@ export async function saveItemAction(form: FormData) {
   if (!name || price == null || price < 0) back("/app/prices", "Every item needs a name and a price.", "error");
   const pricing = (["flat", "per_hour", "per_pax"].includes(str(form, "pricing")) ? str(form, "pricing") : "flat") as Item["pricing"];
   const kind = str(form, "kind") === "addon" ? "addon" : "package";
-  const vals = [kind, name, str(form, "description"), pricing, price, num(form, "included_hours"), num(form, "extra_hour_price"), num(form, "min_pax"), num(form, "max_pax"), form.get("active") === "on" ? 1 : 0, form.get("manual_quote") === "on" ? 1 : 0] as const;
+  const vals = [kind, name, str(form, "description"), pricing, price, num(form, "included_hours"), num(form, "extra_hour_price"), num(form, "min_pax"), num(form, "max_pax"), form.get("active") === "on" ? 1 : 0, form.get("manual_quote") === "on" ? 1 : 0, EQ.ownEquipmentId(vendor.id, form.get("equipment_id"))] as const;
   if (itemId) {
     run(
-      `UPDATE items SET kind = ?, name = ?, description = ?, pricing = ?, price = ?, included_hours = ?, extra_hour_price = ?, min_pax = ?, max_pax = ?, active = ?, manual_quote = ? WHERE id = ? AND vendor_id = ?`,
+      `UPDATE items SET kind = ?, name = ?, description = ?, pricing = ?, price = ?, included_hours = ?, extra_hour_price = ?, min_pax = ?, max_pax = ?, active = ?, manual_quote = ?, equipment_id = ? WHERE id = ? AND vendor_id = ?`,
       ...vals, itemId, vendor.id,
     );
   } else {
     run(
-      `INSERT INTO items (kind, name, description, pricing, price, included_hours, extra_hour_price, min_pax, max_pax, active, manual_quote, vendor_id, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 99)`,
+      `INSERT INTO items (kind, name, description, pricing, price, included_hours, extra_hour_price, min_pax, max_pax, active, manual_quote, equipment_id, vendor_id, sort) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 99)`,
       ...vals, vendor.id,
     );
   }
   back("/app/prices", "Saved.");
+}
+
+export async function saveEquipmentAction(form: FormData) {
+  const { vendor } = await requireVendorForAction();
+  const eqId = num(form, "id");
+  const name = str(form, "name");
+  const quantity = num(form, "quantity") ?? 0;
+  try {
+    if (eqId) EQ.updateEquipment(vendor.id, eqId, name, quantity);
+    else EQ.addEquipment(vendor.id, name, quantity);
+  } catch (e) {
+    if (isRedirect(e)) throw e;
+    back("/app/prices", errMsg(e), "error");
+  }
+  back("/app/prices", eqId ? "Saved." : `Added ${name}. Now choose it under "Uses" on the packages that need it.`);
+}
+
+export async function deleteEquipmentAction(form: FormData) {
+  const { vendor } = await requireVendorForAction();
+  const n = EQ.deleteEquipment(vendor.id, id(form, "id"));
+  back("/app/prices", n ? `Deleted. ${n} item${n === 1 ? " no longer uses" : "s no longer use"} it, so ${n === 1 ? "it isn't" : "they aren't"} limited by it any more.` : "Deleted.");
+}
+
+export async function addSuggestedEquipmentAction(form: FormData) {
+  const { vendor } = await requireVendorForAction();
+  const suggestions = EQ.suggestEquipment(E.getItems(vendor.id));
+  const picks = suggestions
+    .map((s, i) => ({ name: str(form, `name_${i}`) || s.name, quantity: num(form, `quantity_${i}`) ?? 1, itemIds: s.itemIds, on: form.get(`use_${i}`) === "on" }))
+    .filter((p) => p.on);
+  if (!picks.length) back("/app/prices", "Tick at least one, or add your equipment by hand.", "error");
+  try {
+    const n = EQ.addSuggestedEquipment(vendor.id, picks);
+    back("/app/prices", `Added ${n} piece${n === 1 ? "" : "s"} of equipment and linked your packages.`);
+  } catch (e) {
+    if (isRedirect(e)) throw e;
+    back("/app/prices", errMsg(e), "error");
+  }
 }
 
 export async function deleteItemAction(form: FormData) {

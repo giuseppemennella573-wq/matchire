@@ -61,6 +61,16 @@ CREATE TABLE IF NOT EXISTS items (
   sort INTEGER NOT NULL DEFAULT 0
 );
 
+-- What a vendor owns ("360 booth × 2"). Items may use one piece of equipment (items.equipment_id).
+CREATE TABLE IF NOT EXISTS equipment (
+  id INTEGER PRIMARY KEY,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  quantity INTEGER NOT NULL CHECK (quantity >= 1),
+  sort INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS equipment_vendor ON equipment(vendor_id);
+
 CREATE TABLE IF NOT EXISTS enquiries (
   id INTEGER PRIMARY KEY,
   vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
@@ -282,6 +292,7 @@ const COLUMNS: [table: string, column: string, definition: string][] = [
   ["messages", "hold_until", "TEXT"],
   ["messages", "edited", "INTEGER"],
   ["vendors", "learn_style", "INTEGER NOT NULL DEFAULT 1"],
+  ["items", "equipment_id", "INTEGER REFERENCES equipment(id) ON DELETE SET NULL"],
 ];
 
 function migrate(conn: DatabaseSync) {

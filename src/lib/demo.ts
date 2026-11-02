@@ -80,6 +80,11 @@ export async function seedDemo(password = process.env.DEMO_PASSWORD, now = new D
       "Friendly, upbeat, short replies.", "Mel @ Snap & Smile", NOTES, "30% deposit secures the date, balance 7 days before.", booth,
     );
     addItems(booth, PRICE_LIST);
+    // What Snap & Smile owns: 3 print booths (the Classic packages, and the second print station) and one 360 booth.
+    const printBooth = run("INSERT INTO equipment (vendor_id, name, quantity, sort) VALUES (?, 'Print booth', 3, 1)", booth);
+    const booth360 = run("INSERT INTO equipment (vendor_id, name, quantity, sort) VALUES (?, '360 booth', 1, 2)", booth);
+    run("UPDATE items SET equipment_id = ? WHERE vendor_id = ? AND (name LIKE 'Classic Booth%' OR name = 'Second print station')", printBooth, booth);
+    run("UPDATE items SET equipment_id = ? WHERE vendor_id = ? AND name LIKE '360 Video Booth%'", booth360, booth);
 
     // The partner never logs in: a random password nobody knows.
     const kitchen = createAccount({ email: DEMO_PARTNER_EMAIL, password: token(24), name: "Siti", business: "Rempah Kitchen", kind: "caterer" }).vendorId;

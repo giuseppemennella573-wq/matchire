@@ -3,7 +3,8 @@ import { getItems } from "@/lib/engine";
 import { fmtMoney, priceListMode } from "@/lib/pricing";
 import { aiEnabled } from "@/lib/ai";
 import type { Item } from "@/lib/types";
-import { activateImportedAction, clearPriceListAction, deleteItemAction, discardPendingItemsAction, importPriceListAction, saveItemAction } from "../actions";
+import { activateImportedAction, addSuggestedEquipmentAction, clearPriceListAction, deleteEquipmentAction, deleteItemAction, discardPendingItemsAction, importPriceListAction, saveEquipmentAction, saveItemAction } from "../actions";
+import { itemsUsing, listEquipment, suggestEquipment, type Equipment } from "@/lib/equipment";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import { Submit } from "@/components/submit";
 
@@ -16,7 +17,7 @@ function priceText(i: Item) {
   return `${fmtMoney(i.price)}${unit}${extra}${pax}`;
 }
 
-function ItemForm({ item, kind }: { item?: Item; kind?: "package" | "addon" }) {
+function ItemForm({ item, kind, equipment }: { item?: Item; kind?: "package" | "addon"; equipment: Equipment[] }) {
   const k = item?.kind ?? kind ?? "package";
   return (
     <form action={saveItemAction} className="stack">
@@ -41,6 +42,15 @@ function ItemForm({ item, kind }: { item?: Item; kind?: "package" | "addon" }) {
         <label className="field"><span>Max guests</span><input name="max_pax" type="number" min="0" defaultValue={item?.max_pax ?? ""} /></label>
         <label className="check" style={{ alignSelf: "end", paddingBottom: 10 }}><input type="checkbox" name="active" defaultChecked={item ? !!item.active : true} /><span>Live: use in quotes</span></label>
       </div>
+      {equipment.length > 0 && (
+        <label className="field" style={{ maxWidth: 360 }}>
+          <span>Uses (limits how many go out per day)</span>
+          <select name="equipment_id" defaultValue={item?.equipment_id ?? ""}>
+            <option value="">Nothing: never limits a booking</option>
+            {equipment.map((q) => <option key={q.id} value={q.id}>{q.name} (you own {q.quantity})</option>)}
+          </select>
+        </label>
+      )}
       <label className="check small"><input type="checkbox" name="manual_quote" defaultChecked={!!item?.manual_quote} /><span><b>Always quote manually.</b> <span className="muted">Enquiries for this get a brief instead of a price, and you write the quote.</span></span></label>
       <div className="row"><button className="btn btn-primary btn-sm" type="submit">{item ? "Save" : "Add"}</button></div>
     </form>
@@ -65,6 +75,9 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
   const pending = items.filter((i) => !i.active).length;
   const mode = priceListMode(items.length, aiEnabled(), !!manual);
   const empty = mode !== "list";
+  const equipment = listEquipment(vendor.id);
+  const eqName = new Map(equipment.map((q) => [q.id, q.name]));
+  const suggestions = equipment.length === 0 ? suggestEquipment(items) : [];
 
   const section = (kind: "package" | "addon", title: string, hint: string) => {
     const list = items.filter((i) => i.kind === kind);
@@ -76,20 +89,20 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
           <details key={i.id} className="more" style={{ borderBottom: "1px solid var(--line)", padding: "12px 18px" }}>
             <summary style={{ color: "var(--ink)" }}>
               <span className="row between">
-                <span className="row"><b>{i.name}</b>{!i.active && <span className="badge badge-amber">Not live</span>}{!!i.manual_quote && <span className="badge">You quote</span>}</span>
+                <span className="row"><b>{i.name}</b>{!i.active && <span className="badge badge-amber">Not live</span>}{!!i.manual_quote && <span className="badge">You quote</span>}{i.equipment_id && eqName.has(i.equipment_id) ? <span className="badge">Uses {eqName.get(i.equipment_id)}</span> : null}</span>
                 <span className="mono small">{priceText(i)}</span>
               </span>
               {i.description && <span className="small muted" style={{ fontWeight: 400 }}>{i.description}</span>}
             </summary>
             <div className="stack">
-              <ItemForm item={i} />
+              <ItemForm item={i} equipment={equipment} />
               <form action={deleteItemAction}><input type="hidden" name="id" value={i.id} /><button className="btn btn-danger btn-sm" type="submit">Delete</button></form>
             </div>
           </details>
         ))}
         <details className="more" style={{ padding: "12px 18px" }} open={mode === "manual" && kind === "package"} id={kind === "package" ? "add-package" : undefined}>
           <summary>+ Add {kind === "package" ? "a package" : "an add-on"}</summary>
-          <ItemForm kind={kind} />
+          <ItemForm kind={kind} equipment={equipment} />
         </details>
       </section>
     );
@@ -131,6 +144,59 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
       ) : (
         <>
           {empty && !aiEnabled() && <p className="small muted">Add your packages below. Importing a rate card needs AI, which is switched off on this server.</p>}
+          {!empty && (
+            <section className="card stack" id="equipment">
+              <div className="stack" style={{ gap: 4 }}>
+                <h2>Your equipment</h2>
+                <p className="small muted">What you own and how many, e.g. 6 print booths and 2 360 booths. Choose under &quot;Uses&quot; on each package which one it needs. Matchire then knows what&apos;s still free each day: a date can be full for the 360 booth and free for print booths.</p>
+              </div>
+              {equipment.length === 0 && suggestions.length === 0 && <p className="small">Have more than one booth? Add your equipment so Matchire knows what&apos;s free each day.</p>}
+              {equipment.length === 0 && suggestions.length > 0 && (
+                <form action={addSuggestedEquipmentAction} className="stack equip-suggest">
+                  <p className="small">Have more than one booth? Add your equipment so Matchire knows what&apos;s free each day. From your packages, it could be:</p>
+                  {suggestions.map((s, n) => (
+                    <div key={n} className="row equip-row">
+                      <label className="check"><input type="checkbox" name={`use_${n}`} defaultChecked /><span className="sr-only">Add</span></label>
+                      <input name={`name_${n}`} defaultValue={s.name} aria-label="Equipment name" />
+                      <label className="row small">× <input name={`quantity_${n}`} type="number" min="1" max="999" defaultValue={1} style={{ width: 70 }} aria-label="How many you own" /></label>
+                      <span className="small muted">for {s.itemNames.join(", ")}</span>
+                    </div>
+                  ))}
+                  <div><button className="btn btn-primary btn-sm" type="submit">Add these</button></div>
+                </form>
+              )}
+              {equipment.length > 0 && (
+                <div className="stack" style={{ gap: 8 }}>
+                  {equipment.map((q) => {
+                    const users = itemsUsing(vendor.id, q.id);
+                    return (
+                      <div key={q.id} className="row between equip-row">
+                        <form action={saveEquipmentAction} className="row">
+                          <input type="hidden" name="id" value={q.id} />
+                          <input name="name" defaultValue={q.name} aria-label="Equipment name" required />
+                          <label className="row small">× <input name="quantity" type="number" min="1" max="999" defaultValue={q.quantity} style={{ width: 70 }} aria-label="How many you own" required /></label>
+                          <button className="btn btn-ghost btn-sm" type="submit">Save</button>
+                        </form>
+                        <span className="small muted grow">{users.length ? `Used by ${users.map((u) => u.name).join(", ")}` : "No package uses it yet"}</span>
+                        <form action={deleteEquipmentAction}>
+                          <input type="hidden" name="id" value={q.id} />
+                          <ConfirmSubmit message={`Delete ${q.name}?${users.length ? ` ${users.map((u) => u.name).join(", ")} will no longer be limited by it.` : ""}`}>Delete</ConfirmSubmit>
+                        </form>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <details className="more" open={false}>
+                <summary>+ Add equipment</summary>
+                <form action={saveEquipmentAction} className="row" style={{ marginTop: 8 }}>
+                  <input name="name" placeholder="360 booth" aria-label="Equipment name" required />
+                  <label className="row small">× <input name="quantity" type="number" min="1" max="999" defaultValue={1} style={{ width: 70 }} aria-label="How many you own" required /></label>
+                  <button className="btn btn-primary btn-sm" type="submit">Add</button>
+                </form>
+              </details>
+            </section>
+          )}
           {section("package", "Packages", "The main thing a planner books. Every quote starts with one.")}
           {section("addon", "Add-ons", "Extras added when a planner asks for them: frames, transport, staff, cleaning.")}
         </>
