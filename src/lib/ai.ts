@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Details, Item, Message, PartnerView, Quote, Vendor } from "./types.ts";
 import { EMPTY_DETAILS } from "./types.ts";
 import { isValidIsoDate } from "./dates.ts";
+import { recordAiUsage, type AiPurpose, type UsageContext } from "./ai-usage.ts";
 
 // Everything Matchire asks of Claude: read an enquiry, draft a reply in the
 // vendor's voice, and turn a rate card into a price list. Each call returns
@@ -19,6 +20,10 @@ function anthropic(): Anthropic {
   client ??= new Anthropic();
   return client;
 }
+/** Tests only: replace the API client with a fake. */
+export function setClientForTests(fake: unknown) {
+  client = fake as Anthropic;
+}
 
 // Server-side fallback: if the model declines on policy grounds, the API
 // retries on its default fallback model inside the same call.
@@ -33,15 +38,25 @@ async function structured<T>(opts: {
   schema: z.ZodType<T>;
   effort?: "low" | "medium" | "high";
   maxTokens?: number;
+  purpose: AiPurpose;
+  ctx?: UsageContext;
 }): Promise<T> {
-  const res = await anthropic().beta.messages.parse({
-    model: MODEL,
-    max_tokens: opts.maxTokens ?? 16000,
-    ...FALLBACK,
-    system: opts.system,
-    messages: [{ role: "user", content: opts.content }],
-    output_config: { effort: opts.effort ?? "low", format: betaZodOutputFormat(opts.schema) },
-  });
+  let res;
+  try {
+    res = await anthropic().beta.messages.parse({
+      model: MODEL,
+      max_tokens: opts.maxTokens ?? 16000,
+      ...FALLBACK,
+      system: opts.system,
+      messages: [{ role: "user", content: opts.content }],
+      output_config: { effort: opts.effort ?? "low", format: betaZodOutputFormat(opts.schema) },
+    });
+  } catch (e) {
+    recordAiUsage({ purpose: opts.purpose, model: MODEL, ctx: opts.ctx, usage: null, error: e instanceof Error ? e.name : "error" });
+    throw e;
+  }
+  // res.model is the model that answered (it differs after a refusal fallback); usage covers the whole call.
+  recordAiUsage({ purpose: opts.purpose, model: res.model || MODEL, ctx: opts.ctx, usage: res.usage, error: res.stop_reason === "refusal" ? "refusal" : null });
   if (res.stop_reason === "refusal") throw new Error("The AI declined this request");
   if (res.stop_reason === "max_tokens") throw new Error("The AI's response was cut off");
   if (!res.parsed_output) throw new Error("The AI returned no structured output");
@@ -99,6 +114,7 @@ export async function aiExtract(args: {
   messages: Pick<Message, "direction" | "body" | "created_at">[];
   previous: Details | null;
   today: string;
+  enquiryId?: number;
 }): Promise<Details> {
   const { vendor, items, messages, previous, today } = args;
   const system = `You read enquiries for ${vendor.name}, a ${vendor.kind} business in Singapore, and extract booking details.
@@ -109,7 +125,7 @@ Choose package and add-on ids only from this price list:
 ${catalog(items) || "(no price list yet)"}
 ${vendor.notes ? `Business notes: ${vendor.notes}` : ""}`;
   const content = `${previous ? `Details known so far: ${JSON.stringify(previous)}\n\n` : ""}<conversation>\n${transcript(messages, vendor.name)}\n</conversation>`;
-  const out = await structured({ system, content, schema: DetailsSchema });
+  const out = await structured({ system, content, schema: DetailsSchema, purpose: "extract", ctx: { vendorId: vendor.id, enquiryId: args.enquiryId } });
 
   // Validate against reality: unknown ids and malformed dates are dropped.
   const ids = new Set(items.filter((i) => i.active).map((i) => i.id));
@@ -168,6 +184,7 @@ export async function aiDraft(args: {
   items: Item[];
   messages: Pick<Message, "direction" | "body" | "created_at">[];
   facts: DraftFacts;
+  enquiryId?: number;
 }): Promise<{ reply: string; needs_owner: boolean; owner_reason: string | null }> {
   const { vendor, items, messages, facts } = args;
   const system = `You write replies for ${vendor.name}, a ${vendor.kind} business in Singapore, to event planners who enquired on WhatsApp, email or the web.
@@ -193,7 +210,7 @@ Price list:
 ${catalog(items) || "(none)"}
 ${vendor.notes ? `Business notes: ${vendor.notes}` : ""}`;
   const content = `<conversation>\n${transcript(messages, vendor.name)}\n</conversation>\n\nWrite the next reply. Facts (authoritative):\n${JSON.stringify(facts, null, 2)}`;
-  return structured({ system, content, schema: ReplySchema, effort: "medium" });
+  return structured({ system, content, schema: ReplySchema, effort: "medium", purpose: "draft", ctx: { vendorId: vendor.id, enquiryId: args.enquiryId } });
 }
 
 // ---------- Importing a price list ----------
@@ -218,7 +235,7 @@ const ImportSchema = z.object({
 
 export type ImportedItem = z.infer<typeof ImportSchema>["items"][number];
 
-export async function aiImportPriceList(input: { text?: string; file?: { mediaType: string; base64: string } }): Promise<z.infer<typeof ImportSchema>> {
+export async function aiImportPriceList(input: { text?: string; file?: { mediaType: string; base64: string }; vendorId?: number }): Promise<z.infer<typeof ImportSchema>> {
   const blocks: Anthropic.Beta.Messages.BetaContentBlockParam[] = [];
   if (input.file) {
     if (input.file.mediaType === "application/pdf") {
@@ -236,5 +253,7 @@ export async function aiImportPriceList(input: { text?: string; file?: { mediaTy
     content: blocks,
     schema: ImportSchema,
     effort: "medium",
+    purpose: "import",
+    ctx: { vendorId: input.vendorId },
   });
 }

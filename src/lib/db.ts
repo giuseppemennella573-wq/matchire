@@ -211,6 +211,22 @@ CREATE TABLE IF NOT EXISTS support_access_pages (
   viewed_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS support_access_pages_access ON support_access_pages(access_id);
+-- One row per Claude call: tokens and cost, never message content.
+CREATE TABLE IF NOT EXISTS ai_usage (
+  id INTEGER PRIMARY KEY,
+  vendor_id INTEGER REFERENCES vendors(id) ON DELETE SET NULL,
+  enquiry_id INTEGER REFERENCES enquiries(id) ON DELETE SET NULL,
+  purpose TEXT NOT NULL,
+  model TEXT NOT NULL,
+  input_tokens INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+  cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+  cost_usd REAL,
+  ok INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ai_usage_created ON ai_usage(created_at);
 CREATE TABLE IF NOT EXISTS early_access (
   id INTEGER PRIMARY KEY,
   name TEXT, business TEXT, vendor_type TEXT, enquiries_per_week TEXT,

@@ -146,6 +146,7 @@ If email isn't working, reset a password from the server: in Render, open the se
 src/lib/engine.ts      the booking desk: intake → read → quote → draft → send → hold → follow-up → outcome
 src/lib/pricing.ts     quote engine and the "never invent a price" guardrail
 src/lib/ai.ts          Claude calls (structured outputs, refusal fallback), validated before use
+src/lib/ai-usage.ts    tokens and cost of every Claude call (Matchire admin → AI usage)
 src/lib/heuristics.ts  rules-based enquiry reader (no-key mode and fallback)
 src/lib/dates.ts       Singapore-time date parsing ("next tue", "15 Nov", "early Dec")
 src/lib/channels.ts    WhatsApp Cloud API and email (SMTP or Resend) delivery

@@ -419,7 +419,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   let aiError: string | null = null;
   if (aiEnabled()) {
     try {
-      details = await aiExtract({ vendor, items, messages: msgs, previous: prev, today });
+      details = await aiExtract({ vendor, items, messages: msgs, previous: prev, today, enquiryId });
       details = mergeDetails(prev, details);
       usedAI = true;
     } catch (err) {
@@ -549,7 +549,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
     try {
       // Before qualifying, the AI doesn't see the price list, and any amount at all sends it back to the template.
       const noPrices = purpose === "qualify" || briefMode;
-      const draft = await aiDraft({ vendor, items: noPrices ? [] : items.filter((i) => !i.manual_quote), messages: msgs, facts });
+      const draft = await aiDraft({ vendor, items: noPrices ? [] : items.filter((i) => !i.manual_quote), messages: msgs, facts, enquiryId });
       const polish = [quote ? depositLine(vendor, quote.total)?.amount : null, pkg && quote ? upsellFor(pkg, items, addons, { vendor, pax: details.pax, date: details.event_date, slot: details.slot })?.total : null].filter((x): x is number => x != null);
       polish.push(...[priceOptions.cheaper?.total, priceOptions.offpeak?.total].filter((x): x is number => x != null));
       const allowed = draftAllowedAmounts(noPrices ? "qualify" : purpose, quote, items, [...partnerPrices, ...polish, details.budget ?? 0, vendor.min_spend]);

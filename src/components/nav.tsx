@@ -44,6 +44,7 @@ export function Nav({ attention, admin }: { attention: number; admin: { signups:
               { href: "/app/admin", label: "Early access", count: admin.signups, countLabel: "waiting" },
               { href: "/app/admin/accounts", label: "Accounts", count: admin.accounts, countLabel: "new" },
               { href: "/app/admin/backups", label: "Backups" },
+              { href: "/app/admin/ai-usage", label: "AI usage" },
             ]}
           />
         </>

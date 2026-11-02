@@ -194,7 +194,7 @@ export async function importPriceListAction(form: FormData) {
   }
   if (!text && !upload) back("/app/prices", "Paste your rate card or upload a file.", "error");
   try {
-    back("/app/prices", saveImportedRateCard(vendor.id, await aiImportPriceList({ text, file: upload })));
+    back("/app/prices", saveImportedRateCard(vendor.id, await aiImportPriceList({ text, file: upload, vendorId: vendor.id })));
   } catch (e) {
     if (isRedirect(e)) throw e;
     back("/app/prices", `Import failed: ${errMsg(e)}`, "error");
