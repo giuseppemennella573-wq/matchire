@@ -69,6 +69,7 @@ export function settingsUpdate(tab: SettingsTab, form: Form, v: Vendor): Columns
     case "ai":
       return {
         auto_send: !v.is_demo && form.get("auto_send") === "on" ? 1 : 0, // locked off on demo accounts
+        learn_style: form.get("learn_style") === "on" ? 1 : 0,
         qualify_fields: QUALIFY_FIELDS.filter((f) => form.get(`qualify_${f.id}`) === "on").map((f) => f.id).join(","),
         pricing_mode: form.get("pricing_mode") === "brief" ? "brief" : "quote",
         brief_hours: Math.min(168, atLeast(form, "brief_hours", 24, 1)),

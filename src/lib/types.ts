@@ -36,6 +36,8 @@ export interface Vendor {
   deposit_note: string;
   /** Deposit as a % of the total, for "A deposit of SGD 300 (30%)". Empty: read from the deposit instructions. */
   deposit_pct: number | null;
+  /** Show Claude a few of the vendor's own replies as style examples (default on). */
+  learn_style: number;
   notes: string;
   wa_phone_number_id: string | null;
   wa_token: string | null;
@@ -238,6 +240,8 @@ export interface Message {
   template: string | null;
   /** A quote draft's promised hold deadline ("I'm holding the date for you until …"). */
   hold_until?: string | null;
+  /** 1 when the vendor changed the draft before it went out, 0 when sent as drafted, null for older messages. */
+  edited?: number | null;
   created_at: string;
   sent_at: string | null;
 }

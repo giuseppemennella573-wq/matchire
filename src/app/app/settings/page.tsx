@@ -10,6 +10,7 @@ import { isAdmin } from "@/lib/early-access";
 import { appUrl } from "@/lib/app-url";
 import { formatDateTime } from "@/lib/dates";
 import { supportVisits } from "@/lib/support";
+import { styleExampleCount } from "@/lib/style";
 import { changePasswordAction, requestSetupAction, rotateInboundTokenAction, saveSettingsTabAction } from "../actions";
 import { CopyButton } from "@/components/copy-button";
 
@@ -51,6 +52,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   // Everything about channels on this page comes from this view; for vendors it holds no tokens, IDs or webhook URLs.
   const ch = channelView(v, { admin, appUrl: appUrl() });
   const visits = supportVisits(vendor.id);
+  const styleCount = styleExampleCount(vendor.id);
   const initialTab = SETTINGS_TABS.some((t) => t.id === tab) ? tab! : null;
 
   return (
@@ -231,6 +233,16 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               </div>
               <label className="field"><span>Brief mode: my own questions, one per line (optional)</span><textarea name="brief_questions" rows={3} defaultValue={v.brief_questions} placeholder={"Indoor or outdoor?\nDo you have a colour scheme?"} /></label>
               <p className="small muted">Matchire never sends a price, range or &quot;from&quot; price until it has these. Leave the others unticked to quote once it has the date plus any one of guest count, venue, duration or event type. You can always choose &quot;Send price anyway&quot; on an enquiry.</p>
+            </section>
+            <section className="card stack">
+              <h2>Your writing style</h2>
+              <label className="check">
+                <input type="checkbox" name="learn_style" defaultChecked={!!v.learn_style} />
+                <span><b>Learn my writing style from my replies.</b> <span className="muted">Matchire shows the AI a few of your own recent replies (ones you sent from your phone, or drafts you changed) so its drafts sound like you. Prices, dates and client details are taken out first, and your replies are never used for anyone else.</span></span>
+              </label>
+              <p className="small muted">
+                {styleCount >= 2 ? `Learning from ${styleCount} of your replies.` : "Reply to a few enquiries yourself and Matchire will pick up your style."}
+              </p>
             </section>
             <section className="card stack">
               <h2>Sending</h2>

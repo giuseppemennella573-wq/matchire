@@ -185,8 +185,13 @@ export async function aiDraft(args: {
   messages: Pick<Message, "direction" | "body" | "created_at">[];
   facts: DraftFacts;
   enquiryId?: number;
+  /** The vendor's own earlier replies, already cleaned of prices, dates and client details. */
+  styleExamples?: string[];
 }): Promise<{ reply: string; needs_owner: boolean; owner_reason: string | null }> {
   const { vendor, items, messages, facts } = args;
+  const examples = args.styleExamples?.length
+    ? `\n\nExamples of how ${vendor.name} writes. Copy the style (length, greeting, warmth, emoji, how they sign off), never the facts: placeholders like [price] and [date] stand for details from other conversations.\n${args.styleExamples.map((e, i) => `<example n="${i + 1}">\n${e}\n</example>`).join("\n")}`
+    : "";
   const system = `You write replies for ${vendor.name}, a ${vendor.kind} business in Singapore, to event planners who enquired on WhatsApp, email or the web.
 Voice: ${vendor.tone}
 Sign off as: ${vendor.signoff || vendor.name}
@@ -208,7 +213,7 @@ Rules:
 
 Price list:
 ${catalog(items) || "(none)"}
-${vendor.notes ? `Business notes: ${vendor.notes}` : ""}`;
+${vendor.notes ? `Business notes: ${vendor.notes}` : ""}${examples}`;
   const content = `<conversation>\n${transcript(messages, vendor.name)}\n</conversation>\n\nWrite the next reply. Facts (authoritative):\n${JSON.stringify(facts, null, 2)}`;
   return structured({ system, content, schema: ReplySchema, effort: "medium", purpose: "draft", ctx: { vendorId: vendor.id, enquiryId: args.enquiryId } });
 }

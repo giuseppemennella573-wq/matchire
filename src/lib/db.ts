@@ -280,6 +280,8 @@ const COLUMNS: [table: string, column: string, definition: string][] = [
   ["enquiries", "brief_reminded_at", "TEXT"],
   ["vendors", "deposit_pct", "REAL"],
   ["messages", "hold_until", "TEXT"],
+  ["messages", "edited", "INTEGER"],
+  ["vendors", "learn_style", "INTEGER NOT NULL DEFAULT 1"],
 ];
 
 function migrate(conn: DatabaseSync) {

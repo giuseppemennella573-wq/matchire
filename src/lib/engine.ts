@@ -4,6 +4,7 @@ import { EMPTY_DETAILS, OPEN_STATUSES, VENDOR_KINDS } from "./types.ts";
 import { buildQuote, allowedAmounts, unknownAmounts, fmtMoney } from "./pricing.ts";
 import { parseEnquiry } from "./heuristics.ts";
 import { aiEnabled, aiExtract, aiDraft, type DraftFacts } from "./ai.ts";
+import { sameText, styleExamples } from "./style.ts";
 import { addDays, dayOfWeek, formatDate, formatDateTime, sgToday } from "./dates.ts";
 import { deliver, deliverTemplate, sendRawEmail, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
 import { maybeDailyBackup } from "./backup.ts";
@@ -549,7 +550,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
     try {
       // Before qualifying, the AI doesn't see the price list, and any amount at all sends it back to the template.
       const noPrices = purpose === "qualify" || briefMode;
-      const draft = await aiDraft({ vendor, items: noPrices ? [] : items.filter((i) => !i.manual_quote), messages: msgs, facts, enquiryId });
+      const draft = await aiDraft({ vendor, items: noPrices ? [] : items.filter((i) => !i.manual_quote), messages: msgs, facts, enquiryId, styleExamples: vendor.learn_style ? styleExamples(vendor.id) : [] });
       const polish = [quote ? depositLine(vendor, quote.total)?.amount : null, pkg && quote ? upsellFor(pkg, items, addons, { vendor, pax: details.pax, date: details.event_date, slot: details.slot })?.total : null].filter((x): x is number => x != null);
       polish.push(...[priceOptions.cheaper?.total, priceOptions.offpeak?.total].filter((x): x is number => x != null));
       const allowed = draftAllowedAmounts(noPrices ? "qualify" : purpose, quote, items, [...partnerPrices, ...polish, details.budget ?? 0, vendor.min_spend]);
@@ -617,6 +618,7 @@ export async function sendDraft(vendorId: number, messageId: number, opts: { bod
   const vendor = getVendor(vendorId)!;
   const e = getEnquiry(vendorId, m.enquiry_id)!;
   const now = opts.now ?? nowIso();
+  const edited = opts.body !== undefined && !sameText(opts.body, m.body) ? 1 : 0;
   const promised = promisedHold(vendor, m, (opts.body ?? m.body).trim(), now);
   let body = promised.body;
 
@@ -649,7 +651,7 @@ export async function sendDraft(vendorId: number, messageId: number, opts: { bod
     return result;
   }
   tx(() => {
-    run("UPDATE messages SET body = ?, template = ?, status = ?, error = ?, sent_at = ? WHERE id = ?", body, template ? JSON.stringify(template) : null, result.status, result.error ?? null, result.status === "failed" ? null : now, messageId);
+    run("UPDATE messages SET body = ?, template = ?, status = ?, error = ?, sent_at = ?, edited = ? WHERE id = ?", body, template ? JSON.stringify(template) : null, result.status, result.error ?? null, result.status === "failed" ? null : now, template ? 0 : edited, messageId);
     if (result.status === "failed") return;
     run("UPDATE enquiries SET first_response_at = COALESCE(first_response_at, ?), last_outbound_at = ?, owner_reason = NULL, updated_at = ? WHERE id = ?", now, now, now, e.id);
     afterSend(vendor, e, m.purpose ?? "quote", now, promised.until);
@@ -851,10 +853,11 @@ export function markDraftSentManually(vendorId: number, messageId: number, body?
   const vendor = getVendor(vendorId)!;
   const e = getEnquiry(vendorId, m.enquiry_id)!;
   const now = nowIso();
+  const edited = body !== undefined && !sameText(body, m.body) ? 1 : 0;
   const promised = promisedHold(vendor, m, (body ?? m.body).trim(), now);
   const text = promised.body;
   tx(() => {
-    run("UPDATE messages SET body = ?, status = 'manual', error = NULL, sent_at = ? WHERE id = ?", text, now, messageId);
+    run("UPDATE messages SET body = ?, status = 'manual', error = NULL, sent_at = ?, edited = ? WHERE id = ?", text, now, edited, messageId);
     run("UPDATE enquiries SET first_response_at = COALESCE(first_response_at, ?), last_outbound_at = ?, owner_reason = NULL, updated_at = ? WHERE id = ?", now, now, now, e.id);
     afterSend(vendor, e, m.purpose ?? "quote", now, promised.until);
   });

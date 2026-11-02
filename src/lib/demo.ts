@@ -99,6 +99,43 @@ export async function seedDemo(password = process.env.DEMO_PASSWORD, now = new D
     run("INSERT INTO holds (vendor_id, date, kind, note) VALUES (?, ?, 'booking', 'Tan & Ong wedding (evening)')", booth, booked);
     const wedding = saturdayFrom(35, today);
 
+    // History: two earlier conversations Mel answered from her phone. They give the demo a writing style to
+    // learn from, and make Sarah Tan a regular client (she booked last year).
+    const past = (days: number) => new Date(now.getTime() - days * 86400_000).toISOString();
+    const history = [
+      { name: "Sarah Tan", handle: "+65 9123 4501", status: "won", won: 1000, daysAgo: 300, eventDaysAgo: 270, pkg: "Classic Booth 3h", total: 1000,
+        msgs: [
+          ["in", "Hi Mel! Can I book the photobooth for my sister's 21st? 3 hours, around 80 people at a function room in Tampines."],
+          ["out", "Hi Sarah! Yay, happy to help 🎉 Classic Booth 3h is SGD 850, and the guestbook album is SGD 150, so SGD 1,000 all in. 30% deposit locks in your date. Shall I pencil you in? 😊"],
+          ["in", "Yes please! Sending the deposit now"],
+          ["out", "Received, thank you! You're all set for the 14th 🙌 We'll arrive 45 mins early to set up. See you there! Mel"],
+        ] },
+      { name: "Jason Lee", handle: "+65 8234 5502", status: "lost", won: null, daysAgo: 120, eventDaysAgo: 100, pkg: "Classic Booth 2h", total: 650,
+        msgs: [
+          ["in", "how much for 2 hours photobooth on a saturday night at one-north"],
+          ["out", "Hi Jason! Thanks for reaching out 😊 Classic Booth 2h is SGD 650 with unlimited prints and an attendant. Which Saturday are you looking at? I'll check the date for you!"],
+          ["in", "ok thanks, will check with my boss"],
+          ["out", "No rush at all! Just drop me a message here when you're ready and I'll hold the date if it's still free 🙂"],
+        ] },
+    ];
+    const items = all<{ id: number; name: string }>("SELECT id, name FROM items WHERE vendor_id = ?", booth);
+    for (const h of history) {
+      const pkg = items.find((i) => i.name === h.pkg)!;
+      const eventDate = past(h.eventDaysAgo).slice(0, 10);
+      const quote = { package_id: pkg.id, lines: [{ label: h.pkg, amount: h.total }], total: h.total, offpeak: false, issues: [] };
+      const eid = run(
+        `INSERT INTO enquiries (vendor_id, channel, contact_name, contact_handle, status, details, quote, event_date, won_value, first_response_at, last_inbound_at, last_outbound_at, created_at, updated_at)
+         VALUES (?, 'whatsapp', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        booth, h.name, h.handle, h.status, JSON.stringify({ package_id: pkg.id, event_date: eventDate }), JSON.stringify(quote), eventDate, h.won,
+        past(h.daysAgo), past(h.daysAgo), past(h.daysAgo), past(h.daysAgo), past(h.daysAgo),
+      );
+      h.msgs.forEach(([dir, body], i) => {
+        const at = new Date(new Date(past(h.daysAgo)).getTime() + i * 3600_000).toISOString();
+        if (dir === "in") run("INSERT INTO messages (enquiry_id, direction, body, status, created_at) VALUES (?, 'in', ?, 'sent', ?)", eid, body, at);
+        else run("INSERT INTO messages (enquiry_id, direction, body, status, purpose, created_at, sent_at) VALUES (?, 'out', ?, 'manual', 'phone_reply', ?, ?)", eid, body, at, at);
+      });
+    }
+
     const enquiries = [
       { channel: "whatsapp" as const, name: "Sarah Tan", handle: "+65 9123 4501", email: null,
         text: `Hi! Wedding on ${longDate(wedding)}, 7pm-11pm at Raffles Hotel, about 150 guests. Do you have 3h with a guestbook? How much?` },
@@ -118,7 +155,7 @@ export async function seedDemo(password = process.env.DEMO_PASSWORD, now = new D
       boothPartnerId: snapbox,
       bookedSaturday: booked,
       weddingSaturday: wedding,
-      enquiries: all<{ id: number }>("SELECT id FROM enquiries WHERE vendor_id = ?", booth).length,
+      enquiries: all<{ id: number }>("SELECT id FROM enquiries WHERE vendor_id = ? AND status NOT IN ('won', 'lost')", booth).length,
     };
   } finally {
     seeding = false;
