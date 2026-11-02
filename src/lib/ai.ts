@@ -181,6 +181,10 @@ export interface DraftFacts {
   /** Price concern: real cheaper options, said exactly as written. */
   cheaperText?: string | null;
   offpeakText?: string | null;
+  /** The requested equipment is taken but another package is free that day: say this exactly. */
+  freeInsteadText?: string | null;
+  /** The equipment that's taken ("360 booth"), when freeInsteadText is given. */
+  fullEquipment?: string | null;
   /** Date unavailable: nearby free dates to offer ("Fri 20 Nov"). */
   alternatives?: string[];
   /** Date unavailable: a same-category partner who may be free. Named only if they share their starting price. */
@@ -214,7 +218,7 @@ Rules:
 - Use only the facts provided. Every price you mention must appear in the quote or price list given (or be a partner's from_price); never estimate, round or invent a price, discount or availability.
 - If purpose is "qualify": you don't know enough to price this yet. Reply warmly in one short message, ask for the details in "missing" (at most 2 questions), and never mention any price, range, "from" price or package cost, even if the planner asks. If they asked about price, say you're happy to send exact pricing once you have those details.
 - If purpose is "brief": the owner writes this quote personally. Thank the planner, say the owner will send a tailored quote within briefHours hours, mention the date is pencilled in if holdHours is set, and ask the questions in "missing" (at most 2). Never mention any price, range or "from" price.
-- If purpose is "unavailable": say kindly that the date is booked. Offer the dates in "alternatives" exactly as given (if any). If fixedDatePartner is set, add one line offering to connect them with a trusted partner who may be free; name the partner and mention its from_price only if fixedDatePartner is an object. Never quote a price for the booked date.
+- If purpose is "unavailable": say kindly that the date is booked. If freeInsteadText is given, only the fullEquipment is booked: include freeInsteadText exactly (the only price you may mention), and offer the dates in "alternatives" as dates when the fullEquipment is free. Otherwise offer the dates in "alternatives" exactly as given (if any). If fixedDatePartner is set, add one line offering to connect them with a trusted partner who may be free; name the partner and mention its from_price only if fixedDatePartner is an object. Never quote a price for the booked date.
 - If holdText, depositText or upsellText are given, include each sentence exactly as written. Put a blank line before the "Total:" line.
 - If purpose is "undecided": a short, warm "no rush" reply; no pressure, no price.
 - If purpose is "price_concern": acknowledge it kindly and offer only the options in cheaperText and offpeakText, exactly as written. Never invent a discount or a new price; if there are no options, ask what budget they have in mind.

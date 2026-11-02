@@ -5,6 +5,7 @@ import { buildQuote, allowedAmounts, unknownAmounts, fmtMoney } from "./pricing.
 import { parseEnquiry } from "./heuristics.ts";
 import { aiEnabled, aiExtract, aiDraft, type DraftFacts } from "./ai.ts";
 import { sameText, styleExamples } from "./style.ts";
+import { listEquipment } from "./equipment.ts";
 import { clientHistory, returningForDraft } from "./clients.ts";
 import { addDays, dayOfWeek, formatDate, formatDateTime, sgToday } from "./dates.ts";
 import { deliver, deliverTemplate, sendRawEmail, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
@@ -46,12 +47,75 @@ export function kindLabel(kind: string): string {
   return VENDOR_KINDS.find((k) => k.value === kind)?.label ?? kind;
 }
 
-/** Jobs already committed on a date: active holds, bookings and blocks. */
-export function availability(vendor: Vendor, date: string, excludeEnquiry?: number) {
+/** Equipment a request needs: equipment id → units. */
+export type Needs = Map<number, number>;
+
+/** What a package and its add-ons take: one unit of each item's equipment (two items on the same equipment take two). */
+export function needsFor(items: (Pick<Item, "equipment_id"> | null | undefined)[]): Needs {
+  const n: Needs = new Map();
+  for (const i of items) if (i?.equipment_id) n.set(i.equipment_id, (n.get(i.equipment_id) ?? 0) + 1);
+  return n;
+}
+
+/** The day limit: the vendor's number, or none when it's empty (0) and they've listed equipment; 1 for everyone else. */
+export const dayCap = (vendor: Pick<Vendor, "jobs_per_day">, hasEquipment: boolean) =>
+  vendor.jobs_per_day > 0 ? vendor.jobs_per_day : hasEquipment ? Infinity : 1;
+
+export interface EquipmentUse { id: number; name: string; quantity: number; used: number; free: number }
+
+/**
+ * What's committed on a date: active holds, bookings and blocks. With `needs`,
+ * the date is available when each needed piece of equipment has enough free
+ * units and the day is under its cap. Without needs (package not known yet),
+ * it's available while the day is under its cap and something is still free.
+ * A block closes the whole day. Holds from `excludeEnquiry` don't count.
+ */
+export function availability(vendor: Vendor, date: string, excludeEnquiry?: number, needs?: Needs) {
   const rows = all<Hold>("SELECT * FROM holds WHERE vendor_id = ? AND date = ? AND status = 'active'", vendor.id, date);
-  if (rows.some((h) => h.kind === "block")) return { available: false, used: rows.length, capacity: vendor.jobs_per_day, blocked: true };
-  const used = rows.filter((h) => h.enquiry_id == null || h.enquiry_id !== excludeEnquiry).length;
-  return { available: used < vendor.jobs_per_day, used, capacity: vendor.jobs_per_day, blocked: false };
+  const eq = listEquipment(vendor.id);
+  const capacity = dayCap(vendor, eq.length > 0);
+  const counted = rows.filter((h) => h.enquiry_id == null || h.enquiry_id !== excludeEnquiry);
+  const usedUnits = new Map<number, number>();
+  if (eq.length && counted.length) {
+    for (const r of all<{ equipment_id: number; units: number }>(
+      `SELECT equipment_id, SUM(units) units FROM hold_equipment WHERE hold_id IN (${counted.map(() => "?").join(",")}) GROUP BY equipment_id`,
+      ...counted.map((h) => h.id),
+    )) usedUnits.set(r.equipment_id, r.units);
+  }
+  const equipment: EquipmentUse[] = eq.map((q) => {
+    const used = usedUnits.get(q.id) ?? 0;
+    return { id: q.id, name: q.name, quantity: q.quantity, used, free: Math.max(0, q.quantity - used) };
+  });
+  const blocked = rows.some((h) => h.kind === "block");
+  const used = blocked ? rows.length : counted.length;
+  const underCap = used < capacity;
+  const full = needs ? equipment.filter((q) => (needs.get(q.id) ?? 0) > q.free) : [];
+  let available = !blocked && underCap && full.length === 0;
+  if (available && (!needs || needs.size === 0) && equipment.length) {
+    // Nothing specific asked for yet: the day is open if any equipment is free, or a package needs none.
+    available = equipment.some((q) => q.free > 0) || !!get("SELECT 1 FROM items WHERE vendor_id = ? AND kind = 'package' AND active = 1 AND equipment_id IS NULL", vendor.id);
+  }
+  return { available, used, capacity, blocked, equipment, full: full.map((q) => q.name), dayFull: blocked || !underCap };
+}
+
+/** Items whose equipment still has a free unit on the date (items without equipment always are). */
+export function freeItems(vendor: Vendor, date: string | null, items: Item[], excludeEnquiry?: number): Item[] {
+  if (!date) return items;
+  const a = availability(vendor, date, excludeEnquiry);
+  if (!a.equipment.length) return items;
+  const free = new Map(a.equipment.map((q) => [q.id, q.free]));
+  return items.filter((i) => !i.equipment_id || (free.get(i.equipment_id) ?? 0) > 0);
+}
+
+/** Records which equipment a hold takes. */
+export function holdEquipment(holdId: number, needs: Needs) {
+  for (const [equipmentId, units] of needs) run("INSERT OR REPLACE INTO hold_equipment (hold_id, equipment_id, units) VALUES (?, ?, ?)", holdId, equipmentId, units);
+}
+
+/** What an enquiry's chosen package and add-ons need. */
+export function enquiryNeeds(vendorId: number, d: Pick<Details, "package_id" | "addon_ids">): Needs {
+  const items = getItems(vendorId);
+  return needsFor([items.find((i) => i.id === d.package_id), ...items.filter((i) => d.addon_ids?.includes(i.id))]);
 }
 
 /** Fri–Sun count as weekend dates, Mon–Thu as weekdays. */
@@ -61,11 +125,11 @@ const weekendish = (iso: string) => [0, 5, 6].includes(dayOfWeek(iso));
  * Up to `n` free dates within a week of a booked one, nearest first, preferring
  * the same kind of day (weekend for a weekend). Never today or earlier.
  */
-export function alternativeDates(vendor: Vendor, date: string, excludeEnquiry?: number, n = 2, today = sgToday()): string[] {
+export function alternativeDates(vendor: Vendor, date: string, excludeEnquiry?: number, n = 2, today = sgToday(), needs?: Needs): string[] {
   const out: { d: string; score: number }[] = [];
   for (let k = 1; k <= 7; k++) {
     for (const d of [addDays(date, -k), addDays(date, k)]) {
-      if (d <= today || !availability(vendor, d, excludeEnquiry).available) continue;
+      if (d <= today || !availability(vendor, d, excludeEnquiry, needs).available) continue;
       out.push({ d, score: k + (weekendish(d) === weekendish(date) ? 0 : 10) + (d < date ? 0 : 0.5) });
     }
   }
@@ -261,9 +325,10 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
       return `${hi}Thanks for reaching out to ${vendor.name} 😊\n\nOur space fits up to ${vendor.capacity} guests, so ${d.pax} would be too many for us. I'd be happy to introduce a partner venue that fits your group.${sign}`;
     case "unavailable": {
       // Never a price for a date we can't do. Offer nearby free dates, and a partner who may be free.
-      let r = `${hi}Thanks for reaching out to ${vendor.name} 😊\n\nUnfortunately we're fully booked on ${when || "that date"}.`;
+      let r = `${hi}Thanks for reaching out to ${vendor.name} 😊\n\n${f.freeInsteadText ?? `Unfortunately we're fully booked on ${when || "that date"}.`}`;
       const alts = f.alternatives?.join(" or ") ?? "";
-      r += alts ? ` I'm free on ${alts}, would ${alts.includes(" or ") ? "either" : "that"} work?` : " Would another date work for you?";
+      if (f.freeInsteadText) r += alts ? ` If you'd prefer the ${f.fullEquipment}, it's free on ${alts}.` : "";
+      else r += alts ? ` I'm free on ${alts}, would ${alts.includes(" or ") ? "either" : "that"} work?` : " Would another date work for you?";
       if (f.fixedDatePartner) {
         const nth = d.event_date ? `the ${ordinal(Number(d.event_date.slice(8)))}` : "your date";
         const part = d.slot === "morning" ? "that morning" : d.slot === "afternoon" ? "that afternoon" : d.slot === "evening" ? "that evening" : "that day";
@@ -374,12 +439,14 @@ const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 =
 
 /** The real cheaper options for a planner who finds the quote too expensive. */
 function priceConcernOptions(vendor: Vendor, pkg: Item, quote: Quote, items: Item[], addons: Item[], d: Details, enquiryId: number, today: string) {
-  const cheaper = downsellFor(pkg, quote, items, addons, { vendor, pax: d.pax, date: d.event_date, slot: d.slot });
+  // Only packages whose equipment is free that day.
+  const cheaper = downsellFor(pkg, quote, freeItems(vendor, d.event_date, items, enquiryId), addons, { vendor, pax: d.pax, date: d.event_date, slot: d.slot });
+  const needs = needsFor([pkg, ...addons]);
   let offpeak: { total: number; text: string } | null = null;
   if (vendor.offpeak_discount > 0 && !quote.offpeak && d.event_date) {
     // The nearest free Mon–Thu within a week, priced as a daytime slot.
     const day = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7].map((k) => addDays(d.event_date!, k))
-      .find((x) => x > today && dayOfWeek(x) >= 1 && dayOfWeek(x) <= 4 && availability(vendor, x, enquiryId).available);
+      .find((x) => x > today && dayOfWeek(x) >= 1 && dayOfWeek(x) <= 4 && availability(vendor, x, enquiryId, needs).available);
     if (day) {
       const q = buildQuote({ vendor, pkg, addons, hours: d.hours, pax: d.pax, date: day, slot: "afternoon" });
       if (q.offpeak && q.total < quote.total) offpeak = { total: q.total, text: `On a weekday daytime slot, like ${formatDate(day).replace(",", "")} afternoon, the same booking is ${fmtMoney(q.total)} with our ${vendor.offpeak_discount}% off-peak rate.` };
@@ -460,9 +527,11 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   const quotable = qual.qualified || !!e.price_override;
   // Brief mode (for the vendor, or for an item marked "Always quote manually"): the vendor writes the quote.
   const briefMode = vendor.pricing_mode === "brief" || [pkg, ...addons].some((i) => i?.manual_quote);
-  const dateBooked = !!details.event_date && !details.date_is_approximate && availability(vendor, details.event_date, enquiryId).available === false;
+  // Availability for what was asked: the package's (and add-ons') equipment, if the vendor lists equipment.
+  const needs = needsFor([pkg, ...addons]);
+  const avail = details.event_date ? availability(vendor, details.event_date, enquiryId, needs) : null;
+  const dateBooked = !!avail && !details.date_is_approximate && avail.available === false;
   const quote = pkg && quotable && !briefMode && !dateBooked ? buildQuote({ vendor, pkg, addons, hours: details.hours, pax: details.pax, date: details.event_date, slot: details.slot }) : null;
-  const avail = details.event_date ? availability(vendor, details.event_date, enquiryId) : null;
   const available = avail ? avail.available : null;
   const overCap = Boolean(vendor.capacity && details.pax && details.pax > vendor.capacity);
   const missing = missingFields(vendor, details, pkg);
@@ -478,7 +547,12 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   else if (details.intent === "price_concern" && !isFirst) { purpose = "price_concern"; reasons.push("Price concern: the planner finds it too expensive. Check the options before replying."); }
   else if (details.intent === "undecided" && !isFirst) purpose = "undecided";
   else if (overCap) { purpose = "over_capacity"; reasons.push(`${details.pax} guests is over your ${vendor.capacity} capacity. Consider referring to a partner.`); }
-  else if (available === false && !details.date_is_approximate) { purpose = "unavailable"; reasons.push(`You're fully booked on ${formatDate(details.event_date)}. Offer another date or refer to a partner.`); }
+  else if (available === false && !details.date_is_approximate) {
+    purpose = "unavailable";
+    reasons.push(avail && !avail.dayFull && avail.full.length
+      ? `Your ${avail.full.join(" and ")} ${avail.full.length > 1 ? "are" : "is"} fully booked on ${formatDate(details.event_date)}. Offer what's free, another date, or a partner.`
+      : `You're fully booked on ${formatDate(details.event_date)}. Offer another date or refer to a partner.`);
+  }
   else if (!quotable) purpose = "qualify";
   else if (briefMode) {
     purpose = e.brief_status ? "answer" : "brief";
@@ -498,13 +572,34 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   let fixedDatePartner: DraftFacts["fixedDatePartner"] = null;
   let fixedDatePrice: number | null = null;
   if (purpose === "unavailable" && details.event_date) {
-    alternatives = alternativeDates(vendor, details.event_date, enquiryId, 2, today);
+    alternatives = alternativeDates(vendor, details.event_date, enquiryId, 2, today, needs);
     details.alternatives = alternatives;
     const same = vendor.bundle_suggestions ? acceptedPartners(vendorId).find((p) => p.kind === vendor.kind) : undefined;
     if (same) {
       const pv = partnerView(same);
       fixedDatePartner = pv.view.from_price ? pv.view : "unnamed";
       fixedDatePrice = pv.price;
+    }
+  }
+  // The requested equipment is full but the day isn't: offer a package that is free that day, priced from the price list.
+  let freeInstead: { text: string; total: number | null; equipment: string } | null = null;
+  if (purpose === "unavailable" && details.event_date && avail && !avail.dayFull && avail.full.length && pkg) {
+    const fullIds = new Set(avail.equipment.filter((q) => avail.full.includes(q.name)).map((q) => q.id));
+    const wantHours = details.hours ?? pkg.included_hours ?? 0;
+    const alt = freeItems(vendor, details.event_date, items.filter((i) => i.kind === "package" && i.active && !i.manual_quote && i.id !== pkg.id && (!i.equipment_id || !fullIds.has(i.equipment_id))), enquiryId)
+      .sort((a, b) => Math.abs((a.included_hours ?? wantHours) - wantHours) - Math.abs((b.included_hours ?? wantHours) - wantHours) || a.price - b.price)[0];
+    if (alt) {
+      const okAddons = addons.filter((a) => !a.equipment_id || !fullIds.has(a.equipment_id));
+      const q = quotable && vendor.pricing_mode !== "brief" ? buildQuote({ vendor, pkg: alt, addons: okAddons, hours: details.hours, pax: details.pax, date: details.event_date, slot: details.slot }) : null;
+      const priced = q && !q.issues.length ? q : null;
+      const extras = okAddons.map((a) => a.name.charAt(0).toLowerCase() + a.name.slice(1));
+      const equipment = avail.full.join(" and ");
+      freeInstead = {
+        equipment,
+        total: priced?.total ?? null,
+        text: `Our ${equipment} ${avail.full.length > 1 ? "are" : "is"} taken on ${formatDate(details.event_date).replace(",", "")}, but our ${alt.name} is free that day${priced ? `${extras.length ? ` (with the ${extras.join(" and ")})` : ""}: ${fmtMoney(priced.total)}` : ""}.`,
+      };
+      reasons.push(`Offered ${alt.name} instead, which is free that day.`);
     }
   }
   const shared = partners.map(partnerView);
@@ -534,7 +629,9 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
     holdHours: willHold ? vendor.hold_hours : null,
     holdText: willHold && purpose === "quote" ? holdSentence(holdUntil(draftedAt, vendor.hold_hours)) : null,
     depositText: quote && (purpose === "quote" || purpose === "confirm") ? depositLine(vendor, quote.total)?.text ?? null : null,
-    upsellText: purpose === "quote" && pkg && quote ? upsellFor(pkg, items, addons, { vendor, pax: details.pax, date: details.event_date, slot: details.slot })?.text ?? null : null,
+    freeInsteadText: freeInstead?.text ?? null,
+    fullEquipment: freeInstead?.equipment ?? null,
+    upsellText: purpose === "quote" && pkg && quote ? upsellFor(pkg, freeItems(vendor, details.event_date, items, enquiryId), addons, { vendor, pax: details.pax, date: details.event_date, slot: details.slot })?.text ?? null : null,
     partnerSuggestions,
     referredTo: null,
     depositNote: vendor.deposit_note,
@@ -553,7 +650,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
       // Before qualifying, the AI doesn't see the price list, and any amount at all sends it back to the template.
       const noPrices = purpose === "qualify" || briefMode;
       const draft = await aiDraft({ vendor, items: noPrices ? [] : items.filter((i) => !i.manual_quote), messages: msgs, facts, enquiryId, styleExamples: vendor.learn_style ? styleExamples(vendor.id) : [] });
-      const polish = [quote ? depositLine(vendor, quote.total)?.amount : null, pkg && quote ? upsellFor(pkg, items, addons, { vendor, pax: details.pax, date: details.event_date, slot: details.slot })?.total : null].filter((x): x is number => x != null);
+      const polish = [quote ? depositLine(vendor, quote.total)?.amount : null, pkg && quote ? upsellFor(pkg, freeItems(vendor, details.event_date, items, enquiryId), addons, { vendor, pax: details.pax, date: details.event_date, slot: details.slot })?.total : null, freeInstead?.total ?? null].filter((x): x is number => x != null);
       polish.push(...[priceOptions.cheaper?.total, priceOptions.offpeak?.total].filter((x): x is number => x != null));
       const allowed = draftAllowedAmounts(noPrices ? "qualify" : purpose, quote, items, [...partnerPrices, ...polish, details.budget ?? 0, vendor.min_spend]);
       const bad = unknownAmounts(draft.reply, allowed);
@@ -795,9 +892,11 @@ function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string, hol
       const exact = d.event_date && !d.date_is_approximate;
       const has = get<{ id: number }>("SELECT id FROM holds WHERE enquiry_id = ? AND status = 'active'", e.id);
       let nudge = followup;
-      if (exact && !has && availability(vendor, d.event_date!, e.id).available) {
-        run("INSERT INTO holds (vendor_id, enquiry_id, date, kind, note, expires_at) VALUES (?, ?, ?, 'hold', ?, ?)",
+      const needs = enquiryNeeds(vendor.id, d);
+      if (exact && !has && availability(vendor, d.event_date!, e.id, needs).available) {
+        const holdId = run("INSERT INTO holds (vendor_id, enquiry_id, date, kind, note, expires_at) VALUES (?, ?, ?, 'hold', ?, ?)",
           vendor.id, e.id, d.event_date!, e.contact_name || d.contact_name || "Enquiry", holdExpires ?? hoursFrom(now, vendor.hold_hours));
+        holdEquipment(holdId, needs);
         // Nudge while the date is still held, so the planner can still act on it.
         nudge = hoursFrom(now, Math.min(vendor.followup_days * 24, vendor.hold_hours / 2));
       }
@@ -807,9 +906,11 @@ function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string, hol
     case "brief": {
       const exact = d.event_date && !d.date_is_approximate;
       let hold: Hold | null = get<Hold>("SELECT * FROM holds WHERE enquiry_id = ? AND status = 'active'", e.id) ?? null;
-      if (exact && !hold && availability(vendor, d.event_date!, e.id).available) {
+      const needs = enquiryNeeds(vendor.id, d);
+      if (exact && !hold && availability(vendor, d.event_date!, e.id, needs).available) {
         const id = run("INSERT INTO holds (vendor_id, enquiry_id, date, kind, note, expires_at) VALUES (?, ?, ?, 'hold', ?, ?)",
           vendor.id, e.id, d.event_date!, e.contact_name || d.contact_name || "Enquiry", hoursFrom(now, vendor.hold_hours));
+        holdEquipment(id, needs);
         hold = get<Hold>("SELECT * FROM holds WHERE id = ?", id)!;
       }
       const due = hoursFrom(now, vendor.brief_hours);
@@ -887,7 +988,7 @@ export function markBooked(vendorId: number, enquiryId: number, value?: number) 
     run("UPDATE enquiries SET status = 'won', won_value = ?, next_followup_at = NULL, owner_reason = NULL, updated_at = ? WHERE id = ?", amount, nowIso(), enquiryId);
     const hold = get<Hold>("SELECT * FROM holds WHERE enquiry_id = ? AND status = 'active'", enquiryId);
     if (hold) run("UPDATE holds SET kind = 'booking', expires_at = NULL WHERE id = ?", hold.id);
-    else if (d.event_date) run("INSERT INTO holds (vendor_id, enquiry_id, date, kind, note) VALUES (?, ?, ?, 'booking', ?)", vendor.id, enquiryId, d.event_date, e.contact_name || "Booking");
+    else if (d.event_date) holdEquipment(run("INSERT INTO holds (vendor_id, enquiry_id, date, kind, note) VALUES (?, ?, ?, 'booking', ?)", vendor.id, enquiryId, d.event_date, e.contact_name || "Booking"), enquiryNeeds(vendorId, d));
     const ref = get<{ id: number; fee_pct: number }>("SELECT id, fee_pct FROM referrals WHERE target_enquiry = ? AND status = 'open'", enquiryId);
     if (ref) run("UPDATE referrals SET status = 'won', fee_amount = ? WHERE id = ?", amount != null ? Math.round(amount * ref.fee_pct) / 100 : null, ref.id);
   });

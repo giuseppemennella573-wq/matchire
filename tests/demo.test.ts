@@ -9,6 +9,7 @@ delete process.env.ANTHROPIC_API_KEY;
 process.env.RESEND_API_KEY = "test"; // email is "configured", so only the demo guard can stop a send
 
 const D = await import("../src/lib/demo.ts");
+const EQ = await import("../src/lib/equipment.ts");
 const E = await import("../src/lib/engine.ts");
 const { createAccount, login } = await import("../src/lib/accounts.ts");
 const { deliver, deliverTemplate } = await import("../src/lib/channels.ts");
@@ -48,13 +49,14 @@ test("seed:demo is idempotent and builds the Snap & Smile workspace", async () =
   const second = await D.seedDemo("demo-password");
   assert.deepEqual(counts(), c1, "running it twice gives the same result");
   // 3 fresh enquiries plus 2 past conversations (a regular client and a style history).
-  assert.deepEqual(c1, { demoVendors: 3, demoUsers: 3, items: 10, holds: 2, enquiries: 5, drafts: 3, partnerships: 2 });
+  assert.deepEqual(c1, { demoVendors: 3, demoUsers: 3, items: 10, holds: 3, enquiries: 5, drafts: 3, partnerships: 2 });
+  assert.deepEqual(EQ.listEquipment(second.vendorId).map((q) => [q.name, q.quantity]), [["Print booth", 3], ["360 booth", 1]]);
   assert.equal(second.bookedSaturday, first.bookedSaturday);
 
   const v = E.getVendor(second.vendorId)!;
   assert.equal(v.name, "Snap & Smile Photobooth");
   assert.equal(v.kind, "photobooth");
-  assert.deepEqual([v.is_demo, v.auto_send, v.hold_hours, v.followup_days, v.jobs_per_day, v.bundle_suggestions, v.share_from_price, v.min_spend, v.offpeak_discount, v.referral_fee_pct], [1, 0, 48, 2, 2, 1, 0, 650, 10, 10]);
+  assert.deepEqual([v.is_demo, v.auto_send, v.hold_hours, v.followup_days, v.jobs_per_day, v.bundle_suggestions, v.share_from_price, v.min_spend, v.offpeak_discount, v.referral_fee_pct], [1, 0, 48, 2, 0, 1, 0, 650, 10, 10]);
   assert.equal(v.signoff, "Mel @ Snap & Smile");
   assert.match(v.notes, /Sentosa or Jurong Island: \+S\$80/);
   assert.equal(login(D.DEMO_EMAIL, "demo-password"), get<{ id: number }>("SELECT id FROM users WHERE email = ?", D.DEMO_EMAIL)!.id);
@@ -65,11 +67,14 @@ test("seed:demo is idempotent and builds the Snap & Smile workspace", async () =
   assert.deepEqual(E.getItems(v.id).filter((i) => i.kind === "package").map((i) => [i.name, i.extra_hour_price]),
     [["Classic Booth 2h", 180], ["Classic Booth 3h", 180], ["Classic Booth 4h", 180], ["360 Video Booth 3h", 350]]);
 
-  // The booked Saturday is 3+ weeks out and full; the clashing D&D is drafted as unavailable.
+  // The booked Saturday is 3+ weeks out: its only 360 booth is out, a print booth is still free.
   const booked = second.bookedSaturday;
   assert.equal(dayOfWeek(booked), 6);
   assert.ok(booked >= addDays(sgToday(), 21) && booked < addDays(sgToday(), 28));
-  assert.equal(E.availability(v, booked).available, false);
+  const items = E.getItems(v.id);
+  const pkg = (n: string) => items.find((i) => i.name === n)!;
+  assert.equal(E.availability(v, booked, undefined, E.needsFor([pkg("360 Video Booth 3h")])).available, false);
+  assert.equal(E.availability(v, booked, undefined, E.needsFor([pkg("Classic Booth 3h")])).available, true);
   const drafts = all<{ channel: string; purpose: string }>(
     "SELECT e.channel, m.purpose FROM messages m JOIN enquiries e ON e.id = m.enquiry_id WHERE e.vendor_id = ? AND m.status = 'draft' ORDER BY e.id", v.id,
   );
@@ -90,10 +95,12 @@ test("seed:demo is idempotent and builds the Snap & Smile workspace", async () =
   assert.match(body("instagram"), /Happy to send exact pricing! What's the date and roughly how many guests\?/);
   assert.doesNotMatch(body("instagram"), /SGD|\$/);
   assert.equal(enquiry("instagram").quote, null);
-  // Bluewave's D&D on the booked Saturday: other dates, Snapbox SG with its shared price, not quoted.
-  assert.match(body("email"), /I'm free on .+, would (either|that) work\?/);
+  // Bluewave's D&D wants the 360 on the booked Saturday: the free Classic booth with its real price,
+  // the dates the 360 is free, Snapbox SG with its shared price; the 360 itself isn't quoted.
+  assert.match(body("email"), /Our 360 booth is taken on \w{3} \d+ \w{3}, but our Classic Booth 3h is free that day: SGD [\d,]+\./);
+  assert.match(body("email"), /If you'd prefer the 360 booth, it's free on .+\./);
   assert.match(body("email"), /our trusted partner Snapbox SG \(photobooth, from SGD 450\) may be free that evening/);
-  assert.doesNotMatch(body("email").replace("from SGD 450", ""), /SGD|\$/, "no price for the booked date");
+  assert.doesNotMatch(body("email"), /SGD 1,200/, "no price for the 360 on the booked date");
   assert.equal(enquiry("email").quote, null, "Not quoted, so the booking value stays empty");
 });
 

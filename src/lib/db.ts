@@ -71,6 +71,14 @@ CREATE TABLE IF NOT EXISTS equipment (
 );
 CREATE INDEX IF NOT EXISTS equipment_vendor ON equipment(vendor_id);
 
+-- Which equipment a hold or booking takes, and how many units.
+CREATE TABLE IF NOT EXISTS hold_equipment (
+  hold_id INTEGER NOT NULL REFERENCES holds(id) ON DELETE CASCADE,
+  equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE CASCADE,
+  units INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (hold_id, equipment_id)
+);
+
 CREATE TABLE IF NOT EXISTS enquiries (
   id INTEGER PRIMARY KEY,
   vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,

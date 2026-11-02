@@ -6,7 +6,7 @@ import type { Item } from "./types.ts";
 
 // The demo workspace we show prospects: Snap & Smile Photobooth with a partner
 // caterer and a partner photobooth (who shares their starting price, for the
-// date-clash referral), a fully booked Saturday and three enquiries drafted by
+// date-clash referral), a Saturday where its 360 booth is taken, and three enquiries drafted by
 // the normal pipeline. Both accounts are is_demo, so nothing they do is ever really sent
 // (see deliver() in channels.ts). Seeding resets them: running it twice gives
 // the same result.
@@ -76,7 +76,7 @@ export async function seedDemo(password = process.env.DEMO_PASSWORD, now = new D
     const booth = createAccount({ email: DEMO_EMAIL, password, name: "Mel", business: "Snap & Smile Photobooth", kind: "photobooth" }).vendorId;
     run(
       `UPDATE vendors SET is_demo = 1, auto_send = 0, tone = ?, signoff = ?, notes = ?, deposit_note = ?, hold_hours = 48, followup_days = 2,
-       jobs_per_day = 2, min_spend = 650, offpeak_discount = 10, bundle_suggestions = 1, share_from_price = 0, referral_fee_pct = 10 WHERE id = ?`,
+       jobs_per_day = 0, min_spend = 650, offpeak_discount = 10, bundle_suggestions = 1, share_from_price = 0, referral_fee_pct = 10 WHERE id = ?`,
       "Friendly, upbeat, short replies.", "Mel @ Snap & Smile", NOTES, "30% deposit secures the date, balance 7 days before.", booth,
     );
     addItems(booth, PRICE_LIST);
@@ -98,10 +98,14 @@ export async function seedDemo(password = process.env.DEMO_PASSWORD, now = new D
     addItems(snapbox, [item({ kind: "package", name: "Classic booth 2h", pricing: "flat", price: 450, included_hours: 2, extra_hour_price: 120, description: "Unlimited prints, props and an attendant" })]);
     run("INSERT INTO partnerships (requester_id, partner_id, status) VALUES (?, ?, 'accepted')", booth, snapbox);
 
-    // A fully booked Saturday (2 jobs a day, so two bookings).
+    // A busy Saturday three weeks out.
     const booked = saturdayFrom(21, today);
-    run("INSERT INTO holds (vendor_id, date, kind, note) VALUES (?, ?, 'booking', 'Lim family party (afternoon)')", booth, booked);
-    run("INSERT INTO holds (vendor_id, date, kind, note) VALUES (?, ?, 'booking', 'Tan & Ong wedding (evening)')", booth, booked);
+    // Its only 360 booth is out, and 2 of the 3 print booths: the 360 is taken, a Classic is still free.
+    const book = (note: string, equipmentId: number) =>
+      run("INSERT INTO hold_equipment (hold_id, equipment_id, units) VALUES (?, ?, 1)", run("INSERT INTO holds (vendor_id, date, kind, note) VALUES (?, ?, 'booking', ?)", booth, booked, note), equipmentId);
+    book("Lim family party (afternoon)", printBooth);
+    book("Tan & Ong wedding (evening)", printBooth);
+    book("Koh 40th birthday (360 booth)", booth360);
     const wedding = saturdayFrom(35, today);
 
     // History: two earlier conversations Mel answered from her phone. They give the demo a writing style to

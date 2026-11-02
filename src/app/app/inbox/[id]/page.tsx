@@ -47,7 +47,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
   const referredFrom = e.referred_from ? get<Vendor>("SELECT * FROM vendors WHERE id = ?", e.referred_from) : null;
   const open = ["new", "awaiting_info", "quoted", "expired"].includes(e.status);
   // A date the vendor can't do is never quoted, and its booking value isn't pre-filled.
-  const dateUnavailable = open && !!d.event_date && !d.date_is_approximate && !E.availability(vendor, d.event_date, e.id).available;
+  const dateUnavailable = open && !!d.event_date && !d.date_is_approximate && !E.availability(vendor, d.event_date, e.id, E.enquiryNeeds(vendor.id, d)).available;
   const brief: Brief | null = e.brief ? JSON.parse(e.brief) : null;
   const regular = clientHistory(e);
   const missing = [!d.event_date && "Date", !d.pax && "Headcount", !d.slot && !d.start_time && vendor.kind !== "caterer" && "Start time"].filter(Boolean) as string[];
