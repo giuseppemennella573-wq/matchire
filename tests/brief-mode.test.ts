@@ -28,6 +28,7 @@ globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
   if (u.includes("api.resend.com")) { emails.push(JSON.parse(String(init?.body))); return Response.json({ id: "e" }); }
   if (!u.includes("api.anthropic.com")) return new Response("{}", { status: 200 });
   const req = JSON.parse(String(init?.body)) as Req;
+  if (typeof req.system !== "string") req.system = (req.system as unknown as { text: string }[]).map((b) => b.text).join("\n"); // cached prompts arrive as blocks
   prompts.push(req);
   if (req.system.includes("extract booking details")) {
     const d = parseEnquiry(req.messages[0].content.split("<conversation>")[1] ?? "", E.getItems(itemsFor), sgToday());

@@ -161,3 +161,7 @@ src/app/e/[slug]       public enquiry form
 ```
 
 AI calls use `claude-opus-5-5` (override with `MATCHIRE_MODEL`) with server-side refusal fallback enabled, so if the model declines a request for policy reasons the API retries on its default fallback model.
+
+- **What it costs:** every call is recorded in `ai_usage` (tokens and cost, no content) and shown on **Matchire admin → AI usage**. Prices per million tokens live in `src/lib/ai-usage.ts`.
+- **Prompt caching:** the stable part of each prompt (rules, price list, business notes, style examples) is marked for caching, so repeat calls for a vendor within 5 minutes pay about 5% for that part. Prompts under 512 tokens (usually the enquiry-reading one) simply aren't cached. Turn it off with `MATCHIRE_PROMPT_CACHE=off`.
+- **A cheaper model for reading enquiries:** `MATCHIRE_EXTRACT_MODEL` (default: the main model). Compare first with `ANTHROPIC_API_KEY=... node --experimental-strip-types scripts/eval-extract.ts` (16 labelled enquiries; a few cents per model). Drafting always uses the main model.

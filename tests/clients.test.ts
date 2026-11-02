@@ -79,6 +79,7 @@ test("the draft is told only 'returning client', never past prices, packages or 
   let facts = "";
   let system = "";
   A.setClientForTests({ beta: { messages: { parse: async (req: { system: string; messages: { content: string }[]; output_config: { format: unknown } }) => {
+    if (typeof req.system !== "string") req.system = (req.system as unknown as { text: string }[]).map((b) => b.text).join("\n"); // cached prompts arrive as blocks
     const isDraft = /You write replies/.test(req.system);
     if (isDraft) { system = req.system; facts = req.messages[0].content; }
     return {

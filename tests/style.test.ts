@@ -90,6 +90,7 @@ test("sending a draft records whether the vendor changed it", async () => {
 test("the draft prompt gets the examples; switching the setting off removes them; an example's price can't reach a reply", async () => {
   let system = "";
   A.setClientForTests({ beta: { messages: { parse: async (req: { system: string }) => {
+    if (typeof req.system !== "string") req.system = (req.system as unknown as { text: string }[]).map((b) => b.text).join("\n"); // cached prompts arrive as blocks
     system = req.system;
     return { model: "claude-opus-5-5", stop_reason: "end_turn", parsed_output: { reply: "Hi! Classic Booth 3h is SGD 850.", needs_owner: false, owner_reason: null }, usage: { input_tokens: 1, output_tokens: 1 } };
   } } } });

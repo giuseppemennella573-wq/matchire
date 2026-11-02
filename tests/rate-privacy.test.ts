@@ -26,6 +26,7 @@ const MESSAGE = (json: unknown) => ({
 globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
   if (!String(url).includes("api.anthropic.com")) return new Response("{}", { status: 200 });
   const req = JSON.parse(String(init?.body)) as Req;
+  if (typeof req.system !== "string") req.system = (req.system as unknown as { text: string }[]).map((b) => b.text).join("\n"); // cached prompts arrive as blocks
   prompts.push(req);
   const convo = req.messages[0].content;
   if (req.system.includes("extract booking details")) {
