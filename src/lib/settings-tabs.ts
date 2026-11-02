@@ -51,7 +51,8 @@ export function settingsUpdate(tab: SettingsTab, form: Form, v: Vendor): Columns
       };
     case "bookings":
       return {
-        jobs_per_day: atLeast(form, "jobs_per_day", 1, 1),
+        // Empty (or 0) means no daily most: only equipment limits a day. Without equipment it still counts as 1 (see dayCap).
+        jobs_per_day: Math.max(0, Math.floor(num(form, "jobs_per_day") ?? 0)),
         hold_hours: atLeast(form, "hold_hours", 48, 1),
         followup_days: atLeast(form, "followup_days", 2, 0.5),
         min_spend: atLeast(form, "min_spend", 0),

@@ -36,7 +36,10 @@ test("an unticked checkbox saves as off, and limits still apply", () => {
   const p = settingsUpdate("partners", form({ referral_fee_pct: "80" }), vendor);
   assert.deepEqual(p, { bundle_suggestions: 0, share_from_price: 0, referral_fee_pct: 50 });
   const b = settingsUpdate("bookings", form({ jobs_per_day: "0", hold_hours: "", offpeak_discount: "200" }), vendor);
-  assert.equal(b.jobs_per_day, 1);
+  assert.equal(b.jobs_per_day, 0, "0 or empty: no daily most (equipment is the limit; 1 a day without equipment)");
+  assert.equal(settingsUpdate("bookings", form({ jobs_per_day: "" }), vendor).jobs_per_day, 0);
+  assert.equal(settingsUpdate("bookings", form({ jobs_per_day: "-3" }), vendor).jobs_per_day, 0);
+  assert.equal(settingsUpdate("bookings", form({ jobs_per_day: "4" }), vendor).jobs_per_day, 4, "an existing number is kept as it is");
   assert.equal(b.hold_hours, 48);
   assert.equal(b.offpeak_discount, 90);
   assert.equal(b.capacity, null);

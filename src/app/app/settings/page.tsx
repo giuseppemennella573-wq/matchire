@@ -11,6 +11,8 @@ import { appUrl } from "@/lib/app-url";
 import { formatDateTime } from "@/lib/dates";
 import { supportVisits } from "@/lib/support";
 import { styleExampleCount } from "@/lib/style";
+import { listEquipment } from "@/lib/equipment";
+import { dayCap } from "@/lib/engine";
 import { changePasswordAction, requestSetupAction, rotateInboundTokenAction, saveSettingsTabAction } from "../actions";
 import { CopyButton } from "@/components/copy-button";
 
@@ -53,6 +55,9 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const ch = channelView(v, { admin, appUrl: appUrl() });
   const visits = supportVisits(vendor.id);
   const styleCount = styleExampleCount(vendor.id);
+  const equipment = listEquipment(vendor.id);
+  const units = equipment.reduce((s, q) => s + q.quantity, 0);
+  const cap = dayCap(vendor, equipment.length > 0);
   const initialTab = SETTINGS_TABS.some((t) => t.id === tab) ? tab! : null;
 
   return (
@@ -84,13 +89,25 @@ export default async function Settings({ searchParams }: { searchParams: Promise
             <section className="card stack">
               <h2>Bookings</h2>
               <div className="grid3">
-                <label className="field"><span>Jobs you can take per day</span><input name="jobs_per_day" type="number" min="1" defaultValue={v.jobs_per_day} /></label>
+                {equipment.length > 0 ? (
+                  <label className="field"><span>Most jobs in one day (all equipment, optional)</span><input name="jobs_per_day" type="number" min="0" placeholder="No limit" defaultValue={v.jobs_per_day || ""} /></label>
+                ) : (
+                  <label className="field"><span>Jobs you can take per day</span><input name="jobs_per_day" type="number" min="1" defaultValue={v.jobs_per_day || 1} /></label>
+                )}
                 <label className="field"><span>Hold dates for (hours)</span><input name="hold_hours" type="number" min="1" defaultValue={v.hold_hours} /></label>
                 <label className="field"><span>Follow up after (days)</span><input name="followup_days" type="number" min="0.5" step="0.5" defaultValue={v.followup_days} /></label>
                 <label className="field"><span>Minimum spend (SGD)</span><input name="min_spend" type="number" min="0" step="0.01" defaultValue={v.min_spend || ""} /></label>
                 <label className="field"><span>Off-peak discount % (Mon–Thu daytime)</span><input name="offpeak_discount" type="number" min="0" max="90" defaultValue={v.offpeak_discount || ""} /></label>
                 <label className="field"><span>Max guests (venues)</span><input name="capacity" type="number" min="0" defaultValue={v.capacity ?? ""} /></label>
               </div>
+              {equipment.length > 0 ? (
+                <p className="small muted">
+                  Leave &quot;Most jobs in one day&quot; empty if your equipment list is the only limit, e.g. if you have enough attendants for every booth. Your equipment is on the <a href="/app/prices#equipment">Price list</a>.
+                  {Number.isFinite(cap) && cap < units ? <b> Right now at most {cap} job{cap > 1 ? "s" : ""} go out per day, although you own {units} pieces of equipment.</b> : null}
+                </p>
+              ) : (
+                <p className="small muted">Have more than one booth? Add your equipment on the <a href="/app/prices#equipment">Price list</a> so Matchire knows what&apos;s free each day.</p>
+              )}
               <label className="field" style={{ maxWidth: 260 }}><span>Deposit (% of the total)</span><input name="deposit_pct" type="number" min="0" max="100" step="1" defaultValue={v.deposit_pct ?? ""} placeholder="e.g. 30" /></label>
               <p className="small muted" style={{ marginTop: -6 }}>Quotes then say &quot;A deposit of SGD 300 (30%) secures the date.&quot; Left empty, Matchire uses the % in your deposit instructions, if there is one.</p>
               <label className="field"><span>Deposit instructions, sent when a planner says yes</span><textarea name="deposit_note" rows={2} defaultValue={v.deposit_note} placeholder="A 30% deposit via PayNow to UEN 2023xxxxxK secures your date." /></label>

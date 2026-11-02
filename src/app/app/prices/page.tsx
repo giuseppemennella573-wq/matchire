@@ -1,5 +1,5 @@
 import { requireVendor } from "@/lib/auth";
-import { getItems } from "@/lib/engine";
+import { dayCap, getItems } from "@/lib/engine";
 import { fmtMoney, priceListMode } from "@/lib/pricing";
 import { aiEnabled } from "@/lib/ai";
 import type { Item } from "@/lib/types";
@@ -164,6 +164,11 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
                   ))}
                   <div><button className="btn btn-primary btn-sm" type="submit">Add these</button></div>
                 </form>
+              )}
+              {equipment.length > 0 && Number.isFinite(dayCap(vendor, true)) && dayCap(vendor, true) < equipment.reduce((s, q) => s + q.quantity, 0) && (
+                <p className="alert alert-warn small">
+                  Your most jobs in one day is {dayCap(vendor, true)}, so no more than that goes out on any day, whatever equipment is free. <a href="/app/settings?tab=bookings">Change it in Settings → Bookings</a> (leave it empty for no limit).
+                </p>
               )}
               {equipment.length > 0 && (
                 <div className="stack" style={{ gap: 8 }}>

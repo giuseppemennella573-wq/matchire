@@ -130,6 +130,14 @@ Reset it (same result every time, never duplicates) with **Reset demo** on Match
 
 The local development seed (`npm run seed`) is separate and logs in as `dev@matchire.ai`.
 
+## Equipment and availability
+
+Before quoting or holding a date, Matchire checks it's free:
+- **Equipment** (Price list → Your equipment): what the vendor owns and how many, e.g. Print booth × 6, 360 booth × 2. Each package (or add-on) can **use** one piece of equipment; add-ons like a guestbook album use nothing. A date is free for a package while its equipment has a unit left. Holds and bookings record the equipment they take (`hold_equipment`). When the requested equipment is full but the day isn't, the reply offers a package that's free that day with its real price, plus the dates the requested equipment is free.
+- **Most jobs in one day** (Settings → Bookings, `vendors.jobs_per_day`): an optional cap on top, e.g. for the number of attendants. Empty (0) means no cap for vendors with equipment; a vendor without equipment is always limited to this number, or 1.
+- **Blocked dates** (Calendar) close the whole day. **Add a booking** records a job taken outside Matchire, with its equipment.
+- Per day only: the same booth doing a morning and an evening job isn't modelled yet.
+
 ## Support view (opening a vendor's account)
 
 Admins never need a vendor's password. On **Matchire admin → Accounts**, **Support view** asks for a reason and opens that vendor's desk **read-only for 30 minutes**: every vendor action (send, save, delete, settings) is refused, and a banner with **End now** stays on every page. Each session (admin, reason, start and end) and every page opened (path only) is stored in `support_access`, the vendor is emailed when it starts (never for demo accounts), and they see the full list in **Settings → Account → Matchire support access**. Vendor server actions must use `requireVendorForAction()`, which is what enforces read-only; a test checks this.
@@ -149,6 +157,7 @@ src/lib/ai.ts          Claude calls (structured outputs, refusal fallback), vali
 src/lib/ai-usage.ts    tokens and cost of every Claude call (Matchire admin → AI usage)
 src/lib/style.ts       the vendor's own replies, cleaned, as style examples for drafts
 src/lib/clients.ts     regular clients: earlier enquiries from the same number or email
+src/lib/equipment.ts   what a vendor owns; availability per equipment is in engine.ts
 src/lib/heuristics.ts  rules-based enquiry reader (no-key mode and fallback)
 src/lib/dates.ts       Singapore-time date parsing ("next tue", "15 Nov", "early Dec")
 src/lib/channels.ts    WhatsApp Cloud API and email (SMTP or Resend) delivery

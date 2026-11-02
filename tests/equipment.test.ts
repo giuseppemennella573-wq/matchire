@@ -59,6 +59,13 @@ test("suggestions: one per package family, nothing created until confirmed", () 
   assert.equal(E.getItems(v).find((i) => i.name === "360 Video Booth 3h")!.equipment_id, null, "unticked: left alone");
 });
 
+test("an empty daily most means no day limit only when the vendor lists equipment", () => {
+  assert.equal(E.dayCap({ jobs_per_day: 0 }, true), Infinity);
+  assert.equal(E.dayCap({ jobs_per_day: 0 }, false), 1, "nobody without equipment is suddenly unlimited");
+  assert.equal(E.dayCap({ jobs_per_day: 3 }, true), 3);
+  assert.equal(E.dayCap({ jobs_per_day: 3 }, false), 3);
+});
+
 test("a vendor with no equipment is unchanged: same availability as before", () => {
   const v = E.getVendor(ali)!;
   assert.equal(EQ.hasEquipment(ali), false);
