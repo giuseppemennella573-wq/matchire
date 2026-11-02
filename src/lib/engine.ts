@@ -668,7 +668,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   }
 
   const needsOwner = reasons.length > 0 || details.needs_owner || purpose === "confirm" || purpose === "answer";
-  const lead = leadScore(details, quote, available, missing, overCap);
+  // Something else is free that day and was offered: a live lead, not a lost one.
+  const lead = leadScore(details, quote, freeInstead ? null : available, missing, overCap);
   const now = nowIso();
 
   const draftId = tx(() => {

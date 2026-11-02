@@ -47,7 +47,10 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
   const referredFrom = e.referred_from ? get<Vendor>("SELECT * FROM vendors WHERE id = ?", e.referred_from) : null;
   const open = ["new", "awaiting_info", "quoted", "expired"].includes(e.status);
   // A date the vendor can't do is never quoted, and its booking value isn't pre-filled.
-  const dateUnavailable = open && !!d.event_date && !d.date_is_approximate && !E.availability(vendor, d.event_date, e.id, E.enquiryNeeds(vendor.id, d)).available;
+  const dateCheck = open && !!d.event_date && !d.date_is_approximate ? E.availability(vendor, d.event_date, e.id, E.enquiryNeeds(vendor.id, d)) : null;
+  const dateUnavailable = !!dateCheck && !dateCheck.available;
+  // Only some equipment is out (e.g. the 360 booth), not the whole day.
+  const equipmentOut = dateCheck && !dateCheck.dayFull && dateCheck.full.length ? dateCheck.full.join(" and ") : null;
   const brief: Brief | null = e.brief ? JSON.parse(e.brief) : null;
   const regular = clientHistory(e);
   const missing = [!d.event_date && "Date", !d.pax && "Headcount", !d.slot && !d.start_time && vendor.kind !== "caterer" && "Start time"].filter(Boolean) as string[];
@@ -183,7 +186,10 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
             <section className="card stack">
               <h2>Quote</h2>
               <p><span className="badge badge-amber">Not quoted: date unavailable</span></p>
-              <p className="small muted">You&apos;re booked on {formatDate(d.event_date)}. If the planner takes another date, Matchire quotes it as usual.</p>
+              <p className="small muted">
+                {equipmentOut ? <>Your {equipmentOut} {dateCheck!.full.length > 1 ? "are" : "is"} booked on {formatDate(d.event_date)}. If the planner takes what&apos;s free that day or another date, Matchire quotes it as usual.</>
+                  : <>You&apos;re booked on {formatDate(d.event_date)}. If the planner takes another date, Matchire quotes it as usual.</>}
+              </p>
             </section>
           )}
 
