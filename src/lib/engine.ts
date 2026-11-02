@@ -1081,6 +1081,39 @@ export async function referToPartner(vendorId: number, enquiryId: number, partne
 
 // ---------- Calendar ----------
 
+/**
+ * A booking made outside Matchire. With equipment, it takes one unit; it's
+ * refused when that equipment (or the day) is already full, so the calendar
+ * never shows more out than the vendor owns.
+ */
+export function addManualBooking(vendorId: number, date: string, note: string, equipmentId: number | null): number {
+  const vendor = getVendor(vendorId)!;
+  const needs: Needs = equipmentId ? new Map([[equipmentId, 1]]) : new Map();
+  const a = availability(vendor, date, undefined, needs);
+  if (a.blocked) throw new Error(`${formatDate(date)} is blocked. Release the block first.`);
+  if (a.full.length) {
+    const q = a.equipment.find((x) => x.id === equipmentId)!;
+    throw new Error(q.quantity === 1 ? `Your ${q.name} is already out on ${formatDate(date)}.` : `All ${q.quantity} of your ${q.name.replace(/(?<!s)$/, "s")} are already out on ${formatDate(date)}.`);
+  }
+  if (a.dayFull) throw new Error(`${formatDate(date)} already has ${a.used} job${a.used === 1 ? "" : "s"}, your most in one day.`);
+  return tx(() => {
+    const id = run("INSERT INTO holds (vendor_id, date, kind, note) VALUES (?, ?, 'booking', ?)", vendorId, date, note.trim() || "Booking");
+    holdEquipment(id, needs);
+    return id;
+  });
+}
+
+/** Equipment names per hold, for the calendar. */
+export function holdEquipmentNames(holdIds: number[]): Map<number, string[]> {
+  const out = new Map<number, string[]>();
+  if (!holdIds.length) return out;
+  for (const r of all<{ hold_id: number; name: string; units: number }>(
+    `SELECT he.hold_id, q.name, he.units FROM hold_equipment he JOIN equipment q ON q.id = he.equipment_id WHERE he.hold_id IN (${holdIds.map(() => "?").join(",")}) ORDER BY q.sort, q.id`,
+    ...holdIds,
+  )) out.set(r.hold_id, [...(out.get(r.hold_id) ?? []), r.units > 1 ? `${r.name} × ${r.units}` : r.name]);
+  return out;
+}
+
 export function blockDate(vendorId: number, date: string, note: string) {
   run("INSERT INTO holds (vendor_id, date, kind, note) VALUES (?, ?, 'block', ?)", vendorId, date, note.trim() || "Unavailable");
 }

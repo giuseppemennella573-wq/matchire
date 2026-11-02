@@ -118,3 +118,31 @@ test("a vendor without equipment behaves exactly as before", () => {
   run("UPDATE vendors SET jobs_per_day = 0 WHERE id = ?", other);
   assert.equal(E.dayCap(E.getVendor(other)!, false), 1, "an empty cap without equipment still means one job a day");
 });
+
+// ---------- Step 4: calendar ----------
+
+test("the day summary counts bookings and active holds per equipment, not expired holds or other vendors", () => {
+  const d = addDays(sat, 28);
+  book(d, print);
+  const expired = book(d, print, "hold");
+  run("UPDATE holds SET status = 'expired' WHERE id = ?", expired);
+  const other = createAccount({ email: "o@x.sg", password: "password1", name: "O", business: "O Co", kind: "photobooth" }).vendorId;
+  const theirs = EQ.addEquipment(other, "Print booth", 1);
+  run("INSERT INTO hold_equipment (hold_id, equipment_id, units) VALUES (?, ?, 1)", run("INSERT INTO holds (vendor_id, date, kind, note) VALUES (?, ?, 'booking', 'theirs')", other, d), theirs);
+  const a = E.availability(E.getVendor(v)!, d);
+  assert.deepEqual(a.equipment.map((q) => [q.name, q.used]), [["Print booth", 1], ["360 booth", 0]]);
+  assert.deepEqual([...E.holdEquipmentNames([expired]).values()], [["Print booth"]]);
+});
+
+test("a manual booking with equipment takes a unit, and is refused when that equipment is all out", () => {
+  const d = addDays(sat, 35);
+  E.addManualBooking(v, d, "Koh wedding", b360);
+  E.addManualBooking(v, d, "Lee party", b360);
+  assert.equal(E.availability(E.getVendor(v)!, d).equipment.find((q) => q.id === b360)!.free, 0);
+  assert.throws(() => E.addManualBooking(v, d, "One too many", b360), /All 2 of your 360 booths are already out/);
+  E.addManualBooking(v, d, "Print job", print);
+  E.addManualBooking(v, d, "No equipment", null);
+  assert.equal(E.availability(E.getVendor(v)!, d).used, 4);
+  E.blockDate(v, addDays(d, 1), "Away");
+  assert.throws(() => E.addManualBooking(v, addDays(d, 1), "x", print), /is blocked/);
+});

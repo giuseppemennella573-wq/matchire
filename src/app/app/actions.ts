@@ -249,6 +249,19 @@ export async function blockDateAction(form: FormData) {
   back(`/app/calendar?month=${date.slice(0, 7)}`, "Date blocked.");
 }
 
+export async function addBookingAction(form: FormData) {
+  const { vendor } = await requireVendorForAction();
+  const date = str(form, "date");
+  if (!isValidIsoDate(date)) back("/app/calendar", "Pick a date.", "error");
+  try {
+    E.addManualBooking(vendor.id, date, str(form, "note"), EQ.ownEquipmentId(vendor.id, form.get("equipment_id")));
+  } catch (e) {
+    if (isRedirect(e)) throw e;
+    back(`/app/calendar?month=${date.slice(0, 7)}`, errMsg(e), "error");
+  }
+  back(`/app/calendar?month=${date.slice(0, 7)}&day=${date}`, "Booking added.");
+}
+
 export async function releaseHoldAction(form: FormData) {
   const { vendor } = await requireVendorForAction();
   E.releaseHold(vendor.id, id(form, "holdId"));
