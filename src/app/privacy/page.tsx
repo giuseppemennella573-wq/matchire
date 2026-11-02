@@ -1,7 +1,7 @@
 import { Logo } from "@/components/logo";
 export const metadata = { title: "Privacy policy" };
 
-const UPDATED = "1 November 2026";
+const UPDATED = "2 November 2026";
 
 export default function Privacy() {
   return (
@@ -55,7 +55,7 @@ export default function Privacy() {
         <ul className="stack" style={{ margin: 0, paddingLeft: 20 }}>
           <li><b>Render</b> hosts the application and its database.</li>
           <li><b>Meta (WhatsApp Business Platform)</b> carries WhatsApp messages between planners and vendors.</li>
-          <li><b>Anthropic</b> provides the AI model that reads enquiries, drafts replies and turns uploaded rate cards into price lists. A vendor&apos;s price list, business notes and enquiry messages are sent to it only to do that. Under Anthropic&apos;s commercial terms, it may not train its models on this content.</li>
+          <li><b>Anthropic</b> provides the AI model that reads enquiries, drafts replies and turns uploaded rate cards into price lists. A vendor&apos;s price list, business notes, enquiry messages and a few of the vendor&apos;s own earlier replies (with prices, dates and client details removed, so drafts match the vendor&apos;s writing style) are sent to it only to do that. Under Anthropic&apos;s commercial terms, it may not train its models on this content.</li>
           <li><b>Google Workspace</b> sends and receives our email, and keeps our daily database backups, which are encrypted before they leave our server.</li>
         </ul>
         <p>These providers may process data outside Singapore. We use them under their business terms, which require them to protect the data.</p>
