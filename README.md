@@ -130,6 +130,15 @@ Reset it (same result every time, never duplicates) with **Reset demo** on Match
 
 The local development seed (`npm run seed`) is separate and logs in as `dev@matchire.ai`.
 
+## Inbox filter (what doesn't get a reply)
+
+Every incoming message is sorted before anything is drafted:
+- **Automated email** (out-of-office, newsletters, bounces, no-reply senders) is recognised from its headers (`src/lib/automated.ts`) and filed under **Other** without the AI. An auto-reply on an open enquiry becomes a short note. Matchire's own automatic emails carry `Auto-Submitted: auto-replied` so nothing loops.
+- **Hidden contacts** ("Never show messages from this number"; Settings → Channels) are dropped in the webhooks before anything is stored or read. Only a count is kept (`contact_rules`, kind `hidden`).
+- **Booked clients:** a WhatsApp or email message from a client with an upcoming booking joins that booking, with no sales draft. An explicit different date starts a new enquiry.
+- **The AI's answer:** the existing reading call also returns `relevance` (enquiry / not_enquiry / unsure). `not_enquiry` files the conversation under Other with a reason; `unsure` keeps it in the inbox tagged "Check this" and blocks auto-send. Never filed: website-form, pasted and referred enquiries, conversations the vendor answered or holds a date for, rules mode, and contacts the vendor marked "always a client" (`contact_rules`, kind `always`).
+- **Corrections:** "Move to Enquiries" brings a conversation back, marks the contact "always a client" and drafts as usual; "Not an enquiry" files it (optionally hiding the contact).
+
 ## Equipment and availability
 
 Before quoting or holding a date, Matchire checks it's free:
@@ -158,6 +167,8 @@ src/lib/ai-usage.ts    tokens and cost of every Claude call (Matchire admin → 
 src/lib/style.ts       the vendor's own replies, cleaned, as style examples for drafts
 src/lib/clients.ts     regular clients: earlier enquiries from the same number or email
 src/lib/equipment.ts   what a vendor owns; availability per equipment is in engine.ts
+src/lib/automated.ts   recognising automated email (out-of-office, newsletters, bounces)
+src/lib/contacts.ts    per-vendor contact rules: hidden, or always a client
 src/lib/heuristics.ts  rules-based enquiry reader (no-key mode and fallback)
 src/lib/dates.ts       Singapore-time date parsing ("next tue", "15 Nov", "early Dec")
 src/lib/channels.ts    WhatsApp Cloud API and email (SMTP or Resend) delivery

@@ -38,6 +38,7 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 | Instagram DMs | Not built | Coming soon |
 | Multiple users / team logins | Not built | Coming soon |
 | Equipment stock (availability per booth type) | Live | Site (card "Date taken? Keep the lead", approved by Giuseppe): "360 booked that day? Matchire offers the Classic booth that's still free, with its real price, your nearest free 360 dates, or a trusted partner. It knows what you own and what's out each day." Per day only; never claim time slots or per-room scheduling. |
+| Inbox filter (only real enquiries get replies) | Live | "Out-of-office emails, newsletters and personal messages don't get a sales reply. Anything Matchire isn't sure about stays in your inbox." Never claim it catches everything, or that it deletes anything (filed messages are kept under Other). Not on the landing page yet. |
 | Multiple rooms, spaces or brands | Equipment per booth type is Live (see above); rooms, spaces, brands and time slots not built | Rooms, brands, time slots: coming soon |
 | Spreadsheet rate-card upload | Not built (PDF, photo, text work) | List PDF, photo, text; spreadsheet = coming soon |
 | Connect existing WhatsApp number | Assisted setup, not self-serve | "We set it up with you" |
@@ -71,3 +72,4 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 - 2026-11-01: Pack 06. Vendor data privacy is a key feature: 'Can Matchire see my prices?' is the first FAQ on the landing page (approved by Giuseppe).
 - 2026-11-02: Pack 07. New feature row "Knows your business" (Sounds like you, Remembers your regulars, Your prices stay yours) and the "New in early access" strip updated; Privacy Policy names the vendor's cleaned earlier replies sent to Anthropic (approved by Giuseppe).
 - 2026-11-02: Pack 08. Availability is per equipment (Print booth × 6, 360 booth × 2), with "Most jobs in one day" as an optional cap. Key for photobooth businesses with mixed booths (Giuseppe). "Date taken? Keep the lead" card rewritten for equipment (approved by Giuseppe).
+- 2026-11-03: Pack 09. Inbox filter: automated emails and messages that aren't booking enquiries are filed under Other with a reason, never answered; hidden contacts are dropped before processing; booked clients' messages join their booking. When unsure, a message stays in the inbox. No landing-page change.
