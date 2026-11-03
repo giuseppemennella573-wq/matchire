@@ -1,7 +1,7 @@
 import { Logo } from "@/components/logo";
 export const metadata = { title: "Privacy policy" };
 
-const UPDATED = "2 November 2026";
+const UPDATED = "3 November 2026";
 
 export default function Privacy() {
   return (
@@ -33,7 +33,7 @@ export default function Privacy() {
         <h2>What we collect</h2>
         <ul className="stack" style={{ margin: 0, paddingLeft: 20 }}>
           <li><b>Vendor accounts</b>: name, business name, email address, password (stored only as a secure hash), price lists, settings and calendar entries.</li>
-          <li><b>Enquiries and messages</b>: the content of messages planners send to a vendor, their name, phone number or email address, and event details they share (such as date, guest count and budget), plus the replies sent back.</li>
+          <li><b>Enquiries and messages</b>: the content of messages planners send to a vendor, their name, phone number or email address, and event details they share (such as date, guest count and budget), plus the replies sent back. Messages that reach a vendor&apos;s connected WhatsApp number or email address but aren&apos;t booking enquiries (for example personal messages or newsletters) are filed separately and never answered. If a vendor hides a contact, that contact&apos;s messages are no longer stored or read.</li>
           <li><b>Early-access requests</b>: name, business, business type, email address and WhatsApp number.</li>
           <li><b>Technical data</b>: a login cookie to keep vendors signed in, and standard server logs.</li>
         </ul>
