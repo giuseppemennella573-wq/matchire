@@ -1,6 +1,7 @@
 import { all, get, run, tx } from "./db.ts";
 import { addItems, createAccount, token } from "./accounts.ts";
 import { ingest, processEnquiry } from "./engine.ts";
+import { setRule } from "./contacts.ts";
 import { addDays, dayOfWeek, sgToday } from "./dates.ts";
 import type { Item } from "./types.ts";
 
@@ -100,17 +101,25 @@ export async function seedDemo(password = process.env.DEMO_PASSWORD, now = new D
 
     // A busy Saturday three weeks out.
     const booked = saturdayFrom(21, today);
+    const past = (days: number) => new Date(now.getTime() - days * 86400_000).toISOString();
     // Its only 360 booth is out, and 2 of the 3 print booths: the 360 is taken, a Classic is still free.
-    const book = (note: string, equipmentId: number) =>
-      run("INSERT INTO hold_equipment (hold_id, equipment_id, units) VALUES (?, ?, 1)", run("INSERT INTO holds (vendor_id, date, kind, note) VALUES (?, ?, 'booking', ?)", booth, booked, note), equipmentId);
+    const book = (note: string, equipmentId: number, enquiryId: number | null = null) =>
+      run("INSERT INTO hold_equipment (hold_id, equipment_id, units) VALUES (?, ?, 1)", run("INSERT INTO holds (vendor_id, enquiry_id, date, kind, note) VALUES (?, ?, ?, 'booking', ?)", booth, enquiryId, booked, note), equipmentId);
     book("Lim family party (afternoon)", printBooth);
     book("Tan & Ong wedding (evening)", printBooth);
-    book("Koh 40th birthday (360 booth)", booth360);
+    // The Koh family booked the 360 for that Saturday through Matchire; they'll message about it below.
+    const koh = run(
+      `INSERT INTO enquiries (vendor_id, channel, contact_name, contact_handle, status, details, event_date, won_value, first_response_at, last_outbound_at, created_at, updated_at)
+       VALUES (?, 'whatsapp', 'Rachel Koh', '+65 9345 6789', 'won', ?, ?, 1200, ?, ?, ?, ?)`,
+      booth, JSON.stringify({ event_date: booked }), booked, past(20), past(20), past(21), past(19),
+    );
+    run("INSERT INTO messages (enquiry_id, direction, body, status, created_at) VALUES (?, 'in', ?, 'sent', ?)", koh, "Hi! Can we book the 360 booth for my husband's 40th? 3 hours, evening.", past(21));
+    run("INSERT INTO messages (enquiry_id, direction, body, status, purpose, created_at, sent_at) VALUES (?, 'out', ?, 'manual', 'phone_reply', ?, ?)", koh, "Hi Rachel! Yes, the 360 is yours 🎉 Deposit received, see you on the night!", past(20), past(20));
+    book("Koh 40th birthday (360 booth)", booth360, koh);
     const wedding = saturdayFrom(35, today);
 
     // History: two earlier conversations Mel answered from her phone. They give the demo a writing style to
     // learn from, and make Sarah Tan a regular client (she booked last year).
-    const past = (days: number) => new Date(now.getTime() - days * 86400_000).toISOString();
     const history = [
       { name: "Sarah Tan", handle: "+65 9123 4501", status: "won", won: 1000, daysAgo: 300, eventDaysAgo: 270, pkg: "Classic Booth 3h", total: 1000,
         msgs: [
@@ -157,6 +166,12 @@ export async function seedDemo(password = process.env.DEMO_PASSWORD, now = new D
       const { enquiryId } = ingest({ vendorId: booth, channel: q.channel, text: q.text, name: q.name, handle: q.handle, email: q.email });
       await processEnquiry(booth, enquiryId);
     }
+    // A booked client writes again: it joins their booking, with no sales reply.
+    const kohMsg = ingest({ vendorId: booth, channel: "whatsapp", text: "Hi Mel! Looking forward to Saturday 😊 Could the 360 start at 6:30pm instead of 7?", name: "Rachel Koh", handle: "+65 9345 6789" });
+    await processEnquiry(booth, kohMsg.enquiryId);
+    // A supplier Mel hid: their messages never reach Matchire, only the count shows.
+    setRule(booth, "+65 9888 7777", "hidden");
+    run("UPDATE contact_rules SET hidden_count = 4 WHERE vendor_id = ? AND kind = 'hidden'", booth);
 
     return {
       vendorId: booth,

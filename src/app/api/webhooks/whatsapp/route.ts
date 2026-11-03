@@ -1,3 +1,4 @@
+import { dropIfHidden } from "@/lib/contacts";
 import { after, type NextRequest } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { get } from "@/lib/db";
@@ -67,6 +68,8 @@ export async function POST(req: NextRequest) {
       for (const m of value.messages) {
         const text = m.text?.body ?? m.button?.text ?? m.interactive?.button_reply?.title;
         if (!text || !m.from) { console.log(`[whatsapp] ignored a ${m.type ?? "non-text"} message`); continue; } // media and reactions aren't handled yet
+        // A contact the vendor hid: dropped here, before it's stored or read. Only counted.
+        if (dropIfHidden(vendor.id, "+" + m.from)) { console.log(`[whatsapp] message from a hidden contact dropped (vendor ${vendor.id})`); continue; }
         const contact = value?.contacts?.find((c) => c.wa_id === m.from);
         const { enquiryId } = ingest({ vendorId: vendor.id, channel: "whatsapp", text, name: contact?.profile?.name ?? null, handle: "+" + m.from });
         jobs.push({ vendorId: vendor.id, enquiryId });

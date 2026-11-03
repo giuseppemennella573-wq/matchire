@@ -7,7 +7,7 @@ import * as E from "@/lib/engine";
 import { fmtMoney } from "@/lib/pricing";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { CHANNEL_LABEL, STATUS_LABEL, type Hold, type Vendor } from "@/lib/types";
-import { deleteEnquiryAction, draftAction, keepAsEnquiryAction, noteAction, outcomeAction, plannerReplyAction, referAction, releaseHoldAction } from "../../actions";
+import { deleteEnquiryAction, draftAction, hideContactAction, keepAsEnquiryAction, noteAction, outcomeAction, plannerReplyAction, referAction, releaseHoldAction } from "../../actions";
 import { CopyButton } from "@/components/copy-button";
 import { briefText, type Brief } from "@/lib/brief";
 import { Submit } from "@/components/submit";
@@ -148,7 +148,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
             <form action={outcomeAction} className="composer">
               <input type="hidden" name="enquiryId" value={e.id} />
               <div className="row between">
-                <p className="muted small">No reply waiting. Matchire drafts one when the planner writes back{e.next_followup_at ? `, and a follow-up is scheduled for ${formatDateTime(e.next_followup_at)}` : ""}.</p>
+                <p className="muted small">{e.status === "won" && e.owner_reason ? e.owner_reason : <>No reply waiting. Matchire drafts one when the planner writes back{e.next_followup_at ? `, and a follow-up is scheduled for ${formatDateTime(e.next_followup_at)}` : ""}.</>}</p>
                 <Submit className="btn btn-ghost btn-sm" name="intent" value="reprocess" pending="Drafting…">Draft a reply now</Submit>
               </div>
             </form>
@@ -299,6 +299,17 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
               <div><button className="btn btn-ghost btn-sm" type="submit">Add note</button></div>
             </form>
           </section>
+
+          {(e.contact_handle || e.contact_email) && e.status !== "won" && (
+            <section className="card stack">
+              <h2>Not a client?</h2>
+              <p className="small muted">Friends, family or a supplier writing to your business number: hide them, and their messages stop reaching Matchire (they still reach your phone). You can undo it in Settings → Channels.</p>
+              <form action={hideContactAction}>
+                <input type="hidden" name="enquiryId" value={e.id} />
+                <ConfirmSubmit className="btn btn-ghost btn-sm" message={`Never show messages from ${e.contact_handle || e.contact_email} in Matchire? This conversation moves to Other.`}>Never show messages from this number</ConfirmSubmit>
+              </form>
+            </section>
+          )}
 
           <section className="card stack">
             <h2>Delete</h2>

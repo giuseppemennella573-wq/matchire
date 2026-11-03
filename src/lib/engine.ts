@@ -6,6 +6,7 @@ import { parseEnquiry } from "./heuristics.ts";
 import { aiEnabled, aiExtract, aiDraft, type DraftFacts } from "./ai.ts";
 import { sameText, styleExamples } from "./style.ts";
 import { listEquipment } from "./equipment.ts";
+import { contactKey, isAlwaysEnquiry, setRule } from "./contacts.ts";
 import { clientHistory, returningForDraft } from "./clients.ts";
 import { addDays, dayOfWeek, formatDate, formatDateTime, sgToday } from "./dates.ts";
 import { deliver, deliverTemplate, sendRawEmail, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
@@ -225,6 +226,18 @@ export function ingest(input: IngestInput): { enquiryId: number; isNew: boolean 
         )
       : undefined;
     const now = nowIso();
+    // A client with an upcoming booking (or one in the last 3 days), on WhatsApp or email: the message joins that booking.
+    const booked = !open && handle && !input.referredFrom && (input.channel === "whatsapp" || input.channel === "email")
+      ? get<Enquiry>(
+          `SELECT * FROM enquiries WHERE vendor_id = ? AND (contact_handle = ? OR contact_email = ?) AND status = 'won' AND event_date >= ? ORDER BY event_date LIMIT 1`,
+          input.vendorId, handle, handle, addDays(sgToday(), -3),
+        )
+      : undefined;
+    if (booked) {
+      run("INSERT INTO messages (enquiry_id, direction, body, status, created_at) VALUES (?, 'in', ?, 'sent', ?)", booked.id, text, now);
+      run("UPDATE enquiries SET last_inbound_at = ?, updated_at = ? WHERE id = ?", now, now, booked.id);
+      return { enquiryId: booked.id, isNew: false };
+    }
     if (open) {
       run("INSERT INTO messages (enquiry_id, direction, body, status, created_at) VALUES (?, 'in', ?, 'sent', ?)", open.id, text, now);
       // The planner replied, so pending nudges are no longer needed.
@@ -286,6 +299,20 @@ export async function keepAsEnquiry(vendorId: number, enquiryId: number) {
   if (!e) throw new Error("Enquiry not found");
   run("UPDATE enquiries SET kept = 1, filed_reason = NULL, status = CASE WHEN status = 'other' THEN 'new' ELSE status END, updated_at = ? WHERE id = ?", nowIso(), enquiryId);
   return processEnquiry(vendorId, enquiryId);
+}
+
+/** "Never show messages from this number": the contact is hidden from now on, and this conversation is filed under Other. */
+export function hideContact(vendorId: number, enquiryId: number) {
+  const e = getEnquiry(vendorId, enquiryId);
+  if (!e) throw new Error("Enquiry not found");
+  const contact = e.contact_handle || e.contact_email;
+  if (!contactKey(contact)) throw new Error("This enquiry has no number or email address to hide.");
+  tx(() => {
+    setRule(vendorId, contact!, "hidden");
+    run("UPDATE messages SET status = 'discarded' WHERE enquiry_id = ? AND status = 'draft'", enquiryId);
+    run("UPDATE holds SET status = 'released' WHERE enquiry_id = ? AND status = 'active' AND kind = 'hold'", enquiryId);
+    if (e.status !== "won") run("UPDATE enquiries SET status = 'other', filed_reason = 'Hidden contact', next_followup_at = NULL, owner_reason = NULL, updated_at = ? WHERE id = ?", nowIso(), enquiryId);
+  });
 }
 
 /** Messages filed under Other in the last `days` days, for the inbox line. */
@@ -520,11 +547,34 @@ export interface ProcessResult {
 }
 
 /** Understand the conversation so far, price it, and draft the next reply. */
-export async function processEnquiry(vendorId: number, enquiryId: number): Promise<ProcessResult> {
+export async function processEnquiry(vendorId: number, enquiryId: number, opts: { force?: boolean } = {}): Promise<ProcessResult> {
   const startedAt = nowIso();
   const vendor = getVendor(vendorId);
   const e = getEnquiry(vendorId, enquiryId);
   if (!vendor || !e) throw new Error("Enquiry not found");
+  // A booked client writing again ("see you Saturday!"): no sales reply. The vendor answers, or asks for a draft (force).
+  if (e.status === "won" && !opts.force) {
+    const lastIn = getMessages(enquiryId).filter((m) => m.direction === "in").at(-1);
+    const other = lastIn ? parseEnquiry(lastIn.body, getItems(vendorId), sgToday()) : null;
+    // Only an explicit date ("12 Dec", "5/1") counts: "see you Saturday" is about the booking, not a new one.
+    const explicit = !!other?.date_text && /\d/.test(other.date_text);
+    if (lastIn && explicit && other?.event_date && e.event_date && other.event_date !== e.event_date && !other.date_is_approximate) {
+      // A different date: that's a new enquiry, not this booking.
+      const moved = tx(() => {
+        const id = run(
+          `INSERT INTO enquiries (vendor_id, channel, contact_name, contact_handle, contact_email, status, last_inbound_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 'new', ?, ?, ?)`,
+          vendorId, e.channel, e.contact_name, e.contact_handle, e.contact_email, lastIn.created_at, nowIso(), nowIso(),
+        );
+        run("UPDATE messages SET enquiry_id = ? WHERE id = ?", id, lastIn.id);
+        return id;
+      });
+      return processEnquiry(vendorId, moved);
+    }
+    const note = `Message from a booked client (${e.event_date ? formatDate(e.event_date) : "booking"}). Reply yourself, or click Redraft for a suggested reply.`;
+    run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", note, enquiryId);
+    return { enquiryId, draftId: null, autoSent: false, ownerReason: note, usedAI: false };
+  }
   const items = getItems(vendorId);
   const msgs = getMessages(enquiryId);
   const prev = e.details && e.details !== "{}" ? parseDetails(e) : null;
@@ -573,7 +623,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   // the vendor has engaged (a reply sent, a hold) or said it's an enquiry. In doubt, it stays in the inbox.
   const engaged = msgs.some((m) => m.direction === "out" && (m.status === "sent" || m.status === "manual"))
     || !!get("SELECT 1 FROM holds WHERE enquiry_id = ? AND status = 'active'", enquiryId) || e.status === "won";
-  const fileable = !!relevance && ["whatsapp", "email", "instagram"].includes(e.channel) && !e.referred_from && !engaged && !e.kept;
+  const fileable = !!relevance && ["whatsapp", "email", "instagram"].includes(e.channel) && !e.referred_from && !engaged && !e.kept
+    && !isAlwaysEnquiry(vendorId, e.contact_handle, e.contact_email);
   if (fileable && relevance!.kind === "not_enquiry") {
     const reason = relevance!.reason || "Not a booking enquiry";
     tx(() => {

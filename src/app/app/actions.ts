@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireVendorForAction } from "@/lib/auth";
 import * as EQ from "@/lib/equipment";
+import * as C from "@/lib/contacts";
 import { get, run } from "@/lib/db";
 import * as E from "@/lib/engine";
 import { aiEnabled, aiImportPriceList } from "@/lib/ai";
@@ -78,8 +79,8 @@ export async function draftAction(form: FormData) {
       await E.sendPriceAnyway(vendor.id, eid);
       back(path, "Quote drafted. Check it before it goes out.");
     } else if (intent === "regenerate") {
-      E.discardDraft(vendor.id, mid);
-      await E.processEnquiry(vendor.id, eid);
+      if (mid) E.discardDraft(vendor.id, mid);
+      await E.processEnquiry(vendor.id, eid, { force: true });
     } else {
       const r = await E.sendDraft(vendor.id, mid, { body, markBooked: intent === "send_book" });
       if (r.status === "failed") back(path, `Couldn't send: ${r.error}`, "error");
@@ -91,6 +92,19 @@ export async function draftAction(form: FormData) {
     back(path, errMsg(e), "error");
   }
   redirect(path);
+}
+
+export async function hideContactAction(form: FormData) {
+  const { vendor } = await requireVendorForAction();
+  const eid = id(form, "enquiryId");
+  try { E.hideContact(vendor.id, eid); } catch (e) { if (isRedirect(e)) throw e; back(`/app/inbox/${eid}`, errMsg(e), "error"); }
+  back("/app/inbox", "Hidden. Messages from this contact won't reach Matchire any more; you can undo this in Settings → Channels.");
+}
+
+export async function unhideContactAction(form: FormData) {
+  const { vendor } = await requireVendorForAction();
+  C.removeRule(vendor.id, id(form, "ruleId"));
+  back("/app/settings?tab=channels", "Removed. Their messages come to Matchire again.");
 }
 
 export async function keepAsEnquiryAction(form: FormData) {
@@ -107,7 +121,7 @@ export async function outcomeAction(form: FormData) {
   if (intent === "booked") E.markBooked(vendor.id, eid, num(form, "value") ?? undefined);
   else if (intent === "lost") E.markLost(vendor.id, eid);
   else if (intent === "reopen") E.reopen(vendor.id, eid);
-  else if (intent === "reprocess") await E.processEnquiry(vendor.id, eid);
+  else if (intent === "reprocess") await E.processEnquiry(vendor.id, eid, { force: true }); // the vendor asked: drafts even for a booked client
   else if (intent === "clear_flag") E.clearFishingFlag(vendor.id, eid);
   else if (intent === "quote_sent") E.markBriefQuoted(vendor.id, eid);
   revalidatePath("/app", "layout");

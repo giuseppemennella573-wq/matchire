@@ -48,8 +48,8 @@ test("seed:demo is idempotent and builds the Snap & Smile workspace", async () =
   const c1 = counts();
   const second = await D.seedDemo("demo-password");
   assert.deepEqual(counts(), c1, "running it twice gives the same result");
-  // 3 fresh enquiries plus 2 past conversations (a regular client and a style history).
-  assert.deepEqual(c1, { demoVendors: 3, demoUsers: 3, items: 10, holds: 3, enquiries: 5, drafts: 3, partnerships: 2 });
+  // 3 fresh enquiries, 2 past conversations (a regular client and a style history) and the Koh booking.
+  assert.deepEqual(c1, { demoVendors: 3, demoUsers: 3, items: 10, holds: 3, enquiries: 6, drafts: 3, partnerships: 2 });
   assert.deepEqual(EQ.listEquipment(second.vendorId).map((q) => [q.name, q.quantity]), [["Print booth", 3], ["360 booth", 1]]);
   assert.equal(second.bookedSaturday, first.bookedSaturday);
 

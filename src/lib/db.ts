@@ -79,6 +79,18 @@ CREATE TABLE IF NOT EXISTS hold_equipment (
   PRIMARY KEY (hold_id, equipment_id)
 );
 
+-- Per-vendor rules about a contact: "hidden" (dropped before storing; only counted) or "always" (never filed under Other).
+CREATE TABLE IF NOT EXISTS contact_rules (
+  id INTEGER PRIMARY KEY,
+  vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  contact_key TEXT NOT NULL,
+  display TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('hidden','always')),
+  hidden_count INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  UNIQUE (vendor_id, contact_key)
+);
+
 CREATE TABLE IF NOT EXISTS enquiries (
   id INTEGER PRIMARY KEY,
   vendor_id INTEGER NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,

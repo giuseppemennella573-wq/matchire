@@ -1,4 +1,5 @@
 import { all } from "./db.ts";
+import { contactKey } from "./contacts.ts";
 import type { Enquiry, Quote } from "./types.ts";
 
 // Regular clients: the same planner coming back to the same vendor. The vendor
@@ -19,20 +20,8 @@ export interface ClientHistory {
 
 type Row = Pick<Enquiry, "id" | "channel" | "contact_handle" | "contact_email" | "status" | "event_date" | "created_at"> & { quote: string | null; replied: number };
 
-const keysOf = (e: Pick<Enquiry, "contact_handle" | "contact_email">) => {
-  const keys: string[] = [];
-  for (const v of [e.contact_handle, e.contact_email]) {
-    if (!v) continue;
-    const t = v.trim().toLowerCase();
-    if (t.includes("@")) keys.push(t);
-    else {
-      const digits = t.replace(/\D/g, "");
-      if (digits.length >= 8) keys.push(digits.length === 8 ? `65${digits}` : digits); // "9123 4501" = "+65 9123 4501"
-      else if (t) keys.push(t);
-    }
-  }
-  return keys;
-};
+const keysOf = (e: Pick<Enquiry, "contact_handle" | "contact_email">) =>
+  [e.contact_handle, e.contact_email].map(contactKey).filter((k): k is string => !!k);
 
 /** Earlier enquiries from the same client with this vendor that went somewhere (booked, quoted or answered), or null. */
 export function clientHistory(e: Pick<Enquiry, "id" | "vendor_id" | "channel" | "contact_handle" | "contact_email">): ClientHistory | null {

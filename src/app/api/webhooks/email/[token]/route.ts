@@ -2,6 +2,7 @@ import { after, type NextRequest } from "next/server";
 import { get } from "@/lib/db";
 import { fileAsOther, ingest, processEnquiry } from "@/lib/engine";
 import { automatedReason, parseHeaders, type Headers } from "@/lib/automated";
+import { dropIfHidden } from "@/lib/contacts";
 
 // Inbound email. Accepts the JSON shapes Postmark and Mailgun-style routes send,
 // or multipart form posts (SendGrid Inbound Parse). The token in the URL
@@ -43,6 +44,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
   }
   const sender = parseFrom(from);
   if (!sender.email) return new Response("Missing sender", { status: 400 });
+  // A sender the vendor hid: dropped here, before it's stored or read. Only counted.
+  if (dropIfHidden(vendor.id, sender.email)) return Response.json({ ok: true, ignored: "hidden contact" });
   const body = stripQuoted(text);
   // Out-of-office replies, newsletters and bounces: filed under Other, never read by the AI or answered.
   const automated = automatedReason(headers, from, subject);

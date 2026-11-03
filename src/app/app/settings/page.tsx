@@ -12,8 +12,9 @@ import { formatDateTime } from "@/lib/dates";
 import { supportVisits } from "@/lib/support";
 import { styleExampleCount } from "@/lib/style";
 import { listEquipment } from "@/lib/equipment";
+import { listRules } from "@/lib/contacts";
 import { dayCap } from "@/lib/engine";
-import { changePasswordAction, requestSetupAction, rotateInboundTokenAction, saveSettingsTabAction } from "../actions";
+import { changePasswordAction, requestSetupAction, rotateInboundTokenAction, saveSettingsTabAction, unhideContactAction } from "../actions";
 import { CopyButton } from "@/components/copy-button";
 
 export const metadata = { title: "Settings" };
@@ -54,6 +55,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   // Everything about channels on this page comes from this view; for vendors it holds no tokens, IDs or webhook URLs.
   const ch = channelView(v, { admin, appUrl: appUrl() });
   const visits = supportVisits(vendor.id);
+  const hidden = listRules(vendor.id, "hidden");
   const styleCount = styleExampleCount(vendor.id);
   const equipment = listEquipment(vendor.id);
   const units = equipment.reduce((s, q) => s + q.quantity, 0);
@@ -202,6 +204,20 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               </details>
             </TabForm>
           )}
+          <section className="card stack" id="hidden-contacts">
+            <h2>Hidden contacts</h2>
+            <p className="small muted">Numbers and email addresses you chose never to see in Matchire (friends, suppliers). Their messages still reach your phone and inbox, but Matchire doesn&apos;t store or read them; it only counts them.</p>
+            {hidden.length === 0 ? <p className="small">None. Use &quot;Never show messages from this number&quot; on a conversation to hide someone.</p> : (
+              <ul className="day-list">
+                {hidden.map((r) => (
+                  <li key={r.id} className="row between">
+                    <span><span className="mono">{r.display}</span> <span className="small muted">· {r.hidden_count} message{r.hidden_count === 1 ? "" : "s"} hidden</span></span>
+                    <form action={unhideContactAction}><input type="hidden" name="ruleId" value={r.id} /><button className="btn btn-ghost btn-sm" type="submit">Show again</button></form>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </section>
 
         <section className="settings-panel" data-panel="partners" aria-label="Partners and referrals">
