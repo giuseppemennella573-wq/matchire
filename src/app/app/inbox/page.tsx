@@ -26,16 +26,19 @@ const STATUS_BADGE: Record<EnquiryStatus, string> = {
 
 import { clientHistory, clientNote } from "@/lib/clients";
 
+/** A booked client wrote again: no draft, but the vendor needs to see it. */
+const BOOKED_WROTE = "(e.status = 'won' AND e.owner_reason LIKE 'Message from a booked client%')";
+
 export default async function Inbox({ searchParams }: { searchParams: Promise<{ filter?: string; error?: string; msg?: string }> }) {
   const { vendor } = await requireVendor();
   const { filter = "open", error, msg } = await searchParams;
   const where =
-    filter === "attention" ? "AND EXISTS (SELECT 1 FROM messages d WHERE d.enquiry_id = e.id AND d.status = 'draft')"
+    filter === "attention" ? `AND (EXISTS (SELECT 1 FROM messages d WHERE d.enquiry_id = e.id AND d.status = 'draft') OR ${BOOKED_WROTE})`
     : filter === "won" ? "AND e.status = 'won'"
     : filter === "closed" ? "AND e.status IN ('lost','referred','expired')"
     : filter === "other" ? "AND e.status = 'other'"
     : filter === "all" ? "AND e.status <> 'other'"
-    : "AND e.status IN ('new','awaiting_info','quoted')";
+    : `AND (e.status IN ('new','awaiting_info','quoted') OR ${BOOKED_WROTE})`;
   const filed = countFiled(vendor.id);
   const rows = all<Enquiry & { last: string; has_draft: number }>(
     `SELECT e.*, (SELECT body FROM messages m WHERE m.enquiry_id = e.id AND m.direction = 'in' ORDER BY id DESC LIMIT 1) last,
@@ -73,6 +76,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
                   <b>{e.contact_name || e.contact_handle || `Enquiry #${e.id}`}</b>
                   <span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span>
                   {e.has_draft ? <span className="badge badge-brand">Reply ready</span> : null}
+                  {e.status === "won" && e.owner_reason?.startsWith("Message from a booked client") && <span className="badge badge-amber">Booked client wrote</span>}
                   {e.fishing_reason && <span className="badge badge-amber" title={e.fishing_reason}>Possible price-fishing</span>}
                   {d.undecided && OPEN_STATUSES.includes(e.status) && <span className="badge badge-amber">Undecided</span>}
                   {d.intent === "price_concern" && OPEN_STATUSES.includes(e.status) && <span className="badge badge-amber">Price concern</span>}

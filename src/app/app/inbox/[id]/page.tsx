@@ -82,6 +82,16 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
           <Submit className="btn btn-primary btn-sm">Move to Enquiries</Submit>
         </form>
       )}
+      {e.status === "won" && e.owner_reason?.startsWith("Message from a booked client") && (
+        <form action={outcomeAction} className="alert alert-warn row between" style={{ flexWrap: "wrap", gap: 8 }}>
+          <input type="hidden" name="enquiryId" value={e.id} />
+          <span><b>Your booked client wrote again.</b> No sales reply is drafted for a booking. Reply from your phone, or ask for a suggested reply.</span>
+          <span className="row">
+            <Submit className="btn btn-primary btn-sm" name="intent" value="reprocess" pending="Drafting…">Suggest a reply</Submit>
+            <Submit className="btn btn-ghost btn-sm" name="intent" value="handled">Mark as handled</Submit>
+          </span>
+        </form>
+      )}
       {e.status !== "other" && e.filed_reason && (
         <p className="alert alert-warn"><b>Check this:</b> {e.filed_reason}. Matchire isn&apos;t sure it&apos;s a booking enquiry, so nothing goes out on its own.</p>
       )}

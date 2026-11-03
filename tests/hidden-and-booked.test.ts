@@ -98,3 +98,11 @@ test("a booking long past doesn't capture new messages", () => {
   const { isNew } = E.ingest({ vendorId: v, channel: "whatsapp", text: "Hi again!", handle: "+65 9567 8901" });
   assert.equal(isNew, true);
 });
+
+test("a booked client's message counts as needing the vendor until it's handled or answered", () => {
+  const layout = readFileSync("src/app/app/layout.tsx", "utf8");
+  const inbox = readFileSync("src/app/app/inbox/page.tsx", "utf8");
+  assert.match(layout, /e\.status = 'won' AND e\.owner_reason LIKE 'Message from a booked client%'/, "in the 'needs you' badge");
+  assert.match(inbox, /filter === "attention" \? `AND \(EXISTS .+ OR \$\{BOOKED_WROTE\}\)`/, "in Needs you");
+  assert.match(readFileSync("src/app/app/actions.ts", "utf8"), /intent === "handled"\) run\("UPDATE enquiries SET owner_reason = NULL/);
+});

@@ -142,6 +142,7 @@ export async function outcomeAction(form: FormData) {
   else if (intent === "reopen") E.reopen(vendor.id, eid);
   else if (intent === "reprocess") await E.processEnquiry(vendor.id, eid, { force: true }); // the vendor asked: drafts even for a booked client
   else if (intent === "clear_flag") E.clearFishingFlag(vendor.id, eid);
+  else if (intent === "handled") run("UPDATE enquiries SET owner_reason = NULL WHERE id = ? AND vendor_id = ?", eid, vendor.id);
   else if (intent === "quote_sent") E.markBriefQuoted(vendor.id, eid);
   revalidatePath("/app", "layout");
   redirect(`/app/inbox/${eid}`);

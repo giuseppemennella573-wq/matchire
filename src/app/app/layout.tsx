@@ -19,7 +19,9 @@ export const dynamic = "force-dynamic";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, vendor, support } = await requireVendor();
   const attention = get<{ n: number }>(
-    `SELECT COUNT(DISTINCT e.id) n FROM enquiries e JOIN messages m ON m.enquiry_id = e.id AND m.status = 'draft' WHERE e.vendor_id = ?`,
+    // Drafts waiting, plus booked clients who wrote again (they get no draft, but need the vendor).
+    `SELECT COUNT(DISTINCT e.id) n FROM enquiries e WHERE e.vendor_id = ?
+       AND (EXISTS (SELECT 1 FROM messages m WHERE m.enquiry_id = e.id AND m.status = 'draft') OR (e.status = 'won' AND e.owner_reason LIKE 'Message from a booked client%'))`,
     vendor.id,
   )?.n ?? 0;
   const admin = isAdmin(user);
