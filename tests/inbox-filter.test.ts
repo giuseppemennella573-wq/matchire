@@ -114,3 +114,40 @@ test("rules mode (no AI) never files anything", async () => {
     process.env.ANTHROPIC_API_KEY = "test-key";
   }
 });
+
+// ---------- Step 5: learning from the vendor's corrections ----------
+
+test("after 'Move to Enquiries', the same contact's next conversation is never filed", async () => {
+  verdict = { relevance: "not_enquiry", relevance_reason: "Looks personal" };
+  const first = await msg("hey it's me Ben");
+  await E.keepAsEnquiry(v, first.id);
+  // A new conversation later (the first one closed), still judged "personal" by the AI.
+  run("UPDATE enquiries SET status = 'lost' WHERE id = ?", first.id);
+  const { enquiryId } = E.ingest({ vendorId: v, channel: "whatsapp", text: "yo, quick question", handle: first.handle });
+  assert.notEqual(enquiryId, first.id);
+  await E.processEnquiry(v, enquiryId);
+  assert.notEqual(E.getEnquiry(v, enquiryId)!.status, "other", "an 'always a client' contact");
+});
+
+test("'Not an enquiry' files it with no draft and stops follow-ups; refused once a reply went out", async () => {
+  verdict = { relevance: "enquiry", relevance_reason: null };
+  const r = await msg("Hi, do you have a catalogue?");
+  run("UPDATE enquiries SET next_followup_at = '2099-01-01T00:00:00Z' WHERE id = ?", r.id);
+  E.markNotEnquiry(v, r.id);
+  const e = E.getEnquiry(v, r.id)!;
+  assert.deepEqual([e.status, e.filed_reason, e.next_followup_at], ["other", "You marked it as not an enquiry", null]);
+  assert.equal(E.pendingDraft(r.id), undefined);
+
+  const answered = await msg("Hi, booth for 12 Dec?");
+  await E.markDraftSentManually(v, answered.draft!.id);
+  assert.throws(() => E.markNotEnquiry(v, answered.id), /already replied/);
+});
+
+test("contact rules belong to one vendor only", async () => {
+  const C = await import("../src/lib/contacts.ts");
+  const other = createAccount({ email: "z@x.sg", password: "password1", name: "Z", business: "Z Co", kind: "photobooth" }).vendorId;
+  C.setRule(v, "+65 9700 0001", "always");
+  assert.equal(C.isAlwaysEnquiry(v, "+6597000001"), true);
+  assert.equal(C.isAlwaysEnquiry(other, "+6597000001"), false);
+  assert.deepEqual(C.listRules(other, "always"), []);
+});

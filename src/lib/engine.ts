@@ -297,6 +297,9 @@ export function fileAsOther(input: IngestInput & { reason: string }): { enquiryI
 export async function keepAsEnquiry(vendorId: number, enquiryId: number) {
   const e = getEnquiry(vendorId, enquiryId);
   if (!e) throw new Error("Enquiry not found");
+  // And from now on, this contact is always treated as a client.
+  const contact = e.contact_handle || e.contact_email;
+  if (contactKey(contact)) setRule(vendorId, contact!, "always");
   run("UPDATE enquiries SET kept = 1, filed_reason = NULL, status = CASE WHEN status = 'other' THEN 'new' ELSE status END, updated_at = ? WHERE id = ?", nowIso(), enquiryId);
   return processEnquiry(vendorId, enquiryId);
 }
@@ -312,6 +315,21 @@ export function hideContact(vendorId: number, enquiryId: number) {
     run("UPDATE messages SET status = 'discarded' WHERE enquiry_id = ? AND status = 'draft'", enquiryId);
     run("UPDATE holds SET status = 'released' WHERE enquiry_id = ? AND status = 'active' AND kind = 'hold'", enquiryId);
     if (e.status !== "won") run("UPDATE enquiries SET status = 'other', filed_reason = 'Hidden contact', next_followup_at = NULL, owner_reason = NULL, updated_at = ? WHERE id = ?", nowIso(), enquiryId);
+  });
+}
+
+/** The vendor says it isn't an enquiry: filed under Other, drafts dropped, follow-ups stopped. Only before any reply went out. */
+export function markNotEnquiry(vendorId: number, enquiryId: number) {
+  const e = getEnquiry(vendorId, enquiryId);
+  if (!e) throw new Error("Enquiry not found");
+  if (get("SELECT 1 FROM messages WHERE enquiry_id = ? AND direction = 'out' AND status IN ('sent','manual')", enquiryId)) throw new Error("You've already replied to this one, so it stays an enquiry. Mark it lost instead.");
+  tx(() => {
+    run("UPDATE messages SET status = 'discarded' WHERE enquiry_id = ? AND status = 'draft'", enquiryId);
+    run("UPDATE holds SET status = 'released' WHERE enquiry_id = ? AND status = 'active' AND kind = 'hold'", enquiryId);
+    run("UPDATE enquiries SET status = 'other', filed_reason = 'You marked it as not an enquiry', kept = 0, next_followup_at = NULL, owner_reason = NULL, updated_at = ? WHERE id = ?", nowIso(), enquiryId);
+    // If they were marked "always a client", that no longer holds.
+    const key = contactKey(e.contact_handle || e.contact_email);
+    if (key) run("DELETE FROM contact_rules WHERE vendor_id = ? AND contact_key = ? AND kind = 'always'", vendorId, key);
   });
 }
 

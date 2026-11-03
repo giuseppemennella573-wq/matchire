@@ -7,7 +7,7 @@ import * as E from "@/lib/engine";
 import { fmtMoney } from "@/lib/pricing";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { CHANNEL_LABEL, STATUS_LABEL, type Hold, type Vendor } from "@/lib/types";
-import { deleteEnquiryAction, draftAction, hideContactAction, keepAsEnquiryAction, noteAction, outcomeAction, plannerReplyAction, referAction, releaseHoldAction } from "../../actions";
+import { deleteEnquiryAction, draftAction, hideContactAction, keepAsEnquiryAction, notEnquiryAction, noteAction, outcomeAction, plannerReplyAction, referAction, releaseHoldAction } from "../../actions";
 import { CopyButton } from "@/components/copy-button";
 import { briefText, type Brief } from "@/lib/brief";
 import { Submit } from "@/components/submit";
@@ -300,6 +300,17 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
             </form>
           </section>
 
+          {e.status !== "other" && e.status !== "won" && !messages.some((m) => m.direction === "out" && (m.status === "sent" || m.status === "manual")) && (
+            <section className="card stack">
+              <h2>Not an enquiry?</h2>
+              <p className="small muted">Move it to Other: no reply is drafted or sent, and it isn&apos;t counted.</p>
+              <form action={notEnquiryAction} className="stack">
+                <input type="hidden" name="enquiryId" value={e.id} />
+                {(e.contact_handle || e.contact_email) && <label className="check small"><input type="checkbox" name="hide" /><span>…and never show messages from this number again</span></label>}
+                <div><Submit className="btn btn-ghost btn-sm">Not an enquiry</Submit></div>
+              </form>
+            </section>
+          )}
           {(e.contact_handle || e.contact_email) && e.status !== "won" && (
             <section className="card stack">
               <h2>Not a client?</h2>

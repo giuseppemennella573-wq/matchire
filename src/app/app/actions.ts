@@ -107,6 +107,25 @@ export async function unhideContactAction(form: FormData) {
   back("/app/settings?tab=channels", "Removed. Their messages come to Matchire again.");
 }
 
+export async function notEnquiryAction(form: FormData) {
+  const { vendor } = await requireVendorForAction();
+  const eid = id(form, "enquiryId");
+  try {
+    E.markNotEnquiry(vendor.id, eid);
+    if (form.get("hide") === "on") E.hideContact(vendor.id, eid);
+  } catch (e) {
+    if (isRedirect(e)) throw e;
+    back(`/app/inbox/${eid}`, errMsg(e), "error");
+  }
+  back("/app/inbox", form.get("hide") === "on" ? "Moved to Other, and this contact is hidden from now on." : "Moved to Other. No reply will be drafted or sent.");
+}
+
+export async function forgetContactRuleAction(form: FormData) {
+  const { vendor } = await requireVendorForAction();
+  C.removeRule(vendor.id, id(form, "ruleId"));
+  back("/app/settings?tab=channels", "Removed. Matchire judges their messages like anyone else's again.");
+}
+
 export async function keepAsEnquiryAction(form: FormData) {
   const { vendor } = await requireVendorForAction();
   const eid = id(form, "enquiryId");

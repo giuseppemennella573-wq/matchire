@@ -14,7 +14,7 @@ import { styleExampleCount } from "@/lib/style";
 import { listEquipment } from "@/lib/equipment";
 import { listRules } from "@/lib/contacts";
 import { dayCap } from "@/lib/engine";
-import { changePasswordAction, requestSetupAction, rotateInboundTokenAction, saveSettingsTabAction, unhideContactAction } from "../actions";
+import { changePasswordAction, requestSetupAction, rotateInboundTokenAction, saveSettingsTabAction, unhideContactAction, forgetContactRuleAction } from "../actions";
 import { CopyButton } from "@/components/copy-button";
 
 export const metadata = { title: "Settings" };
@@ -56,6 +56,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const ch = channelView(v, { admin, appUrl: appUrl() });
   const visits = supportVisits(vendor.id);
   const hidden = listRules(vendor.id, "hidden");
+  const always = listRules(vendor.id, "always");
   const styleCount = styleExampleCount(vendor.id);
   const equipment = listEquipment(vendor.id);
   const units = equipment.reduce((s, q) => s + q.quantity, 0);
@@ -204,6 +205,20 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               </details>
             </TabForm>
           )}
+          <section className="card stack" id="always-clients">
+            <h2>Always treated as clients</h2>
+            <p className="small muted">Contacts you moved back to Enquiries. Matchire never files their messages under Other.</p>
+            {always.length === 0 ? <p className="small">None yet.</p> : (
+              <ul className="day-list">
+                {always.map((r) => (
+                  <li key={r.id} className="row between">
+                    <span className="mono">{r.display}</span>
+                    <form action={forgetContactRuleAction}><input type="hidden" name="ruleId" value={r.id} /><button className="btn btn-ghost btn-sm" type="submit">Remove</button></form>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
           <section className="card stack" id="hidden-contacts">
             <h2>Hidden contacts</h2>
             <p className="small muted">Numbers and email addresses you chose never to see in Matchire (friends, suppliers). Their messages still reach your phone and inbox, but Matchire doesn&apos;t store or read them; it only counts them.</p>
