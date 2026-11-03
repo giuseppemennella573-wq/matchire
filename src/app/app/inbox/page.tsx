@@ -17,10 +17,11 @@ const FILTERS = [
   { key: "won", label: "Booked" },
   { key: "closed", label: "Closed" },
   { key: "all", label: "All" },
+  { key: "other", label: "Other" },
 ] as const;
 
 const STATUS_BADGE: Record<EnquiryStatus, string> = {
-  new: "badge-brand", awaiting_info: "badge-amber", quoted: "", won: "badge-ok", lost: "", referred: "", expired: "",
+  new: "badge-brand", awaiting_info: "badge-amber", quoted: "", won: "badge-ok", lost: "", referred: "", expired: "", other: "",
 };
 
 import { clientHistory, clientNote } from "@/lib/clients";
@@ -32,7 +33,8 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
     filter === "attention" ? "AND EXISTS (SELECT 1 FROM messages d WHERE d.enquiry_id = e.id AND d.status = 'draft')"
     : filter === "won" ? "AND e.status = 'won'"
     : filter === "closed" ? "AND e.status IN ('lost','referred','expired')"
-    : filter === "all" ? ""
+    : filter === "other" ? "AND e.status = 'other'"
+    : filter === "all" ? "AND e.status <> 'other'"
     : "AND e.status IN ('new','awaiting_info','quoted')";
   const rows = all<Enquiry & { last: string; has_draft: number }>(
     `SELECT e.*, (SELECT body FROM messages m WHERE m.enquiry_id = e.id AND m.direction = 'in' ORDER BY id DESC LIMIT 1) last,
@@ -72,6 +74,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
                   {d.intent === "price_concern" && OPEN_STATUSES.includes(e.status) && <span className="badge badge-amber">Price concern</span>}
                   {regular && <span className={`badge ${regular.verified ? "badge-ok" : ""}`} title={clientNote(regular)}>{regular.bookings ? "Regular client" : "Enquired before"}</span>}
                   <span className="badge">{CHANNEL_LABEL[e.channel as Channel]}</span>
+                  {e.status === "other" && e.filed_reason && <span className="small muted">{e.filed_reason}</span>}
                 </div>
                 <p className="preview">{e.last}</p>
                 <p className="small muted">{[qualifySummary(d), q?.total ? fmtMoney(q.total) : null].filter(Boolean).join(" · ")}</p>

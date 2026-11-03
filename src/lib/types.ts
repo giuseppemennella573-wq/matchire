@@ -102,7 +102,9 @@ export type EnquiryStatus =
   | "won"
   | "lost"
   | "referred"
-  | "expired";
+  | "expired"
+  /** Not a booking enquiry (personal, newsletter, auto-reply…): filed under Other, never drafted. */
+  | "other";
 
 export const STATUS_LABEL: Record<EnquiryStatus, string> = {
   new: "New",
@@ -112,6 +114,7 @@ export const STATUS_LABEL: Record<EnquiryStatus, string> = {
   lost: "Lost",
   referred: "Referred",
   expired: "Expired",
+  other: "Other",
 };
 
 // Pipeline stage lives in `status`. Whether a drafted reply is waiting for the
@@ -228,6 +231,8 @@ export interface Enquiry {
   brief_reminded_at: string | null;
   created_at: string;
   updated_at: string;
+  /** Why it was filed under Other, or why it needs a check ("unsure"). */
+  filed_reason?: string | null;
 }
 
 export interface Message {

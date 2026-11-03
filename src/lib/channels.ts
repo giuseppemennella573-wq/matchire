@@ -87,7 +87,7 @@ export async function deliverTemplate(v: Vendor, e: Enquiry, t: WaTemplate): Pro
 /** Send a plain-text email over SMTP or Resend. Returns an error message on failure. */
 export interface Attachment { filename: string; content: Buffer; contentType: string }
 
-export async function sendRawEmail(m: { to: string; subject: string; text: string; replyTo?: string | null; attachments?: Attachment[] }): Promise<string | null> {
+export async function sendRawEmail(m: { to: string; subject: string; text: string; replyTo?: string | null; attachments?: Attachment[]; headers?: Record<string, string> }): Promise<string | null> {
   if (!emailReady()) return "Outbound email isn't configured (set SMTP_HOST, SMTP_USER and SMTP_PASS).";
   const error = await sendViaProvider(m).catch((e) => (e instanceof Error ? e.message : String(e)));
   recordEmailResult(error);
@@ -117,10 +117,10 @@ export function emailHealth(): EmailHealth {
   try { return row ? (JSON.parse(row.value) as EmailHealth) : { ok: true, error: null, since: null }; } catch { return { ok: true, error: null, since: null }; }
 }
 
-async function sendViaProvider(m: { to: string; subject: string; text: string; replyTo?: string | null; attachments?: Attachment[] }): Promise<string | null> {
+async function sendViaProvider(m: { to: string; subject: string; text: string; replyTo?: string | null; attachments?: Attachment[]; headers?: Record<string, string> }): Promise<string | null> {
   if (smtpReady()) {
     try {
-      await smtpTransport().sendMail({ from: fromAddress(), to: m.to, subject: m.subject, text: m.text, replyTo: m.replyTo ?? undefined, attachments: m.attachments });
+      await smtpTransport().sendMail({ from: fromAddress(), to: m.to, subject: m.subject, text: m.text, replyTo: m.replyTo ?? undefined, attachments: m.attachments, headers: m.headers });
       return null;
     } catch (e) {
       return `Email (SMTP) failed: ${e instanceof Error ? e.message : String(e)}`.slice(0, 400);
@@ -135,6 +135,7 @@ async function sendViaProvider(m: { to: string; subject: string; text: string; r
       subject: m.subject,
       text: m.text,
       reply_to: m.replyTo ?? undefined,
+      headers: m.headers,
       attachments: m.attachments?.map((a) => ({ filename: a.filename, content: a.content.toString("base64") })),
     }),
   });
@@ -142,8 +143,11 @@ async function sendViaProvider(m: { to: string; subject: string; text: string; r
   return `Email API ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`;
 }
 
-async function sendEmail(v: Vendor, to: string, subject: string, body: string): Promise<SendResult> {
-  const error = await sendRawEmail({ to, subject, text: body, replyTo: inboundAddress(v) });
+/** Marks an email Matchire sent on its own (auto-send, follow-ups) so other systems' auto-replies don't answer it. */
+export const AUTO_HEADERS = { "Auto-Submitted": "auto-replied" };
+
+async function sendEmail(v: Vendor, to: string, subject: string, body: string, auto = false): Promise<SendResult> {
+  const error = await sendRawEmail({ to, subject, text: body, replyTo: inboundAddress(v), headers: auto ? AUTO_HEADERS : undefined });
   return error ? { status: "failed", via: "email", error } : { status: "sent", via: "email" };
 }
 
@@ -153,7 +157,8 @@ export function inboundAddress(v: Vendor): string | null {
   return domain ? `${v.inbound_token}@${domain}` : null;
 }
 
-export async function deliver(v: Vendor, e: Enquiry, body: string): Promise<SendResult> {
+/** Send a reply. `auto`: Matchire is sending it on its own (auto-send, follow-ups), not the vendor. */
+export async function deliver(v: Vendor, e: Enquiry, body: string, auto = false): Promise<SendResult> {
   if (v.is_demo) return demoSend(v, e, e.channel);
   try {
     const phone = phoneOf(e);
@@ -164,7 +169,7 @@ export async function deliver(v: Vendor, e: Enquiry, body: string): Promise<Send
       return whatsappReady(v) ? await sendWhatsApp(v, phone, body) : { status: "manual", via: "WhatsApp", error: "WhatsApp isn't connected yet. Copy the reply and send it from your phone." };
     }
     if (e.channel === "email" || ((e.channel === "web" || e.channel === "referral") && email)) {
-      if (email && emailReady()) return await sendEmail(v, email, subject, body);
+      if (email && emailReady()) return await sendEmail(v, email, subject, body, auto);
       if (!email) return { status: "manual", via: "email", error: "No email address on this enquiry." };
       return { status: "manual", via: "email", error: "Outbound email isn't configured. Copy the reply into your inbox." };
     }

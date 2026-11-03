@@ -1,6 +1,7 @@
 import { after, type NextRequest } from "next/server";
 import { get } from "@/lib/db";
-import { ingest, processEnquiry } from "@/lib/engine";
+import { fileAsOther, ingest, processEnquiry } from "@/lib/engine";
+import { automatedReason, parseHeaders, type Headers } from "@/lib/automated";
 
 // Inbound email. Accepts the JSON shapes Postmark and Mailgun-style routes send,
 // or multipart form posts (SendGrid Inbound Parse). The token in the URL
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
   if (!vendor) return new Response("Not found", { status: 404 });
 
   let from = "", fromName = "", subject = "", text = "";
+  let headers: Headers = {};
   const type = req.headers.get("content-type") ?? "";
   if (type.includes("application/json")) {
     const b = await req.json().catch(() => ({}));
@@ -31,15 +33,23 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ token: str
     fromName = b.FromName ?? b.from_name ?? "";
     subject = b.Subject ?? b.subject ?? "";
     text = b.StrippedTextReply || b.TextBody || b["stripped-text"] || b["body-plain"] || b.text || "";
+    headers = parseHeaders(b.Headers ?? b["message-headers"] ?? b.headers);
   } else {
     const f = await req.formData();
     from = String(f.get("from") ?? f.get("sender") ?? "");
     subject = String(f.get("subject") ?? "");
     text = String(f.get("stripped-text") ?? f.get("text") ?? f.get("body-plain") ?? "");
+    headers = parseHeaders(f.get("headers") ?? f.get("message-headers") ?? "");
   }
   const sender = parseFrom(from);
   if (!sender.email) return new Response("Missing sender", { status: 400 });
   const body = stripQuoted(text);
+  // Out-of-office replies, newsletters and bounces: filed under Other, never read by the AI or answered.
+  const automated = automatedReason(headers, from, subject);
+  if (automated) {
+    const r = fileAsOther({ vendorId: vendor.id, channel: "email", text: subject ? `${subject}\n\n${body}` : body, name: fromName || sender.name, handle: sender.email, email: sender.email, reason: automated });
+    return Response.json({ ok: true, filed: automated, enquiryId: r.enquiryId });
+  }
   if (!body) return Response.json({ ok: true, ignored: "empty" });
 
   const { enquiryId } = ingest({

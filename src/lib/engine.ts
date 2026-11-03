@@ -244,6 +244,42 @@ export function ingest(input: IngestInput): { enquiryId: number; isNew: boolean 
 }
 
 /**
+ * A message that isn't a booking enquiry (an out-of-office reply, a newsletter):
+ * filed under Other with the reason, never read by the AI and never answered.
+ * An automatic reply from someone with an open enquiry becomes a short note on
+ * that enquiry (its text isn't kept), and their follow-ups carry on.
+ */
+export function fileAsOther(input: IngestInput & { reason: string }): { enquiryId: number; note: boolean } {
+  const handle = input.handle?.trim() || input.email?.trim() || null;
+  return tx(() => {
+    const now = nowIso();
+    const open = handle
+      ? get<Enquiry>(
+          `SELECT * FROM enquiries WHERE vendor_id = ? AND (contact_handle = ? OR contact_email = ?) AND status IN (${OPEN_STATUSES.map(() => "?").join(",")}, 'expired')
+           AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ','now','-60 days') ORDER BY id DESC LIMIT 1`,
+          input.vendorId, handle, handle, ...OPEN_STATUSES,
+        )
+      : undefined;
+    if (open) {
+      run("INSERT INTO messages (enquiry_id, direction, body, status, created_at) VALUES (?, 'note', ?, 'sent', ?)", open.id, `${input.reason} received (not answered).`, now);
+      return { enquiryId: open.id, note: true };
+    }
+    // The same sender's earlier filed messages collect in one thread.
+    const filed = handle
+      ? get<{ id: number }>("SELECT id FROM enquiries WHERE vendor_id = ? AND (contact_handle = ? OR contact_email = ?) AND status = 'other' ORDER BY id DESC LIMIT 1", input.vendorId, handle, handle)
+      : undefined;
+    const id = filed?.id ?? run(
+      `INSERT INTO enquiries (vendor_id, channel, contact_name, contact_handle, contact_email, status, filed_reason, last_inbound_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'other', ?, ?, ?, ?)`,
+      input.vendorId, input.channel, input.name?.trim() || null, handle, input.email?.trim() || null, input.reason, now, now, now,
+    );
+    if (filed) run("UPDATE enquiries SET filed_reason = ?, last_inbound_at = ?, updated_at = ? WHERE id = ?", input.reason, now, now, id);
+    run("INSERT INTO messages (enquiry_id, direction, body, status, created_at) VALUES (?, 'in', ?, 'sent', ?)", id, input.text.trim() || "(no text)", now);
+    return { enquiryId: id, note: false };
+  });
+}
+
+/**
  * The vendor replied to a planner from the WhatsApp Business app on their phone
  * (a coexistence number: Meta sends a copy as an smb_message_echoes webhook).
  * Their reply stands: it joins the conversation, any pending draft is dropped
@@ -404,7 +440,7 @@ function checkFishing(e: Enquiry, msgs: Message[], details: Details, items: Item
   const handle = e.contact_handle || e.contact_email;
   const recent = handle
     ? all<{ id: number; event_date: string | null }>(
-        "SELECT id, event_date FROM enquiries WHERE vendor_id = ? AND (contact_handle = ? OR contact_email = ?) AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days')",
+        "SELECT id, event_date FROM enquiries WHERE vendor_id = ? AND (contact_handle = ? OR contact_email = ?) AND status <> 'other' AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ','now','-30 days')",
         e.vendor_id, handle, handle,
       ).map((r) => (r.id === e.id ? details.event_date : r.event_date))
     : [];
@@ -700,7 +736,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   if (draftId === null) return { enquiryId, draftId, autoSent: false, ownerReason: null, usedAI };
   let autoSent = false;
   if (vendor.auto_send && !needsOwner) {
-    const r = await sendDraft(vendorId, draftId);
+    const r = await sendDraft(vendorId, draftId, { auto: true });
     autoSent = r.status === "sent";
   }
   return { enquiryId, draftId, autoSent, ownerReason: needsOwner ? reasons.join(" ") : null, usedAI };
@@ -708,7 +744,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
 
 // ---------- Sending ----------
 
-export async function sendDraft(vendorId: number, messageId: number, opts: { body?: string; markBooked?: boolean; now?: string } = {}) {
+/** Send a draft. `auto`: Matchire sends it on its own (auto-send, follow-ups); such emails are marked as automatic. */
+export async function sendDraft(vendorId: number, messageId: number, opts: { body?: string; markBooked?: boolean; now?: string; auto?: boolean } = {}) {
   const m = get<Message & { vendor_id: number }>(
     "SELECT m.*, e.vendor_id FROM messages m JOIN enquiries e ON e.id = m.enquiry_id WHERE m.id = ?",
     messageId,
@@ -742,7 +779,7 @@ export async function sendDraft(vendorId: number, messageId: number, opts: { bod
       return { status: "manual", via: "WhatsApp", error: blocked } satisfies SendResult;
     }
   }
-  const result = template ? await deliverTemplate(vendor, e, template) : await deliver(vendor, e, body);
+  const result = template ? await deliverTemplate(vendor, e, template) : await deliver(vendor, e, body, !!opts.auto);
 
   if (result.status === "manual") {
     // Nothing went out. Keep the draft (with any edits) so the vendor can copy it and confirm.
@@ -1166,7 +1203,7 @@ export async function tick(now: string = nowIso()) {
       followups++;
       const blocked = route.kind === "closed" ? route.reason : template ? templateBlocked(vendor, e, template) : null;
       if (blocked) run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", blocked, e.id);
-      else if (vendor.auto_send && !e.fishing_reason) await sendDraft(vendor.id, id, { now }).catch(() => null);
+      else if (vendor.auto_send && !e.fishing_reason) await sendDraft(vendor.id, id, { now, auto: true }).catch(() => null);
       else if (e.fishing_reason) run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", `Possible price-fishing: ${e.fishing_reason}. Check this follow-up before it goes out.`, e.id);
       else run("UPDATE enquiries SET owner_reason = ? WHERE id = ?", purpose === "followup" ? "Follow-up ready: the planner hasn't replied." : "Last call before the hold expires.", e.id);
     }
@@ -1195,7 +1232,8 @@ export async function tick(now: string = nowIso()) {
 
 export function stats(vendorId: number, days = 30) {
   const since = `-${days} days`;
-  const rows = all<Enquiry>("SELECT * FROM enquiries WHERE vendor_id = ? AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ','now', ?)", vendorId, since);
+  // Messages filed under Other (not enquiries) don't count.
+  const rows = all<Enquiry>("SELECT * FROM enquiries WHERE vendor_id = ? AND status <> 'other' AND created_at > strftime('%Y-%m-%dT%H:%M:%fZ','now', ?)", vendorId, since);
   const responseMins = rows
     .filter((e) => e.first_response_at)
     .map((e) => (new Date(e.first_response_at!).getTime() - new Date(e.created_at).getTime()) / 60000)

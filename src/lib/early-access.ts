@@ -95,7 +95,7 @@ export interface Account {
 export const listAccounts = () =>
   all<Account>(
     `SELECT u.id, u.email, u.name, v.name business, v.kind, u.created_at, u.admin_contacted_at, v.is_demo, u.vendor_id,
-            (SELECT COUNT(*) FROM enquiries e WHERE e.vendor_id = v.id) enquiries,
+            (SELECT COUNT(*) FROM enquiries e WHERE e.vendor_id = v.id AND e.status <> 'other') enquiries,
             (SELECT COUNT(*) FROM items i WHERE i.vendor_id = v.id AND i.active = 1) live_items
      FROM users u JOIN vendors v ON v.id = u.vendor_id ORDER BY u.id DESC`,
   );
