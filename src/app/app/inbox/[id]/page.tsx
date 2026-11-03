@@ -7,7 +7,7 @@ import * as E from "@/lib/engine";
 import { fmtMoney } from "@/lib/pricing";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { CHANNEL_LABEL, STATUS_LABEL, type Hold, type Vendor } from "@/lib/types";
-import { deleteEnquiryAction, draftAction, noteAction, outcomeAction, plannerReplyAction, referAction, releaseHoldAction } from "../../actions";
+import { deleteEnquiryAction, draftAction, keepAsEnquiryAction, noteAction, outcomeAction, plannerReplyAction, referAction, releaseHoldAction } from "../../actions";
 import { CopyButton } from "@/components/copy-button";
 import { briefText, type Brief } from "@/lib/brief";
 import { Submit } from "@/components/submit";
@@ -75,6 +75,16 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
       </div>
       {msg && <p className="alert alert-ok" role="status">{msg}</p>}
       {error && <p className="alert alert-err" role="alert">{error}</p>}
+      {e.status === "other" && (
+        <form action={keepAsEnquiryAction} className="alert alert-warn row between" style={{ flexWrap: "wrap", gap: 8 }}>
+          <input type="hidden" name="enquiryId" value={e.id} />
+          <span><b>Filed under Other:</b> {e.filed_reason || "Not a booking enquiry"}. No reply is drafted and nothing is sent.</span>
+          <Submit className="btn btn-primary btn-sm">Move to Enquiries</Submit>
+        </form>
+      )}
+      {e.status !== "other" && e.filed_reason && (
+        <p className="alert alert-warn"><b>Check this:</b> {e.filed_reason}. Matchire isn&apos;t sure it&apos;s a booking enquiry, so nothing goes out on its own.</p>
+      )}
       {regular && (
         <div className="alert alert-ok regular-client">
           <b>{regular.bookings ? "Regular client" : "Enquired before"}:</b> {clientNote(regular)}.{" "}

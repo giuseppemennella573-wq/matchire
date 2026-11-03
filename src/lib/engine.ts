@@ -215,7 +215,8 @@ export function ingest(input: IngestInput): { enquiryId: number; isNew: boolean 
   const handle = input.handle?.trim() || input.email?.trim() || null;
   return tx(() => {
     // Expired quotes count as open: a planner replying after the hold lapsed is the same conversation.
-    const joinable = [...OPEN_STATUSES, "expired"];
+    // A contact's messages filed under Other collect in one thread, and are read again with each new one.
+    const joinable = [...OPEN_STATUSES, "expired", "other"];
     const open = handle && !input.referredFrom
       ? get<Enquiry>(
           `SELECT * FROM enquiries WHERE vendor_id = ? AND (contact_handle = ? OR contact_email = ?) AND status IN (${joinable.map(() => "?").join(",")})
@@ -278,6 +279,18 @@ export function fileAsOther(input: IngestInput & { reason: string }): { enquiryI
     return { enquiryId: id, note: false };
   });
 }
+
+/** The vendor says it's an enquiry after all: back to the inbox, never filed again, read and drafted as usual. */
+export async function keepAsEnquiry(vendorId: number, enquiryId: number) {
+  const e = getEnquiry(vendorId, enquiryId);
+  if (!e) throw new Error("Enquiry not found");
+  run("UPDATE enquiries SET kept = 1, filed_reason = NULL, status = CASE WHEN status = 'other' THEN 'new' ELSE status END, updated_at = ? WHERE id = ?", nowIso(), enquiryId);
+  return processEnquiry(vendorId, enquiryId);
+}
+
+/** Messages filed under Other in the last `days` days, for the inbox line. */
+export const countFiled = (vendorId: number, days = 7) =>
+  get<{ n: number }>("SELECT COUNT(*) n FROM enquiries WHERE vendor_id = ? AND status = 'other' AND updated_at > strftime('%Y-%m-%dT%H:%M:%fZ','now', ?)", vendorId, `-${days} days`)!.n;
 
 /**
  * The vendor replied to a planner from the WhatsApp Business app on their phone
@@ -522,9 +535,11 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   let usedAI = false;
   let details: Details;
   let aiError: string | null = null;
+  let relevance: { kind: NonNullable<Details["relevance"]>; reason: string | null } | null = null;
   if (aiEnabled()) {
     try {
       details = await aiExtract({ vendor, items, messages: msgs, previous: prev, today, enquiryId });
+      relevance = { kind: details.relevance ?? "enquiry", reason: details.relevance_reason?.trim() || null };
       details = mergeDetails(prev, details);
       usedAI = true;
     } catch (err) {
@@ -554,6 +569,29 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
   if (isFirst) details.intent = "new_enquiry";
   if (!details.contact_name && e.contact_name) details.contact_name = e.contact_name.split(" ")[0];
 
+  // Is this a booking enquiry at all? Only the AI decides, only where anyone can write to the vendor, and never once
+  // the vendor has engaged (a reply sent, a hold) or said it's an enquiry. In doubt, it stays in the inbox.
+  const engaged = msgs.some((m) => m.direction === "out" && (m.status === "sent" || m.status === "manual"))
+    || !!get("SELECT 1 FROM holds WHERE enquiry_id = ? AND status = 'active'", enquiryId) || e.status === "won";
+  const fileable = !!relevance && ["whatsapp", "email", "instagram"].includes(e.channel) && !e.referred_from && !engaged && !e.kept;
+  if (fileable && relevance!.kind === "not_enquiry") {
+    const reason = relevance!.reason || "Not a booking enquiry";
+    tx(() => {
+      run("UPDATE messages SET status = 'discarded' WHERE enquiry_id = ? AND status = 'draft'", enquiryId);
+      run("UPDATE enquiries SET status = 'other', filed_reason = ?, details = ?, next_followup_at = NULL, owner_reason = NULL, updated_at = ? WHERE id = ?",
+        reason, JSON.stringify(details), nowIso(), enquiryId);
+    });
+    return { enquiryId, draftId: null, autoSent: false, ownerReason: null, usedAI };
+  }
+  // A filed conversation that now reads as an enquiry (or can't be judged) comes back to the inbox.
+  if (e.status === "other") {
+    run("UPDATE enquiries SET status = 'new', filed_reason = NULL WHERE id = ?", enquiryId);
+    e.status = "new";
+  }
+  const unsure = fileable && relevance!.kind === "unsure" ? relevance!.reason || "It may not be about a booking" : null;
+  run("UPDATE enquiries SET filed_reason = ? WHERE id = ?", unsure, enquiryId);
+  e.filed_reason = unsure;
+
   const fishing = e.fishing_reason ?? (e.fishing_cleared ? null : checkFishing(e, msgs, details, items, today));
 
   const pkg = items.find((i) => i.id === details.package_id && i.active) ?? null;
@@ -574,6 +612,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number): Promi
 
   let purpose: DraftFacts["purpose"] = "quote";
   const reasons: string[] = [];
+  if (unsure) reasons.push(`Check this: ${unsure}. Matchire isn't sure this is a booking enquiry, so nothing goes out on its own.`);
   if (details.intent === "declines") purpose = "answer";
   else if (details.intent === "accepts_quote" && !isFirst && (e.status === "quoted" || e.status === "expired")) { purpose = "confirm"; reasons.push("Planner wants to book: confirm the deposit and booking."); }
   else if (details.intent === "soft_decline" && !isFirst) {

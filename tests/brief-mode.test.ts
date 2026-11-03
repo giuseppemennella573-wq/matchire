@@ -32,7 +32,7 @@ globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
   prompts.push(req);
   if (req.system.includes("extract booking details")) {
     const d = parseEnquiry(req.messages[0].content.split("<conversation>")[1] ?? "", E.getItems(itemsFor), sgToday());
-    return Response.json(MESSAGE({ ...d, intent: "new_enquiry" }));
+    return Response.json(MESSAGE({ ...d, intent: "new_enquiry", relevance: "enquiry", relevance_reason: null }));
   }
   return Response.json(MESSAGE({ reply: "Lovely! Weddings like this usually run SGD 2,000 to 3,000.", needs_owner: false, owner_reason: null }));
 }) as typeof fetch;

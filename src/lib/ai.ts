@@ -116,6 +116,9 @@ const DetailsSchema = z.object({
   intent: z.enum(["new_enquiry", "accepts_quote", "question", "declines", "soft_decline", "undecided", "price_concern", "other"])
     .describe("What the planner's latest message is doing. declines: only a clear refusal of the whole booking (went with someone else, no longer needed, not interested). soft_decline: 'no thanks', 'cancel', 'we'll pass', which may be about one item. undecided: hesitating ('not sure yet', 'let me check with my partner') with no new details and no question. price_concern: 'too expensive', 'over budget'."),
   summary: z.string().nullable().describe("One-line summary, e.g. '21st birthday, 80 pax, Sat 15 Nov evening'"),
+  relevance: z.enum(["enquiry", "not_enquiry", "unsure"])
+    .describe("Is this conversation about booking or asking about the vendor's services (or an existing booking)? enquiry: yes. not_enquiry: clearly not, e.g. a personal chat, a supplier or another business selling something, spam, a job application, a wrong number. unsure: anything you can't tell. When in doubt, enquiry or unsure, never not_enquiry."),
+  relevance_reason: z.string().nullable().describe("If not_enquiry or unsure: a few words for the vendor, e.g. 'Personal message', 'A supplier's invoice', 'Spam'. Otherwise null."),
 });
 
 export async function aiExtract(args: {

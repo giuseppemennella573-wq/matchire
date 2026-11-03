@@ -93,6 +93,13 @@ export async function draftAction(form: FormData) {
   redirect(path);
 }
 
+export async function keepAsEnquiryAction(form: FormData) {
+  const { vendor } = await requireVendorForAction();
+  const eid = id(form, "enquiryId");
+  await E.keepAsEnquiry(vendor.id, eid);
+  back(`/app/inbox/${eid}`, "Moved to Enquiries. Matchire has read it and drafted a reply.");
+}
+
 export async function outcomeAction(form: FormData) {
   const { vendor } = await requireVendorForAction();
   const eid = id(form, "enquiryId");

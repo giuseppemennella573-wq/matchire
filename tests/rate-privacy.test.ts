@@ -32,7 +32,7 @@ globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
   if (req.system.includes("extract booking details")) {
     // Read the conversation with the built-in parser so the flow continues as it would with Claude.
     const d = parseEnquiry(convo, E.getItems(req.system.includes("Snapbox SG") ? booth : kitchen), sgToday());
-    return Response.json(MESSAGE({ ...d, intent: "new_enquiry" }));
+    return Response.json(MESSAGE({ ...d, intent: "new_enquiry", relevance: "enquiry", relevance_reason: null }));
   }
   return Response.json(MESSAGE({ reply: "Thanks! Here's your quote.", needs_owner: false, owner_reason: null }));
 }) as typeof fetch;

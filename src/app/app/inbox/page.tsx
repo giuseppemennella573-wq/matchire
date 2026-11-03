@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireVendor } from "@/lib/auth";
 import { all } from "@/lib/db";
-import { parseDetails, parseQuote } from "@/lib/engine";
+import { countFiled, parseDetails, parseQuote } from "@/lib/engine";
 import { qualifySummary } from "@/lib/qualify";
 import { fmtMoney } from "@/lib/pricing";
 import { formatDateTime } from "@/lib/dates";
@@ -36,6 +36,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
     : filter === "other" ? "AND e.status = 'other'"
     : filter === "all" ? "AND e.status <> 'other'"
     : "AND e.status IN ('new','awaiting_info','quoted')";
+  const filed = countFiled(vendor.id);
   const rows = all<Enquiry & { last: string; has_draft: number }>(
     `SELECT e.*, (SELECT body FROM messages m WHERE m.enquiry_id = e.id AND m.direction = 'in' ORDER BY id DESC LIMIT 1) last,
             EXISTS (SELECT 1 FROM messages d WHERE d.enquiry_id = e.id AND d.status = 'draft') has_draft
@@ -53,6 +54,9 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
       </div>
       {msg && <p className="alert alert-ok" role="status">{msg}</p>}
       {error && <p className="alert alert-err" role="alert">{error}</p>}
+      {filter !== "other" && filed > 0 && (
+        <p className="small muted">{filed} message{filed === 1 ? "" : "s"} filed under Other this week (not booking enquiries, so no replies). <Link href="/app/inbox?filter=other">Review</Link></p>
+      )}
 
       <section className="card card-flush">
         {rows.length === 0 ? (
@@ -75,6 +79,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
                   {regular && <span className={`badge ${regular.verified ? "badge-ok" : ""}`} title={clientNote(regular)}>{regular.bookings ? "Regular client" : "Enquired before"}</span>}
                   <span className="badge">{CHANNEL_LABEL[e.channel as Channel]}</span>
                   {e.status === "other" && e.filed_reason && <span className="small muted">{e.filed_reason}</span>}
+                  {e.status !== "other" && e.filed_reason && <span className="badge badge-amber" title={e.filed_reason}>Check this</span>}
                 </div>
                 <p className="preview">{e.last}</p>
                 <p className="small muted">{[qualifySummary(d), q?.total ? fmtMoney(q.total) : null].filter(Boolean).join(" · ")}</p>

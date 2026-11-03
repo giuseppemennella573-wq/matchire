@@ -132,6 +132,9 @@ export type Intent = "new_enquiry" | "accepts_quote" | "question" | "declines" |
 
 /** What Matchire understood from the conversation so far. */
 export interface Details {
+  /** Is the conversation a booking enquiry at all? Set by the AI reader only. */
+  relevance?: "enquiry" | "not_enquiry" | "unsure";
+  relevance_reason?: string | null;
   contact_name: string | null;
   event_date: string | null; // YYYY-MM-DD, Singapore time
   date_text: string | null;
@@ -233,6 +236,8 @@ export interface Enquiry {
   updated_at: string;
   /** Why it was filed under Other, or why it needs a check ("unsure"). */
   filed_reason?: string | null;
+  /** The vendor said this is an enquiry: Matchire never files it under Other. */
+  kept?: number;
 }
 
 export interface Message {
