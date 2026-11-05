@@ -118,3 +118,42 @@ export function resolveDate(text: string, today: string = sgToday()): { date: st
   }
   return { date: null, text: null, approximate: false };
 }
+
+const MONTH_RE = "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?";
+const DAY_RE = "mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:rs(?:day)?)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?";
+
+/**
+ * The planner wrote a weekday that doesn't match the date ("Sat 15 Nov" when the
+ * 15th is a Sunday). Returns both readings, earlier first, as YYYY-MM-DD: the
+ * nearest date with the weekday they wrote, and the date they wrote. `iso` is
+ * the date that was read from the message; null if the text doesn't name a
+ * date near it with a weekday, or the weekday is right.
+ */
+export function weekdayMismatch(text: string, iso: string): { options: [string, string] } | null {
+  const low = text.toLowerCase();
+  const patterns = [
+    // "Sat 15 Nov", "Saturday, 15th of November"
+    new RegExp(`\\b(${DAY_RE})\\.?,?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:\\s+of)?\\s+(${MONTH_RE})\\b`, "g"),
+    // "15 Nov (Sat)", "15th November, Saturday"
+    new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?(?:\\s+of)?\\s+(${MONTH_RE})\\b,?\\s*\\(?(${DAY_RE})\\b`, "g"),
+    // "Saturday, November 15"
+    new RegExp(`\\b(${DAY_RE})\\.?,?\\s+(${MONTH_RE})\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b`, "g"),
+  ];
+  for (const [n, re] of patterns.entries()) {
+    for (const m of low.matchAll(re)) {
+      const [wd, d, mo] = n === 0 ? [m[1], m[2], m[3]] : n === 1 ? [m[3], m[1], m[2]] : [m[1], m[3], m[2]];
+      // The date as written, in the event's year. It must be near the date that was read: the reader may already
+      // have "corrected" it to the weekday (read Sat 14 for "Sat 15 Nov"), which still needs the planner to confirm.
+      const mi = MONTHS.indexOf(mo.slice(0, 3));
+      const written = `${iso.slice(0, 4)}-${String(mi + 1).padStart(2, "0")}-${String(Number(d)).padStart(2, "0")}`;
+      if (mi < 0 || !isValidIsoDate(written) || Math.abs(Date.parse(written) - Date.parse(iso)) > 3 * 86400_000) continue;
+      const stated = DOW.indexOf(wd.slice(0, 3));
+      if (stated < 0 || stated === dayOfWeek(written)) continue;
+      // The nearest date with the weekday they wrote (within 3 days either side).
+      const shift = [1, -1, 2, -2, 3, -3].find((k) => dayOfWeek(addDays(written, k)) === stated)!;
+      const other = addDays(written, shift);
+      return { options: other < written ? [other, written] : [written, other] };
+    }
+  }
+  return null;
+}

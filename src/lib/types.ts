@@ -149,6 +149,10 @@ export interface Details {
   style?: string | null;
   /** Free dates we offered when the requested one was booked (YYYY-MM-DD). */
   alternatives?: string[];
+  /** The weekday and date the planner wrote don't match ("Sat 15 Nov" on a Sunday): ask which one before anything else. */
+  date_to_confirm?: boolean;
+  /** The date the planner confirmed after that question; it stands until they give a new one. */
+  date_confirmed?: string | null;
   package_id: number | null;
   addon_ids: number[];
   needs: string[];

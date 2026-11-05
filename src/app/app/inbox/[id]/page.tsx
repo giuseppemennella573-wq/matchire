@@ -66,6 +66,7 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
             <span className="badge">{STATUS_LABEL[e.status]}</span>
             {e.lead && <span className="badge"><span className={`dot dot-${e.lead}`} /> {e.lead === "hot" ? "Hot lead" : e.lead === "warm" ? "Needs info" : "Unlikely"}</span>}
             {e.fishing_reason && <span className="badge badge-amber">Possible price-fishing</span>}
+            {open && d.date_to_confirm && <span className="badge badge-amber">Needs date confirmed</span>}
             {open && d.undecided && <span className="badge badge-amber">Undecided</span>}
             {open && d.intent === "price_concern" && <span className="badge badge-amber">Price concern</span>}
             {e.contact_handle && <span className="muted">{e.contact_handle}</span>}

@@ -166,7 +166,7 @@ const ReplySchema = z.object({
 });
 
 export interface DraftFacts {
-  purpose: "qualify" | "brief" | "undecided" | "price_concern" | "quote" | "ask_info" | "answer" | "confirm" | "unavailable" | "over_capacity" | "referred" | "followup" | "last_call";
+  purpose: "qualify" | "brief" | "undecided" | "price_concern" | "quote" | "ask_info" | "answer" | "confirm" | "unavailable" | "over_capacity" | "referred" | "followup" | "last_call" | "confirm_date";
   details: Details;
   quote: Quote | null;
   available: boolean | null;

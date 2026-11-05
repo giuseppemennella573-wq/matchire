@@ -8,7 +8,7 @@ import { sameText, styleExamples } from "./style.ts";
 import { listEquipment } from "./equipment.ts";
 import { contactKey, isAlwaysEnquiry, setRule } from "./contacts.ts";
 import { clientHistory, returningForDraft } from "./clients.ts";
-import { addDays, dayOfWeek, formatDate, formatDateTime, sgToday } from "./dates.ts";
+import { addDays, dayOfWeek, formatDate, formatDateTime, resolveDate, sgToday, weekdayMismatch } from "./dates.ts";
 import { deliver, deliverTemplate, sendRawEmail, viaWhatsAppApi, type SendResult, type WaTemplate } from "./channels.ts";
 import { maybeDailyBackup } from "./backup.ts";
 import { asksPrice, qualification, qualifyQuestion, requiredFields } from "./qualify.ts";
@@ -415,6 +415,11 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
   const when = d.event_date ? `${formatDate(d.event_date)}${d.slot && d.slot !== "full_day" ? ` ${d.slot}` : ""}` : "";
   const ask = f.missing.length ? `\n\nCould you share ${f.missing.join(" and ")}? Then I'll confirm availability.` : "";
   switch (f.purpose) {
+    case "confirm_date": {
+      // Only the question: the weekday and the date they wrote don't match.
+      const [a, b] = f.alternatives?.length ? f.alternatives : [];
+      return `${hi}Thanks for reaching out to ${vendor.name} 😊\n\nJust to check the date: did you mean ${a} or ${b}?${sign}`;
+    }
     case "over_capacity":
       return `${hi}Thanks for reaching out to ${vendor.name} 😊\n\nOur space fits up to ${vendor.capacity} guests, so ${d.pax} would be too many for us. I'd be happy to introduce a partner venue that fits your group.${sign}`;
     case "unavailable": {
@@ -630,9 +635,22 @@ export async function processEnquiry(vendorId: number, enquiryId: number, opts: 
   if (latest && details.intent === "declines" && latest.intent !== "declines") details.intent = latest.intent === "other" || latest.intent === "question" ? latest.intent : "soft_decline";
   if (latest && details.intent === "undecided" && latest.intent !== "undecided") details.intent = latest.intent;
   // "Sunday works": the planner took one of the dates we offered.
+  let picked: string | null = null;
   if (!isFirst && prev?.alternatives?.length && inbound.length) {
-    const pick = pickAlternative(inbound[inbound.length - 1].body, prev.alternatives);
-    if (pick) Object.assign(details, { event_date: pick, date_text: formatDate(pick), date_is_approximate: false, alternatives: [] });
+    picked = pickAlternative(inbound[inbound.length - 1].body, prev.alternatives);
+    if (picked) Object.assign(details, { event_date: picked, date_text: formatDate(picked), date_is_approximate: false, alternatives: [] });
+  }
+  // "Sat 15 Nov" when the 15th is a Sunday: ask which they mean, and claim nothing (no availability, price or hold)
+  // until they say. Their answer ("Saturday", "the 14th") is then the date, until they give a new one.
+  details.date_to_confirm = false;
+  if (picked && prev?.date_to_confirm) details.date_confirmed = picked;
+  const latestText = inbound.at(-1)?.body ?? "";
+  if (!picked && prev?.date_confirmed && !resolveDate(latestText, today).date) details.event_date = prev.date_confirmed;
+  if (details.event_date && !picked) {
+    // Once confirmed, only a new message can raise the question again.
+    const toCheck = prev?.date_confirmed ? [latestText] : inbound.map((m) => m.body);
+    const mismatch = toCheck.map((t) => weekdayMismatch(t, details.event_date!)).find(Boolean);
+    if (mismatch) Object.assign(details, { event_date: null, date_text: null, alternatives: mismatch.options, date_to_confirm: true, date_confirmed: null });
   }
   if (isFirst) details.intent = "new_enquiry";
   if (!details.contact_name && e.contact_name) details.contact_name = e.contact_name.split(" ")[0];
@@ -682,7 +700,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number, opts: 
   let purpose: DraftFacts["purpose"] = "quote";
   const reasons: string[] = [];
   if (unsure) reasons.push(`Check this: ${unsure}. Matchire isn't sure this is a booking enquiry, so nothing goes out on its own.`);
-  if (details.intent === "declines") purpose = "answer";
+  if (details.date_to_confirm) purpose = "confirm_date";
+  else if (details.intent === "declines") purpose = "answer";
   else if (details.intent === "accepts_quote" && !isFirst && (e.status === "quoted" || e.status === "expired")) { purpose = "confirm"; reasons.push("Planner wants to book: confirm the deposit and booking."); }
   else if (details.intent === "soft_decline" && !isFirst) {
     purpose = "answer";
@@ -767,7 +786,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number, opts: 
     briefHours: vendor.brief_hours,
     cheaperText: priceOptions.cheaper?.text ?? null,
     offpeakText: priceOptions.offpeak?.text ?? null,
-    alternatives: alternatives.length ? [formatDateChoice(alternatives)] : [],
+    alternatives: purpose === "confirm_date" ? (details.alternatives ?? []).map((d) => formatDate(d).replace(",", "")) : alternatives.length ? [formatDateChoice(alternatives)] : [],
     fixedDatePartner,
     askedPrice: purpose === "qualify" && inbound.some((m) => asksPrice(m.body)),
     holdHours: willHold ? vendor.hold_hours : null,
@@ -789,7 +808,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number, opts: 
   if (aiError) reasons.push(`AI unavailable (${aiError}); drafted with the built-in template.`);
 
   let body = templateDraft(vendor, facts);
-  if (usedAI) {
+  // The date question is always the plain template: nothing in it can claim availability or a price.
+  if (usedAI && purpose !== "confirm_date") {
     try {
       // Before qualifying, the AI doesn't see the price list, and any amount at all sends it back to the template.
       const noPrices = purpose === "qualify" || briefMode;
@@ -1068,6 +1088,7 @@ function afterSend(vendor: Vendor, e: Enquiry, purpose: string, now: string, hol
     }
     case "ask_info":
     case "qualify":
+    case "confirm_date":
       run("UPDATE enquiries SET status = 'awaiting_info', followup_stage = 0, next_followup_at = ? WHERE id = ?", nudgeTime(vendor, e, now, followup), e.id);
       break;
     case "answer":

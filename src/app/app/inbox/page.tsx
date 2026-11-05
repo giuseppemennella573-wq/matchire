@@ -78,6 +78,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
                   {e.has_draft ? <span className="badge badge-brand">Reply ready</span> : null}
                   {e.status === "won" && e.owner_reason?.startsWith("Message from a booked client") && <span className="badge badge-amber">Booked client wrote</span>}
                   {e.fishing_reason && <span className="badge badge-amber" title={e.fishing_reason}>Possible price-fishing</span>}
+                  {d.date_to_confirm && OPEN_STATUSES.includes(e.status) && <span className="badge badge-amber" title="The weekday and date they wrote don't match">Needs date confirmed</span>}
                   {d.undecided && OPEN_STATUSES.includes(e.status) && <span className="badge badge-amber">Undecided</span>}
                   {d.intent === "price_concern" && OPEN_STATUSES.includes(e.status) && <span className="badge badge-amber">Price concern</span>}
                   {regular && <span className={`badge ${regular.verified ? "badge-ok" : ""}`} title={clientNote(regular)}>{regular.bookings ? "Regular client" : "Enquired before"}</span>}
