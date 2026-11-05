@@ -318,6 +318,9 @@ const COLUMNS: [table: string, column: string, definition: string][] = [
   ["messages", "promise", "TEXT"],
   ["enquiries", "promised_reason", "TEXT"],
   ["enquiries", "promised_at", "TEXT"],
+  ["vendors", "wa_matchire_waba", "INTEGER NOT NULL DEFAULT 1"],
+  ["items", "add_rule", "TEXT NOT NULL DEFAULT 'asked'"],
+  ["vendors", "terms_confirmed_at", "TEXT"],
 ];
 
 function migrate(conn: DatabaseSync) {

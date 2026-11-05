@@ -190,6 +190,8 @@ export interface DraftFacts {
   fullEquipment?: string | null;
   /** The quote is over the planner's budget: say this exactly (a real cheaper option, or the handoff sentence). */
   budgetText?: string | null;
+  /** Add-ons the vendor wants offered (not added): say this exactly. */
+  offerText?: string | null;
   /** The only promise a reply may make for the vendor; say it exactly when handing over. */
   handoff?: string;
   /** Date unavailable: nearby free dates to offer ("Fri 20 Nov"). */
@@ -231,6 +233,7 @@ Rules:
 - If purpose is "price_concern": acknowledge it kindly and offer only the options in cheaperText and offpeakText, exactly as written. Never invent a discount or a new price; if there are no options, ask what budget they have in mind.
 - If the quote has unpriced_hours, don't price that extra time: say it isn't on the price list, then the handoff sentence, and set needs_owner.
 - If budgetText is given, include it exactly.
+- If offerText is given, include it exactly (those extras aren't in the quote; never add them to the total).
 - Partners: if partnerSuggestions is not empty, you may suggest them by name and category. Mention a partner's price only when its from_price is given, exactly as written; otherwise say they can quote the planner directly. You know nothing else about partners' prices.
 - If returningClient is true, greet them warmly as a returning client ("great to hear from you again"). You know nothing about their past bookings: never mention one, or any past price or date.
 - If the facts list missing details, ask for them in one friendly line.

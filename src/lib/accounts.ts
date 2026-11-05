@@ -42,7 +42,7 @@ export const SAMPLE_PRICES: Partial<Record<VendorKind, { items: SampleItem[]; ve
       pkg("Classic booth", "flat", 450, { included_hours: 2, extra_hour_price: 120, description: "Unlimited 4R prints, props, attendant, digital gallery" }),
       pkg("360 booth", "flat", 650, { included_hours: 2, extra_hour_price: 180, description: "Slow-motion 360 video booth with instant sharing" }),
       addon("Custom print frame", "flat", 80, { description: "Custom frame or logo design" }),
-      addon("Setup & transport", "flat", 60),
+      addon("Setup & transport", "flat", 60, { add_rule: "always" }),
       addon("Guestbook album", "flat", 120),
     ],
     vendor: { offpeak_discount: 20, jobs_per_day: 2 },
@@ -50,7 +50,7 @@ export const SAMPLE_PRICES: Partial<Record<VendorKind, { items: SampleItem[]; ve
   venue: {
     items: [
       pkg("Venue hire", "per_hour", 280, { included_hours: 3, description: "Exclusive use, tables and chairs, projector and screen included" }),
-      addon("Cleaning", "flat", 80),
+      addon("Cleaning", "flat", 80, { add_rule: "always" }),
       addon("Bar package", "per_pax", 25, { description: "Free-flow soft drinks and beer" }),
     ],
     vendor: { capacity: 60, offpeak_discount: 25, min_spend: 800 },
@@ -60,7 +60,7 @@ export const SAMPLE_PRICES: Partial<Record<VendorKind, { items: SampleItem[]; ve
       pkg("Buffet", "per_pax", 32, { min_pax: 30, description: "Local favourites, 8 dishes, halal-certified kitchen" }),
       pkg("Canapés", "per_pax", 28, { min_pax: 30, description: "6 pieces per guest" }),
       pkg("Bento sets", "per_pax", 16, { min_pax: 10, description: "Individually packed meals" }),
-      addon("Delivery & setup", "flat", 60),
+      addon("Delivery & setup", "flat", 60, { add_rule: "always" }),
       addon("Service staff", "per_hour", 35),
     ],
     vendor: { jobs_per_day: 3 },
@@ -79,9 +79,9 @@ export const SAMPLE_PRICES: Partial<Record<VendorKind, { items: SampleItem[]; ve
 export function addItems(vendorId: number, items: SampleItem[], active = true) {
   items.forEach((i, n) =>
     run(
-      `INSERT INTO items (vendor_id, kind, name, description, pricing, price, included_hours, extra_hour_price, min_pax, max_pax, active, sort)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      vendorId, i.kind, i.name, i.description, i.pricing, i.price, i.included_hours, i.extra_hour_price, i.min_pax, i.max_pax, active ? 1 : 0, n,
+      `INSERT INTO items (vendor_id, kind, name, description, pricing, price, included_hours, extra_hour_price, min_pax, max_pax, active, sort, add_rule)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      vendorId, i.kind, i.name, i.description, i.pricing, i.price, i.included_hours, i.extra_hour_price, i.min_pax, i.max_pax, active ? 1 : 0, n, i.add_rule ?? "asked",
     ),
   );
 }
@@ -110,7 +110,8 @@ export function createAccount(input: { email: string; password: string; name: st
     const sample = SAMPLE_PRICES[input.kind];
     const v = sample?.vendor ?? {};
     const vendorId = run(
-      `INSERT INTO vendors (name, kind, slug, signoff, capacity, jobs_per_day, min_spend, offpeak_discount, inbound_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      // New accounts start with a 30% deposit (shown in every quote; editable in Settings → Bookings, confirmed in "Get set up").
+      `INSERT INTO vendors (name, kind, slug, signoff, capacity, jobs_per_day, min_spend, offpeak_discount, inbound_token, deposit_pct) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 30)`,
       input.business.trim(), input.kind, slugify(input.business), `${input.name.trim().split(" ")[0]}, ${input.business.trim()}`,
       input.samplePrices ? v.capacity ?? null : null, v.jobs_per_day ?? 1, input.samplePrices ? v.min_spend ?? 0 : 0,
       input.samplePrices ? v.offpeak_discount ?? 0 : 0, token(12).toLowerCase().replace(/[^a-z0-9]/g, "x"),

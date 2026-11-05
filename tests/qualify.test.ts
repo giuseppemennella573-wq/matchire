@@ -76,7 +76,7 @@ test("once the planner gives the date and guest count, the normal quote follows"
   await E.processEnquiry(booth, id);
   const draft = E.pendingDraft(id)!;
   assert.equal(draft.purpose, "quote");
-  assert.match(draft.body, /SGD 570/, "Classic booth 450 + 1 extra hour 120");
+  assert.match(draft.body, /SGD 630/, "Classic booth 450 + 1 extra hour 120 + setup & transport 60 (always added)");
   assert.ok(E.parseQuote(E.getEnquiry(booth, id)!));
 });
 

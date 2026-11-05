@@ -6,6 +6,7 @@ import { parseEnquiry } from "./heuristics.ts";
 import { aiEnabled, aiExtract, aiDraft, type DraftFacts } from "./ai.ts";
 import { sameText, styleExamples } from "./style.ts";
 import { listEquipment } from "./equipment.ts";
+import { templateStatus } from "./templates-status.ts";
 import { contactKey, isAlwaysEnquiry, setRule } from "./contacts.ts";
 import { clientHistory, returningForDraft } from "./clients.ts";
 import { addDays, dayOfWeek, formatDate, formatDateTime, resolveDate, sgToday, weekdayMismatch } from "./dates.ts";
@@ -409,6 +410,14 @@ function quoteText(q: Quote): string {
 const partnerLine = (p: PartnerView) =>
   `Our partner ${p.name} (${p.category}) ${p.from_price ? `starts from ${p.from_price} and ` : ""}can quote you directly.`;
 
+/** "Setup & transport is SGD 60 if you'd like it." / "Also available: X (SGD 60) and Y (SGD 25 per guest)." Prices from the list. */
+export function offerSentence(items: Item[]): string {
+  const price = (i: Item) => `${fmtMoney(i.price)}${i.pricing === "per_pax" ? " per guest" : i.pricing === "per_hour" ? " per hour" : ""}`;
+  if (items.length === 1) return `${items[0].name} is ${price(items[0])} if you'd like it.`;
+  const parts = items.map((i) => `${i.name} (${price(i)})`);
+  return `Also available if you'd like them: ${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}.`;
+}
+
 /** The one promise a reply may make for the vendor: "I'll pass this to Snap Co and they'll reply directly." */
 export const handoffSentence = (v: Pick<Vendor, "name">) => `I'll pass this to ${v.name} and they'll reply directly.`;
 
@@ -490,6 +499,7 @@ export function templateDraft(vendor: Vendor, f: DraftFacts): string {
       if (f.quote && f.quote.lines.length) r += `Here's your quote:\n${quoteText(f.quote)}`;
       if (f.quote?.unpriced_hours) r += `\n\nThe extra ${f.quote.unpriced_hours}h isn't on our price list. ${handoffSentence(vendor)}`;
       if (f.budgetText) r += `\n\n${f.budgetText}`;
+      if (f.offerText) r += `\n\n${f.offerText}`;
       if (f.upsellText && !f.budgetText) r += `\n\n${f.upsellText}`;
       if (f.depositText && f.purpose === "quote") r += `\n\n${f.depositText}`;
       if (f.quote?.offpeak) r += `\n(includes our weekday daytime rate)`;
@@ -693,7 +703,10 @@ export async function processEnquiry(vendorId: number, enquiryId: number, opts: 
   const fishing = e.fishing_reason ?? (e.fishing_cleared ? null : checkFishing(e, msgs, details, items, today));
 
   const pkg = items.find((i) => i.id === details.package_id && i.active) ?? null;
-  const addons = items.filter((i) => details.addon_ids.includes(i.id) && i.active && i.kind === "addon");
+  // Add-ons the planner asked for, plus those the vendor always adds (setup, delivery, cleaning…).
+  const addons = items.filter((i) => i.active && i.kind === "addon" && (details.addon_ids.includes(i.id) || (i.add_rule === "always" && !i.manual_quote)));
+  // Add-ons the vendor wants mentioned, not added: "Setup & transport is SGD 60 if you'd like it."
+  const offered = items.filter((i) => i.active && i.kind === "addon" && i.add_rule === "offer" && !addons.includes(i));
   // No price until the enquiry is qualified (or the vendor said "Send price anyway").
   const qual = qualification(details, requiredFields(vendor.qualify_fields));
   const quotable = qual.qualified || !!e.price_override;
@@ -832,6 +845,7 @@ export async function processEnquiry(vendorId: number, enquiryId: number, opts: 
     depositText: quote && (purpose === "quote" || purpose === "confirm") ? depositLine(vendor, quote.total)?.text ?? null : null,
     freeInsteadText: freeInstead?.text ?? null,
     fullEquipment: freeInstead?.equipment ?? null,
+    offerText: purpose === "quote" && quote && offered.length ? offerSentence(offered) : null,
     upsellText: purpose === "quote" && pkg && quote ? upsellFor(pkg, freeItems(vendor, details.event_date, items, enquiryId), addons, { vendor, pax: details.pax, date: details.event_date, slot: details.slot })?.text ?? null : null,
     partnerSuggestions,
     referredTo: null,
@@ -1100,7 +1114,7 @@ function followupRoute(vendor: Vendor, e: Enquiry, purpose: string, now: string,
 
 /** The reason a template can't go out yet, or null if the vendor has it approved. */
 function templateBlocked(vendor: Vendor, e: Enquiry, t: Template): string | null {
-  if (vendor.wa_templates_approved) return null;
+  if (templateStatus(vendor).approved) return null;
   console.warn(`[whatsapp] follow-up for enquiry ${e.id} not sent: template ${t.name} isn't marked approved for vendor ${vendor.id}`);
   return `${NEEDS_TEMPLATE_APPROVAL}. WhatsApp's 24-hour window has closed, so this goes out as the ${t.name} template. Once Meta approves it, tick "My follow-up templates are approved" in Settings and send.`;
 }

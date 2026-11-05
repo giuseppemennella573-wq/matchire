@@ -29,12 +29,14 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 ## Feature status (update when things ship)
 | Feature | Status | Site wording |
 |---|---|---|
-| Quotes from your packages | Live | Claim freely |
+| Quotes from your packages | Live | Claim freely. New accounts default to a 30% deposit, stated in every quote (editable; confirmed in "Get set up"). Add-ons can be "always added" (setup, delivery, cleaning), "offered" or "only when asked". |
+| Replies never promise what you didn't set up | Live | The only handoff is "I'll pass this to <business> and they'll reply directly"; the enquiry is then flagged "Promised a reply" and the vendor is emailed. Never claim discounts, call-backs or "we'll check" on the vendor's behalf. Over budget: the real cheaper option from the price list, never an invented discount. |
+| Wrong weekday check | Live | "Sat 15 Nov" on a Sunday: the reply only asks which date they mean; no availability, price or hold until they say. Not on the site. |
 | Date holds (auto-release) | Live | Claim freely |
 | Referrals (pass on, fee tracked) | Live, basic | Claim pass-on + tracked fee. Don't claim payouts. |
 | Bundle quotes | Partly built | "Your reply can suggest partner vendors, who can quote the planner directly." A starting price only if that partner shares it. No "combined/already priced quote". |
 | Rate privacy | Live | Each vendor's rates are private to their account. Partners only see name and category, plus one starting price if the vendor turns on "Share my starting price with partners" (off by default). Never the full rate card. |
-| Automatic follow-ups | Live on email and WhatsApp (WhatsApp follow-ups after 24h need the vendor's templates approved in Meta) | Claim it |
+| Automatic follow-ups | Live on email and WhatsApp (WhatsApp follow-ups after 24h need the templates approved in Meta: read from Meta for numbers under Matchire's WABA, a manual tick otherwise) | Claim it. Timing wording: "one gentle nudge about 24 hours after a quote that holds the date" (true: the first nudge comes at half the 48h hold; without a hold it's after the vendor's follow-up days). |
 | Instagram DMs | Not built | Coming soon |
 | Multiple users / team logins | Not built | Coming soon |
 | Equipment stock (availability per booth type) | Live | Site (card "Date taken? Keep the lead", approved by Giuseppe): "360 booked that day? Matchire offers the Classic booth that's still free, with its real price, your nearest free 360 dates, or a trusted partner. It knows what you own and what's out each day." Per day only; never claim time slots or per-room scheduling. |
@@ -73,3 +75,4 @@ Plain, warm, confident. Singapore English and SGD. Short sentences. No hype word
 - 2026-11-02: Pack 07. New feature row "Knows your business" (Sounds like you, Remembers your regulars, Your prices stay yours) and the "New in early access" strip updated; Privacy Policy names the vendor's cleaned earlier replies sent to Anthropic (approved by Giuseppe).
 - 2026-11-02: Pack 08. Availability is per equipment (Print booth × 6, 360 booth × 2), with "Most jobs in one day" as an optional cap. Key for photobooth businesses with mixed booths (Giuseppe). "Date taken? Keep the lead" card rewritten for equipment (approved by Giuseppe).
 - 2026-11-03: Pack 09. Inbox filter: automated emails and messages that aren't booking enquiries are filed under Other with a reason, never answered; hidden contacts are dropped before processing; booked clients' messages join their booking. When unsure, a message stays in the inbox. No landing-page change. Privacy Policy line on filed and hidden messages approved by Giuseppe.
+- 2026-11-05: Pack 10. Review fixes. Landing demo: 20% off-peak for every vendor (the app's venue sample list stays 25%), time ranges, generated sample dates, no automatic Setup & transport, 30% deposit line kept. App: wrong-weekday question, no unmade promises ("Promised a reply"), 30% deposit default for new accounts, per-add-on "always / offer / when asked", real WhatsApp template status for the Matchire WABA, booking terms confirmed in "Get set up". Site wording: "one gentle nudge about 24 hours after a quote that holds the date" (approved by Giuseppe).

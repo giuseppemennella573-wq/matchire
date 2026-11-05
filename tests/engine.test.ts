@@ -28,10 +28,10 @@ test("enquiry → quote draft → send → hold → follow-up → booked", async
   assert.equal(r.usedAI, false);
   const e = E.getEnquiry(booth, enquiryId)!;
   const q = E.parseQuote(e)!;
-  assert.equal(q.total, 450 + 120 + 80);
+  assert.equal(q.total, 450 + 120 + 80 + 60, "Setup & transport is always added on the sample list");
   assert.equal(e.lead, "hot");
   const draft = E.pendingDraft(enquiryId)!;
-  assert.match(draft.body, /SGD 650/);
+  assert.match(draft.body, /SGD 710/);
   assert.equal(r.ownerReason, null);
 
   // WhatsApp isn't connected in tests: "send" keeps the draft and asks the vendor to send it by hand.
@@ -63,7 +63,7 @@ test("enquiry → quote draft → send → hold → follow-up → booked", async
   E.markBooked(booth, enquiryId);
   const won = E.getEnquiry(booth, enquiryId)!;
   assert.equal(won.status, "won");
-  assert.equal(won.won_value, 650);
+  assert.equal(won.won_value, 710);
   assert.equal(get<{ kind: string }>("SELECT kind FROM holds WHERE enquiry_id = ?", enquiryId)!.kind, "booking");
 });
 

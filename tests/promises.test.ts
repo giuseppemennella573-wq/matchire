@@ -40,7 +40,7 @@ test("over budget with a cheaper real option: the reply offers it, and promises 
   const { enquiryId } = E.ingest({ vendorId: booth, channel: "whatsapp", handle: phone(), text: `Classic booth on ${day(30)} evening, 80 guests, 3 hours. Budget around $500` });
   await E.processEnquiry(booth, enquiryId);
   const draft = E.pendingDraft(enquiryId)!;
-  assert.match(draft.body, /That.s above the SGD 500 budget you mentioned\. If it helps, Classic booth for 2h instead of 3 is SGD 450\./);
+  assert.match(draft.body, /That.s above the SGD 500 budget you mentioned\. If it helps, Classic booth for 2h instead of 3, with the setup & transport, is SGD 510\./);
   assert.doesNotMatch(draft.body, /reply directly|get back|check with/i);
   assert.equal(draft.promise, null);
 });

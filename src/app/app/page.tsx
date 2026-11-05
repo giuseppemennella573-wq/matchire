@@ -3,6 +3,9 @@ import { requireVendor } from "@/lib/auth";
 import { all } from "@/lib/db";
 import { stats, getItems } from "@/lib/engine";
 import { fmtMoney } from "@/lib/pricing";
+import { depositPct } from "@/lib/polish";
+import { confirmTermsAction } from "./actions";
+import { Submit } from "@/components/submit";
 import { formatDate, formatDateTime, sgToday } from "@/lib/dates";
 import { CHANNEL_LABEL, type Channel, type Enquiry, type Hold } from "@/lib/types";
 import { whatsappReady } from "@/lib/channels";
@@ -17,9 +20,9 @@ function mins(m: number | null) {
   return `${(m / 1440).toFixed(1)}d`;
 }
 
-export default async function Overview({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
+export default async function Overview({ searchParams }: { searchParams: Promise<{ welcome?: string; msg?: string }> }) {
   const { vendor } = await requireVendor();
-  const { welcome } = await searchParams;
+  const { welcome, msg } = await searchParams;
   const s = stats(vendor.id);
   const attention = all<Enquiry & { draft: string }>(
     `SELECT e.*, m.body draft FROM enquiries e JOIN messages m ON m.enquiry_id = e.id AND m.status = 'draft'
@@ -37,7 +40,9 @@ export default async function Overview({ searchParams }: { searchParams: Promise
     { done: whatsappReady(vendor), label: "Connect WhatsApp Business", href: "/app/settings#channels" },
     { done: s.enquiries > 0, label: "Share your enquiry form or paste a first enquiry", href: "/app/inbox" },
     { done: aiEnabled(), label: "Turn on AI drafting", href: "/app/settings#ai" },
+    { done: !!vendor.terms_confirmed_at, label: "Confirm your booking terms", href: "/app#terms" },
   ];
+  const deposit = depositPct(vendor);
 
   return (
     <div className="stack-lg">
@@ -48,6 +53,23 @@ export default async function Overview({ searchParams }: { searchParams: Promise
         </div>
         <Link className="btn btn-primary" href="/app/inbox#new">Add an enquiry</Link>
       </div>
+
+      {msg && <p className="alert alert-ok" role="status">{msg}</p>}
+      {!vendor.terms_confirmed_at && (
+        <section className="card stack" id="terms">
+          <h2>Your booking terms</h2>
+          <p className="small muted">Matchire uses these in every quote and referral. Check they&apos;re right for your business.</p>
+          <ul className="stack" style={{ margin: 0, paddingLeft: 20 }}>
+            <li><b>Deposit:</b> {deposit ? `${deposit}% of the total, stated in every quote ("A deposit of SGD … (${deposit}%) secures the date")` : "none: quotes don't mention a deposit"}</li>
+            <li><b>Holding a date:</b> {vendor.hold_hours} hours after a quote, with a gentle follow-up about halfway</li>
+            <li><b>Referral fee:</b> {vendor.referral_fee_pct}% of the booking value, which you earn when a partner books a lead you passed to them</li>
+          </ul>
+          <form action={confirmTermsAction} className="row">
+            <Submit className="btn btn-primary btn-sm" pending="Saving…">Looks right</Submit>
+            <Link className="btn btn-ghost btn-sm" href="/app/settings?tab=bookings">Change</Link>
+          </form>
+        </section>
+      )}
 
       {setup.some((x) => !x.done) && (
         <section className="card stack">

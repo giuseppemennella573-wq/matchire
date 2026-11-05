@@ -82,6 +82,8 @@ export interface ChannelChanges {
   token?: string;
   disconnect?: boolean;
   templatesApproved?: boolean;
+  /** The number is under Matchire's WhatsApp Business Account (template status then comes from Meta). */
+  matchireWaba?: boolean;
   rotateInbound?: boolean;
 }
 
@@ -93,6 +95,8 @@ export function channelChangesFromForm(form: { get(name: string): unknown }): Ch
     token: s("wa_token") || undefined,
     disconnect: form.get("wa_disconnect") === "on",
     templatesApproved: form.get("wa_templates_approved") === "on",
+    // Only forms that show the box say anything about it.
+    matchireWaba: form.get("wa_waba_field") ? form.get("wa_matchire_waba") === "on" : undefined,
   };
 }
 
@@ -123,19 +127,21 @@ export async function updateChannels(
   const v = get<Vendor>("SELECT * FROM vendors WHERE id = ?", vendorId);
   if (!v) throw new Error("Vendor not found");
 
-  const next = { id: v.wa_phone_number_id, token: v.wa_token, approved: !!v.wa_templates_approved, inbound: v.inbound_token };
+  const next = { id: v.wa_phone_number_id, token: v.wa_token, approved: !!v.wa_templates_approved, inbound: v.inbound_token, waba: !!v.wa_matchire_waba };
   if (changes.disconnect) { next.id = null; next.token = null; }
   else {
     if (changes.phoneNumberId !== undefined) next.id = changes.phoneNumberId;
     if (changes.token) next.token = changes.token;
   }
   if (changes.templatesApproved !== undefined) next.approved = changes.templatesApproved;
+  if (changes.matchireWaba !== undefined) next.waba = changes.matchireWaba;
   if (changes.rotateInbound) next.inbound = token(12).toLowerCase().replace(/[^a-z0-9]/g, "x");
 
   const changed: string[] = [];
   if (next.id !== v.wa_phone_number_id) changed.push("WhatsApp phone number ID");
   if (next.token !== v.wa_token) changed.push(next.token ? "WhatsApp access token" : "WhatsApp access token (removed)");
   if (next.approved !== !!v.wa_templates_approved) changed.push("Follow-up templates approved");
+  if (next.waba !== !!v.wa_matchire_waba) changed.push(next.waba ? "Number under Matchire's WhatsApp Business Account" : "Number under the vendor's own WhatsApp Business Account");
   if (next.inbound !== v.inbound_token) changed.push("Email forwarding address");
   if (!changed.length) return [];
 
@@ -144,8 +150,8 @@ export async function updateChannels(
   const display = !connectionChanged ? v.wa_display_number : next.id && next.token ? await fetchDisplayNumber(next.id, next.token) : null;
 
   tx(() => {
-    run("UPDATE vendors SET wa_phone_number_id = ?, wa_token = ?, wa_templates_approved = ?, inbound_token = ?, wa_display_number = ? WHERE id = ?",
-      next.id, next.token, next.approved ? 1 : 0, next.inbound, display, vendorId);
+    run("UPDATE vendors SET wa_phone_number_id = ?, wa_token = ?, wa_templates_approved = ?, inbound_token = ?, wa_display_number = ?, wa_matchire_waba = ? WHERE id = ?",
+      next.id, next.token, next.approved ? 1 : 0, next.inbound, display, next.waba ? 1 : 0, vendorId);
     for (const field of changed) {
       run("INSERT INTO channel_audit (vendor_id, actor_user_id, actor_email, field, created_at) VALUES (?, ?, ?, ?, ?)", vendorId, actor.id, actor.email, field, now.toISOString());
     }

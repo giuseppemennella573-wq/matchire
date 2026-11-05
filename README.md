@@ -169,6 +169,7 @@ src/lib/clients.ts     regular clients: earlier enquiries from the same number o
 src/lib/equipment.ts   what a vendor owns; availability per equipment is in engine.ts
 src/lib/automated.ts   recognising automated email (out-of-office, newsletters, bounces)
 src/lib/contacts.ts    per-vendor contact rules: hidden, or always a client
+src/lib/templates-status.ts  WhatsApp follow-up template status (from Meta for Matchire's WABA)
 src/lib/heuristics.ts  rules-based enquiry reader (no-key mode and fallback)
 src/lib/dates.ts       Singapore-time date parsing ("next tue", "15 Nov", "early Dec")
 src/lib/channels.ts    WhatsApp Cloud API and email (SMTP or Resend) delivery

@@ -43,6 +43,10 @@ export interface Vendor {
   wa_token: string | null;
   /** The vendor has quote_nudge and quote_last_call approved in their WhatsApp Business account. */
   wa_templates_approved: number;
+  /** The number sits under Matchire's own WhatsApp Business Account (template status read from Meta). */
+  wa_matchire_waba: number;
+  /** When the vendor confirmed their booking terms (deposit, referral fee, hold) in "Get set up". */
+  terms_confirmed_at?: string | null;
   /** "Before quoting, ask for": comma-separated field ids beyond the date ("pax,venue"). Empty: date plus any one detail. */
   qualify_fields: string;
   /** "quote": quote from the price list. "brief": qualify, hold the date and send the vendor a brief; the vendor writes the quote. */
@@ -82,6 +86,8 @@ export interface Item {
   manual_quote?: number;
   /** The equipment this item uses (limits how many can go out per day), or null. */
   equipment_id?: number | null;
+  /** Add-ons: "asked" (only when the planner asks), "always" (in every quote), "offer" (mentioned in the reply). */
+  add_rule?: "asked" | "always" | "offer";
 }
 
 export type Channel = "whatsapp" | "email" | "web" | "instagram" | "manual" | "referral";

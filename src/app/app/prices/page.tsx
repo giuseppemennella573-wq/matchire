@@ -42,6 +42,16 @@ function ItemForm({ item, kind, equipment }: { item?: Item; kind?: "package" | "
         <label className="field"><span>Max guests</span><input name="max_pax" type="number" min="0" defaultValue={item?.max_pax ?? ""} /></label>
         <label className="check" style={{ alignSelf: "end", paddingBottom: 10 }}><input type="checkbox" name="active" defaultChecked={item ? !!item.active : true} /><span>Live: use in quotes</span></label>
       </div>
+      {k === "addon" && (
+        <label className="field" style={{ maxWidth: 420 }}>
+          <span>When to add it</span>
+          <select name="add_rule" defaultValue={item?.add_rule ?? "asked"}>
+            <option value="asked">Only when the planner asks for it</option>
+            <option value="always">Always: in every quote (e.g. setup, delivery, cleaning)</option>
+            <option value="offer">Offer it: mentioned in the reply, not added</option>
+          </select>
+        </label>
+      )}
       {equipment.length > 0 && (
         <label className="field" style={{ maxWidth: 360 }}>
           <span>Uses (limits how many go out per day)</span>
@@ -89,7 +99,7 @@ export default async function Prices({ searchParams }: { searchParams: Promise<{
           <details key={i.id} className="more" style={{ borderBottom: "1px solid var(--line)", padding: "12px 18px" }}>
             <summary style={{ color: "var(--ink)" }}>
               <span className="row between">
-                <span className="row"><b>{i.name}</b>{!i.active && <span className="badge badge-amber">Not live</span>}{!!i.manual_quote && <span className="badge">You quote</span>}{i.equipment_id && eqName.has(i.equipment_id) ? <span className="badge">Uses {eqName.get(i.equipment_id)}</span> : null}</span>
+                <span className="row"><b>{i.name}</b>{!i.active && <span className="badge badge-amber">Not live</span>}{!!i.manual_quote && <span className="badge">You quote</span>}{i.equipment_id && eqName.has(i.equipment_id) ? <span className="badge">Uses {eqName.get(i.equipment_id)}</span> : null}{i.kind === "addon" && i.add_rule === "always" ? <span className="badge badge-brand">Always added</span> : i.kind === "addon" && i.add_rule === "offer" ? <span className="badge">Offered</span> : null}</span>
                 <span className="mono small">{priceText(i)}</span>
               </span>
               {i.description && <span className="small muted" style={{ fontWeight: 400 }}>{i.description}</span>}

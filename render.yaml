@@ -22,6 +22,10 @@ services:
         generateValue: true
       - key: WHATSAPP_APP_SECRET
         sync: false
+      - key: WHATSAPP_WABA_ID # Matchire's WABA: template status read from Meta
+        sync: false
+      - key: WHATSAPP_SYSTEM_TOKEN
+        sync: false
       # Email goes out through the Google Workspace mailbox (needs an app password).
       - key: SMTP_HOST
         value: smtp.gmail.com

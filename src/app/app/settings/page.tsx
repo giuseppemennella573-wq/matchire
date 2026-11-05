@@ -13,6 +13,7 @@ import { supportVisits } from "@/lib/support";
 import { styleExampleCount } from "@/lib/style";
 import { listEquipment } from "@/lib/equipment";
 import { listRules } from "@/lib/contacts";
+import { describeStatus, refreshTemplateStatus } from "@/lib/templates-status";
 import { dayCap } from "@/lib/engine";
 import { changePasswordAction, requestSetupAction, rotateInboundTokenAction, saveSettingsTabAction, unhideContactAction, forgetContactRuleAction } from "../actions";
 import { CopyButton } from "@/components/copy-button";
@@ -56,6 +57,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
   const ch = channelView(v, { admin, appUrl: appUrl() });
   const visits = supportVisits(vendor.id);
   const hidden = listRules(vendor.id, "hidden");
+  const tpl = await refreshTemplateStatus(v);
   const always = listRules(vendor.id, "always");
   const styleCount = styleExampleCount(vendor.id);
   const equipment = listEquipment(vendor.id);
@@ -311,7 +313,10 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                 </>
               ) : (
                 <p className="small muted">
-                  <b>WhatsApp follow-up templates:</b> {v.wa_templates_approved ? "approved. Follow-ups after WhatsApp's 24-hour window go out automatically." : "not approved yet. We'll set these up with you; until then, follow-ups after WhatsApp's 24-hour window wait for you."}
+                  <b>WhatsApp follow-up templates:</b>{" "}
+                  {tpl.approved ? `${describeStatus(tpl)}. Follow-ups after WhatsApp's 24-hour window go out automatically.`
+                    : tpl.source === "meta" ? `${describeStatus(tpl)}. Until they're approved, follow-ups after WhatsApp's 24-hour window wait for you.`
+                    : "not approved yet. Your number uses your own WhatsApp Business account, so the two follow-up templates need approval there; we'll help you submit them. Until then, follow-ups after WhatsApp's 24-hour window wait for you."}
                 </p>
               )}
             </section>

@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getVendor } from "@/lib/engine";
 import { channelAudit, channelView, ensureDisplayNumber } from "@/lib/channel-settings";
 import { appUrl } from "@/lib/app-url";
+import { describeStatus, matchireWaba, refreshTemplateStatus, underMatchireWaba } from "@/lib/templates-status";
 import { formatDateTime } from "@/lib/dates";
 import { saveVendorChannelsAction } from "../../actions";
 import { CopyButton } from "@/components/copy-button";
@@ -24,6 +25,7 @@ export default async function VendorChannels({ params, searchParams }: { params:
   const view = channelView(v, { admin: true, appUrl: appUrl() });
   const t = view.technical!;
   const log = channelAudit(v.id);
+  const tpl = await refreshTemplateStatus(v);
 
   return (
     <div className="stack-lg">
@@ -56,9 +58,14 @@ export default async function VendorChannels({ params, searchParams }: { params:
             </label>
           </div>
           {view.whatsapp.connected && <label className="check small"><input type="checkbox" name="wa_disconnect" /><span>Disconnect this number</span></label>}
+          <input type="hidden" name="wa_waba_field" value="1" />
+          <label className="check">
+            <input type="checkbox" name="wa_matchire_waba" defaultChecked={!!v.wa_matchire_waba} />
+            <span><b>Number is under Matchire&apos;s WhatsApp Business Account</b> <span className="muted">{matchireWaba() ? <>Template status then comes from Meta: <b>{describeStatus(tpl)}</b>.</> : <>Set <code>WHATSAPP_WABA_ID</code> in Render to read the template status from Meta.</>}</span></span>
+          </label>
           <label className="check">
             <input type="checkbox" name="wa_templates_approved" defaultChecked={t.templatesApproved} />
-            <span><b>Follow-up templates approved in Meta</b> <span className="muted">(<code>quote_nudge</code> and <code>quote_last_call</code>, Utility, English)</span></span>
+            <span><b>Follow-up templates approved in Meta</b> <span className="muted">(<code>quote_nudge</code> and <code>quote_last_call</code>, Utility, English). Used for numbers under the vendor&apos;s own account{underMatchireWaba(v) ? ", so not for this one" : ""}.</span></span>
           </label>
         </section>
 
