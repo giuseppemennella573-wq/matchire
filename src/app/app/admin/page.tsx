@@ -32,7 +32,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       )}
 
       <section className="card card-flush">
-        <div className="card-head"><h2>Requests</h2><span className="small muted">{rows.length} total · {waiting} waiting · from the form on the landing page</span></div>
+        <div className="card-head"><h2>Requests</h2><span className="small muted">{rows.length} total · {waiting} waiting · from the early-access form (landing page and /signup)</span></div>
         {rows.length === 0 ? <p className="empty">No sign-ups yet. They appear here as soon as someone submits the form on the landing page.</p> : (
           <div className="table-wrap">
             <table>

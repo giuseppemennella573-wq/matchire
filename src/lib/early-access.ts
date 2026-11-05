@@ -28,6 +28,17 @@ export function addSignup(s: Omit<Signup, "id" | "created_at" | "notified_at" | 
   );
 }
 
+/** Reads the early-access form (the landing page's and /signup's: same field names). "bot" when the honeypot is filled, null when name or email is missing. */
+export function signupFromForm(f: FormData): number | "bot" | null {
+  const s = (k: string) => String(f.get(k) ?? "").trim().slice(0, 300) || null;
+  if (s("bot-field")) return "bot";
+  if (!s("email") || !s("name")) return null;
+  return addSignup({
+    name: s("name"), business: s("business"), vendor_type: s("vendor_type"),
+    enquiries_per_week: s("enquiries_per_week"), email: s("email"), whatsapp: s("whatsapp"),
+  });
+}
+
 /** wa.me link for a Singapore number written any common way ("9123 4567", "+65 9123-4567"). */
 export function whatsappLink(raw: string | null): string | null {
   if (!raw) return null;

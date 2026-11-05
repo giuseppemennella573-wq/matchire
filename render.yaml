@@ -39,6 +39,8 @@ services:
         value: "Matchire <hello@matchire.ai>" # alias of the SMTP mailbox; must be enabled under Gmail "Send mail as"
       - key: EARLY_ACCESS_NOTIFY_EMAIL
         value: giuseppe.mennella@matchire.ai
+      - key: SIGNUP_INVITE_CODE # /signup?invite=<code> opens signup; without it /signup shows the early-access form
+        sync: false
       - key: ADMIN_EMAILS
         sync: false
       - key: BACKUP_PASSWORD # encrypts backups; keep a copy in your password manager

@@ -15,7 +15,7 @@ The AI booking desk for event vendors in Singapore. Matchire reads WhatsApp, ema
 | **Rate privacy** | A vendor's price list is private to their account. Other businesses only see a partner's lowest live package price, and only if that partner turns on **Share my starting price with partners** (off by default). AI prompts never include another vendor's price list, and referrals pass on only the planner's own messages. All of this goes through `partnerView()` / `sharedFromPrice()` in `src/lib/engine.ts`. |
 | **Price-list import** | Paste a rate card or upload a PDF or photo; Claude turns it into items that stay hidden until the vendor approves them. |
 | **Overview** | Enquiries, median first-reply time, bookings, booked value, referral fees and a breakdown by channel. |
-| **Marketing site** | `public/landing.html` is served at `/`. Early-access sign-ups are saved, emailed to `EARLY_ACCESS_NOTIFY_EMAIL` (default giuseppe.mennella@matchire.ai), and listed on the admin page at `/app/admin`, with CSV export and a contacted flag. Admins are the logins in `ADMIN_EMAILS`, or the first account created if that's unset. |
+| **Marketing site** | `public/landing.html` is served at `/`. Early-access sign-ups are saved, emailed to `EARLY_ACCESS_NOTIFY_EMAIL` (default giuseppe.mennella@matchire.ai), and listed on the admin page at `/app/admin`, with CSV export and a contacted flag. `/signup` shows the same early-access form (same storage, email and Admin list) unless the link carries the invite code: `/signup?invite=<SIGNUP_INVITE_CODE>` opens the normal account signup. Admins are the logins in `ADMIN_EMAILS`, or the first account created if that's unset. |
 
 ## Running it
 

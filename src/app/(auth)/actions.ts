@@ -6,7 +6,8 @@ import { redirect } from "next/navigation";
 import { createAccount, createSession, deleteSession, login } from "@/lib/accounts";
 import { SESSION_COOKIE, setSessionCookie } from "@/lib/auth";
 import type { VendorKind } from "@/lib/types";
-import { notifyNewAccount } from "@/lib/early-access";
+import { notifyNewAccount, notifySignup, signupFromForm } from "@/lib/early-access";
+import { validInvite } from "@/lib/invite";
 import { requestPasswordReset, resetPassword } from "@/lib/password-reset";
 import { appUrl } from "@/lib/app-url";
 import { endSupport, SUPPORT_COOKIE } from "@/lib/support";
@@ -22,6 +23,9 @@ export async function loginAction(form: FormData) {
 }
 
 export async function signupAction(form: FormData) {
+  // Signup is invite-only: without the code, back to the early-access form.
+  const invite = str(form, "invite");
+  if (!validInvite(invite)) redirect("/signup");
   let userId: number;
   try {
     ({ userId } = createAccount({
@@ -33,7 +37,7 @@ export async function signupAction(form: FormData) {
       samplePrices: form.get("sample") === "on",
     }));
   } catch (e) {
-    redirect(`/signup?error=${encodeURIComponent(e instanceof Error ? e.message : "Couldn't create the account.")}`);
+    redirect(`/signup?invite=${encodeURIComponent(invite)}&error=${encodeURIComponent(e instanceof Error ? e.message : "Couldn't create the account.")}`);
   }
   const newUser = userId;
   after(async () => {
@@ -43,6 +47,19 @@ export async function signupAction(form: FormData) {
   const s = createSession(userId);
   await setSessionCookie(s.token, s.expires);
   redirect("/app?welcome=1");
+}
+
+/** The early-access form on /signup: same storage, alert email and Admin list as the landing page's. */
+export async function waitlistAction(form: FormData) {
+  const id = signupFromForm(form);
+  if (id === null) redirect(`/signup?error=${encodeURIComponent("Please add your name and email.")}`);
+  if (id !== "bot") {
+    after(async () => {
+      const error = await notifySignup(id);
+      if (error) console.error(`Early-access alert for sign-up ${id} failed: ${error}`);
+    });
+  }
+  redirect("/signup?sent=1");
 }
 
 export async function logoutAction() {
