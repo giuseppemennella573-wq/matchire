@@ -17,7 +17,7 @@ export const metadata = { title: "Enquiry" };
 
 const PURPOSE_LABEL: Record<string, string> = {
   qualify: "Asks for details before pricing", undecided: "No-rush reply", price_concern: "Price concern", brief: "Brief: your quote to follow", quote: "Quote", ask_info: "Asks for details", answer: "Answer", confirm: "Booking confirmation", unavailable: "Date unavailable",
-  over_capacity: "Over capacity", referred: "Referral note", followup: "Follow-up", last_call: "Last call",
+  over_capacity: "Over capacity", referred: "Referral note", followup: "Follow-up", last_call: "Last call", confirm_date: "Date check",
   phone_reply: "from your WhatsApp app",
 };
 

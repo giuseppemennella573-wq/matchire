@@ -24,9 +24,12 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const { vendor } = await requireVendor();
   const { welcome, msg } = await searchParams;
   const s = stats(vendor.id);
-  const attention = all<Enquiry & { draft: string }>(
-    `SELECT e.*, m.body draft FROM enquiries e JOIN messages m ON m.enquiry_id = e.id AND m.status = 'draft'
-     WHERE e.vendor_id = ? GROUP BY e.id ORDER BY e.updated_at DESC LIMIT 8`,
+  // Drafts waiting, plus replies the vendor promised and booked clients who wrote again (no draft, but they need the vendor).
+  const attention = all<Enquiry & { draft: string | null }>(
+    `SELECT e.*, (SELECT m.body FROM messages m WHERE m.enquiry_id = e.id AND m.status = 'draft' ORDER BY m.id DESC LIMIT 1) draft FROM enquiries e
+     WHERE e.vendor_id = ? AND (EXISTS (SELECT 1 FROM messages m WHERE m.enquiry_id = e.id AND m.status = 'draft')
+       OR e.promised_reason IS NOT NULL OR (e.status = 'won' AND e.owner_reason LIKE 'Message from a booked client%'))
+     ORDER BY e.updated_at DESC LIMIT 8`,
     vendor.id,
   );
   const holds = all<Hold & { contact_name: string | null }>(
@@ -101,8 +104,8 @@ export default async function Overview({ searchParams }: { searchParams: Promise
               <Link key={e.id} href={`/app/inbox/${e.id}`} className="list-row">
                 <span className={`dot dot-${e.lead ?? "warm"}`} />
                 <div className="grow">
-                  <div className="row"><b>{e.contact_name || e.contact_handle || `Enquiry #${e.id}`}</b><span className="badge">{CHANNEL_LABEL[e.channel as Channel]}</span></div>
-                  <p className="preview">{e.owner_reason || e.draft}</p>
+                  <div className="row"><b>{e.contact_name || e.contact_handle || `Enquiry #${e.id}`}</b><span className="badge">{CHANNEL_LABEL[e.channel as Channel]}</span>{e.promised_reason && <span className="badge badge-red">Promised a reply</span>}</div>
+                  <p className="preview">{e.promised_reason ? `You promised a reply: ${e.promised_reason}` : e.owner_reason || e.draft}</p>
                 </div>
                 <span className="small muted">{formatDateTime(e.updated_at)}</span>
               </Link>

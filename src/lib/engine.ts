@@ -671,7 +671,8 @@ export async function processEnquiry(vendorId: number, enquiryId: number, opts: 
     // Once confirmed, only a new message can raise the question again.
     const toCheck = prev?.date_confirmed ? [latestText] : inbound.map((m) => m.body);
     const mismatch = toCheck.map((t) => weekdayMismatch(t, details.event_date!)).find(Boolean);
-    if (mismatch) Object.assign(details, { event_date: null, date_text: null, alternatives: mismatch.options, date_to_confirm: true, date_confirmed: null });
+    // The summary ("Birthday · 80 pax · Sun 15 Nov") would show the unconfirmed date, so it goes too.
+    if (mismatch) Object.assign(details, { event_date: null, date_text: null, summary: null, alternatives: mismatch.options, date_to_confirm: true, date_confirmed: null });
   }
   if (isFirst) details.intent = "new_enquiry";
   if (!details.contact_name && e.contact_name) details.contact_name = e.contact_name.split(" ")[0];

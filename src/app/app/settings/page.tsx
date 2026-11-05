@@ -316,6 +316,7 @@ export default async function Settings({ searchParams }: { searchParams: Promise
                   <b>WhatsApp follow-up templates:</b>{" "}
                   {tpl.approved ? `${describeStatus(tpl)}. Follow-ups after WhatsApp's 24-hour window go out automatically.`
                     : tpl.source === "meta" ? `${describeStatus(tpl)}. Until they're approved, follow-ups after WhatsApp's 24-hour window wait for you.`
+                    : v.wa_matchire_waba ? "not approved yet. We'll set these up with you; until then, follow-ups after WhatsApp's 24-hour window wait for you."
                     : "not approved yet. Your number uses your own WhatsApp Business account, so the two follow-up templates need approval there; we'll help you submit them. Until then, follow-ups after WhatsApp's 24-hour window wait for you."}
                 </p>
               )}

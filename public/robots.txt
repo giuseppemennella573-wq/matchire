@@ -1,0 +1,5 @@
+# matchire.ai: everything may be crawled; the vendor app needs a login anyway.
+User-agent: *
+Allow: /
+
+Sitemap: https://matchire.ai/sitemap.xml
