@@ -98,7 +98,11 @@ header.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--p
 .console-top{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .console-top b{font-family:var(--f-display);font-size:1rem}
 .demo-tag{font-family:var(--f-mono);font-size:.7rem;padding:.25rem .55rem;border-radius:6px;background:var(--orchid-soft);color:var(--orchid);letter-spacing:.06em;text-transform:uppercase}
-.tabs{display:flex;gap:6px;padding:12px 18px 0;overflow-x:auto}
+.tabs{display:flex;gap:6px;padding:12px 18px 0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tabs .tab{flex:none}
+/* Fade at the right edge only while more tabs are hidden off-screen (set by script). */
+.tabs.more{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
 .tab{font:600 .85rem var(--f-body);padding:.45rem .85rem;border-radius:999px;border:1.5px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap}
 .tab[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .console-body{display:grid;grid-template-columns:1fr 1fr;gap:0;min-width:0}
@@ -677,11 +681,14 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
   $("yr").textContent=new Date().getFullYear();
 
   // A Saturday about three weeks out that the sample photobooth is fully booked on, so the sample never goes stale.
+  const WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const lab=x=>`${WD[x.getDay()]} ${x.getDate()} ${MO[x.getMonth()]}`;
+  // The first given weekday (0 = Sun … 6 = Sat) at least `min` days from today, as "Sat 14 Nov": a sample's weekday always matches its date.
+  const on=(wd,min)=>{const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+min);while(d.getDay()!==wd)d.setDate(d.getDate()+1);return lab(d);};
   const BOOKED=(()=>{
-    const WD=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],MO=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()+21+((6-d.getDay()+7)%7));
     const near=n=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
-    const fri=near(-1),sun=near(1),lab=x=>`${WD[x.getDay()]} ${x.getDate()} ${MO[x.getMonth()]}`;
+    const fri=near(-1),sun=near(1);
     const n=d.getDate(),nth=n+(n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th");
     return {label:lab(d),day:n,mon:MO[d.getMonth()],nth,
       alts:fri.getMonth()===sun.getMonth()?`${WD[5]} ${fri.getDate()} or ${lab(sun)}`:`${lab(fri)} or ${lab(sun)}`};
@@ -689,35 +696,47 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
   // Sample vendors with sample price lists (demo only)
   const V={
     photo:{biz:"Snap & Smile Photobooth",kind:"photobooth",booked:true,samples:[
-      "Hi! Looking for a photobooth for my daughter's 21st on Sat 15 Nov, evening, about 80 guests. 3 hours. Do you do custom print frames? Budget around $900",
+      `Hi! Looking for a photobooth for my daughter's 21st on ${on(6,9)}, evening, about 80 guests. 3 hours. Do you do custom print frames? Budget around $600`,
       "Hello, corporate D&D at a hotel ballroom early Dec, 250 pax. Interested in a 360 booth for 4 hrs. Can send quote?",
       "hey do u have availability next tuesday afternoon? company family day, 2 hours",
       "hi how much for photobooth?",
       `Hi, photobooth for a wedding ${BOOKED.label} evening, 100 guests, 3h?`],
-      quote(b){const h=b.hours||3;const is360=/360/.test(b.raw);const base=is360?650:450;const L=[{k:(is360?"360 booth":"Classic booth")+" · first 2h",v:base}];if(h>2)L.push({k:`Extra ${h-2}h`,v:(h-2)*(is360?180:120)});if(/frame|custom|logo|brand/i.test(b.raw))L.push({k:"Custom print frame",v:80});L.push({k:"Setup & transport",v:60});return L;},
+      quote(b){const h=b.hours||3;const is360=b.is360??/360/.test(b.raw);const base=is360?650:450;const L=[{k:(is360?"360 booth":"Classic booth")+" · first 2h",v:base,pkg:1}];if(h>2)L.push({k:`Extra ${h-2}h`,v:(h-2)*(is360?180:120),pkg:1});if(/frame|custom|logo|brand/i.test(b.raw))L.push({k:"Custom print frame",v:80});return L;},
+      // Cheaper real options from this price list: the Classic instead of the 360, or the 2 hours included.
+      cheaper(b){const is360=/360/.test(b.raw),h=b.hours||3;return is360?{b:{...b,is360:false},k:`Classic booth for ${h}h`}:h>2?{b:{...b,hours:2},k:"Classic booth for 2h"}:null;},
       partner:b=>b.type==="party"||b.type==="wedding"?"<b>Partner suggestion:</b> Rempah Kitchen (catering) can quote you directly for a buffet for "+(b.pax||"your")+" guests. Include in the reply?":null},
     venue:{biz:"The Loft, Telok Ayer",kind:"venue",cap:60,samples:[
       "Hi, need a space for our team offsite next Tuesday afternoon, about 35 pax, 4 hours. Need projector. Budget about $3k",
-      "Looking for a venue for a 40th birthday party, Fri 28 Nov evening, 50 guests. Do you allow outside catering?",
+      `Looking for a venue for a 40th birthday party, ${on(5,20)} evening, 50 guests. Do you allow outside catering?`,
       "Hello, product launch for 120 people in December, evening. What's the min spend?",
       "hi how much to rent your space?"],
-      quote(b){const h=Math.max(3,b.hours||3);const op=b.offpeak;const full=280*h;const L=[{k:`Venue hire · ${h}h`,v:op?full*.75:full,full:op?full:null}];if(/projector|screen|slides|present/i.test(b.raw))L.push({k:"Projector & screen",v:0,note:"included"});L.push({k:"Cleaning",v:80});return L;},
+      quote(b){const h=Math.max(3,b.hours||3);const L=[{k:`Venue hire · ${h}h`,v:280*h,pkg:1}];if(/projector|screen|slides|present/i.test(b.raw))L.push({k:"Projector & screen",v:0,note:"included"});L.push({k:"Cleaning",v:80});return L;},
+      cheaper(b){return (b.hours||3)>3?{b:{...b,hours:3},k:"Venue hire for 3h (our minimum)"}:null;},
       partner:b=>"<b>Partner suggestion:</b> Snapbox SG photobooth from SGD 450, and Rempah Kitchen (catering), who can quote you directly. Add as options?"},
     cater:{biz:"Rempah Kitchen",kind:"caterer",min:30,samples:[
       "Hi, need halal buffet for 60 pax, office event next Thursday lunch at Raffles Place. Budget $2000",
-      "Wedding solemnisation Sun 7 Dec, 40 guests, mostly vegetarian. Do you do canapés?",
+      `Wedding solemnisation ${on(0,30)}, 40 guests, mostly vegetarian. Do you do canapés?`,
       "Can you do bento for 25 people tomorrow morning?",
       "hi how much for a buffet?"],
-      quote(b){const pax=b.pax||30;const per=/canap/i.test(b.raw)?28:/bento/i.test(b.raw)?16:32;const L=[{k:`${/canap/i.test(b.raw)?"Canapés":/bento/i.test(b.raw)?"Bento sets":"Buffet"} · ${pax} pax × ${per}`,v:pax*per}];if(pax<30&&!/bento/i.test(b.raw))L.push({k:"Small-group surcharge",v:60});L.push({k:"Delivery & setup",v:60});return L;},
+      quote(b){const pax=b.pax||30;const kind=b.menu||(/canap/i.test(b.raw)?"canapes":/bento/i.test(b.raw)?"bento":"buffet");const per={canapes:28,bento:16,buffet:32}[kind];const L=[{k:`${{canapes:"Canapés",bento:"Bento sets",buffet:"Buffet"}[kind]} · ${pax} pax × ${per}`,v:pax*per,pkg:1}];if(pax<30&&kind!=="bento")L.push({k:"Small-group surcharge",v:60});L.push({k:"Delivery & setup",v:60});return L;},
+      // The cheapest menu on the list that fits the group: bento sets (from 10 pax).
+      cheaper(b){return (b.menu||"")!=="bento"&&!/bento/i.test(b.raw)&&(b.pax||30)>=10?{b:{...b,menu:"bento"},k:`Bento sets for ${b.pax||30}`}:null;},
       partner:b=>b.type==="wedding"||b.type==="party"?"<b>Partner suggestion:</b> The Loft, Telok Ayer (venue) can quote you directly. Include in the reply?":null},
     av:{biz:"Clearwave AV",kind:"AV",samples:[
-      "Need PA system and 2 wireless mics for a town hall, 150 pax, Wed 3 Dec morning at our office",
-      "Hi, wedding dinner Sat 13 Dec, need projector + screen for slideshow and mics for speeches",
+      `Need PA system and 2 wireless mics for a town hall, 150 pax, ${on(3,27)} morning at our office`,
+      `Hi, wedding dinner ${on(6,35)}, need projector + screen for slideshow and mics for speeches`,
       "Product launch next month, 200 guests, need LED wall and sound. Budget 8k",
       "hi how much for a sound system?"],
-      quote(b){const L=[];if(/pa\b|sound|mic|speech/i.test(b.raw))L.push({k:"PA + 2 wireless mics",v:b.pax>120?420:280});if(/projector|screen|slide/i.test(b.raw))L.push({k:"Projector & screen",v:220});if(/led/i.test(b.raw))L.push({k:"LED wall 3×2m",v:3200});if(!L.length)L.push({k:"PA + 2 wireless mics",v:280});L.push({k:"Technician on site",v:180});return L;},
+      quote(b){const L=[];if(/pa\b|sound|mic|speech/i.test(b.raw))L.push({k:"PA + 2 wireless mics",v:b.pax>120?420:280,pkg:1});if(/projector|screen|slide/i.test(b.raw))L.push({k:"Projector & screen",v:220});if(/led/i.test(b.raw))L.push({k:"LED wall 3×2m",v:3200,pkg:1});if(!L.length)L.push({k:"PA + 2 wireless mics",v:280,pkg:1});L.push({k:"Technician on site",v:180});return L;},
+      cheaper:()=>null,
       partner:b=>b.type==="wedding"||b.type==="launch"?"<b>Partner suggestion:</b> Snapbox SG (photobooth, from SGD 450) can quote you directly. Include in the reply?":null}
   };
+  // Weekday daytime (Mon–Thu morning or afternoon) rate, on the package only, never add-ons: as the app does.
+  const OFFPEAK=20;
+  function priced(v,b){
+    const L=v.quote(b).map(l=>l.pkg&&b.offpeak?{...l,full:l.v,v:Math.round(l.v*(100-OFFPEAK)/100)}:l);
+    return {L,total:L.reduce((s,l)=>s+l.v,0)};
+  }
 
   const MONTHS="january|february|march|april|may|june|july|august|september|sept|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec";
   const MONTHS_NOT_MAY=MONTHS.replace("may|","");
@@ -728,6 +747,16 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     const nums=[...low.matchAll(/(\d{1,4})\s*(?:pax|people|persons|ppl|guests|kids|adults|pp)\b/g)].map(m=>+m[1]);
     b.pax=nums.length?Math.max(...nums):null;
     const hm=low.match(/(\d{1,2})\s*(?:h|hr|hrs|hour|hours)\b/);b.hours=hm?+hm[1]:null;
+    // A time range ("7pm–11pm", "7-11pm", "19:00–23:00", "2pm to 4pm") gives the start and how long: 4h.
+    const tr=low.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?\s*(?:-|–|—|to|till|until)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)?\b/);
+    if(tr&&(tr[3]||tr[6]||(tr[2]&&tr[5]))){
+      const h24=(h,m,ap)=>(ap?(+h%12)+(ap==="pm"?12:0):+h)+(m?+m/60:0);
+      // "7-11pm": the start takes the end's am/pm, unless that would put it after the end ("11-2pm" starts at 11am).
+      const ap1=tr[3]||(tr[6]==="pm"&&+tr[1]%12>+tr[4]%12?"am":tr[6]);
+      const start=h24(tr[1],tr[2],ap1),end=h24(tr[4],tr[5],tr[6]||tr[3]);
+      const dur=end>start?end-start:end+24-start;
+      if(dur>0&&dur<=16){if(!b.hours)b.hours=dur;b.start=start;b.range=tr[0].replace(/\s+/g," ");}
+    }
     const bm=low.match(/\$\s?(\d[\d,]*(?:\.\d+)?)\s?(k)?/)||low.match(/budget[^\d]{0,12}(\d[\d,]*(?:\.\d+)?)\s?(k)?/);
     b.budget=bm?parseFloat(bm[1].replace(/,/g,""))*(bm[2]?1000:1):null;
     // Whole words only, so "daughter" isn't August and "wedding" isn't Wednesday.
@@ -736,8 +765,10 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     b.date=dm?dm[1].replace(/^in\s+/,""):null;
     // Like the app: "early Dec", "in December" or "next month" isn't a date yet.
     b.exact=!!b.date&&!new RegExp(`^(?:(?:early|mid|late)\\s+(?:${MONTHS})|(?:${MONTHS_NOT_MAY})|next month)$`).test(b.date);
-    const vm=raw.match(/(?:\b[Aa]t|@)\s+((?:the\s+)?[A-Z][\w&'.-]*(?:\s+[A-Z][\w&'.-]*)*)/);b.venue=vm?vm[1]:null;
+    // The venue: capitalised words after "at", stopping at punctuation and at words that start a new thought ("Budget").
+    const vm=raw.match(/(?:\b[Aa]t|@)\s+((?:the\s+)?[A-Z][\w&'-]*(?:\s+(?!(?:Budget|Need|Can|Do|Thanks|Please|Is|Are|Will|How|What)\b)[A-Z][\w&'-]*)*)/);b.venue=vm?vm[1]:null;
     b.slot=/morning|breakfast/.test(low)?"morning":/afternoon|lunch/.test(low)?"afternoon":/evening|night|dinner/.test(low)?"evening":null;
+    if(!b.slot&&b.start!=null)b.slot=b.start<12?"morning":b.start<17?"afternoon":"evening";
     const wd=b.date&&b.date.match(/mon|tue|wed|thu/);
     b.offpeak=!!(wd&&b.slot&&b.slot!=="evening");
     b.type=/wedding|solemni/.test(low)?"wedding":/launch/.test(low)?"launch":/birthday|21st|40th|party|bday/.test(low)?"party":/offsite|town hall|corporate|office|company|d&d|family day/.test(low)?"corporate":null;
@@ -757,6 +788,7 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     tags.push(b.date?`<span class="tag${b.exact?"":" miss"}">📅 ${cap(niceDate(b.date))}${b.exact?"":" (not exact)"}</span>`:`<span class="tag miss">Date missing</span>`);
     tags.push(b.pax?`<span class="tag">${b.pax} pax</span>`:`<span class="tag miss">Headcount missing</span>`);
     if(b.slot)tags.push(`<span class="tag">${cap(b.slot)}</span>`);
+    if(b.range)tags.push(`<span class="tag">${b.range}</span>`);
     if(b.hours)tags.push(`<span class="tag">${b.hours}h</span>`);
     if(b.venue)tags.push(`<span class="tag">${b.venue}</span>`);
     if(b.budget)tags.push(`<span class="tag">Budget ${fmt(b.budget)}</span>`);
@@ -789,13 +821,18 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     }
     $("quote").hidden=capWarn;
     // quote
-    const L=v.quote(b);const total=L.reduce((s,l)=>s+l.v,0);
+    const {L,total}=priced(v,b);
     $("quote").innerHTML=L.map(l=>`<div class="qline"><span>${l.k}</span><span class="mono">${l.full?`<span class="strike">${fmt(l.full)}</span>`:""}${l.note?l.note:fmt(l.v)}</span></div>`).join("")+`<div class="qtotal"><span>Quote total</span><span class="mono">${fmt(total)}</span></div>`;
     // reply
-    const missing=[];if(!b.date)missing.push("your event date");if(!b.pax&&v.kind!=="AV")missing.push("the number of guests");if(!b.slot&&v.kind!=="caterer")missing.push("the start time");
+    const missing=[];if(!b.date)missing.push("your event date");if(!b.pax&&v.kind!=="AV")missing.push("the number of guests");if(!b.slot&&b.start==null&&v.kind!=="caterer")missing.push("the start time");
     let r=`Hi! Thanks for reaching out to ${v.biz} 😊\n\n`;
     if(capWarn)r+=`Our space fits up to ${v.cap} guests, so ${b.pax} would be too many for us. Happy to recommend a partner venue that fits!\n\n`;
-    else r+=`${b.date&&!missing.length?`Good news, we're available ${niceDate(b.date)}${b.slot?" "+b.slot:""}. `:""}Here's your quote: ${fmt(total)} all-in${b.offpeak?", including our 25% weekday daytime rate":""}.\n\n`;
+    else r+=`${b.date&&!missing.length?`Good news, we're available ${niceDate(b.date)}${b.slot?" "+b.slot:""}. `:""}Here's your quote: ${fmt(total)} all-in${b.offpeak?`, including our ${OFFPEAK}% weekday daytime rate`:""}.\n\n`;
+    // Over their budget: say so once, and offer the cheapest real option from the price list (never an invented discount).
+    if(!capWarn&&b.budget&&b.budget<total){
+      const c=v.cheaper(b);const alt=c&&priced(v,c.b);
+      r+=alt&&alt.total<total?`That's above the ${fmt(b.budget)} budget you mentioned. ${c.k} comes to ${fmt(alt.total)}, if that suits you better.\n\n`:`That's above the ${fmt(b.budget)} budget you mentioned, and it's the simplest option for this booking.\n\n`;
+    }
     // Still missing something: don't promise the date yet.
     if(missing.length&&!capWarn)r+=`Share ${missing.map(m=>m.replace(/^the start time$/,"your start time")).join(" and ")} and I'll confirm and hold the date.\n\n`;
     else if(missing.length)r+=`Could you share ${missing.join(" and ")}?\n\n`;
@@ -830,6 +867,10 @@ footer .tagline{display:block;margin-top:4px;font:600 .72rem/1.4 var(--f-mono);l
     $("enq").value=v.samples[i||0];render();
   }
   document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>setVendor(t.dataset.v)));
+  // Narrow screens: fade the tab row's edge while tabs are hidden off to the right.
+  const tabs=document.querySelector(".tabs");
+  const fadeTabs=()=>tabs.classList.toggle("more",tabs.scrollWidth-tabs.scrollLeft-tabs.clientWidth>4);
+  tabs.addEventListener("scroll",fadeTabs,{passive:true});addEventListener("resize",fadeTabs);fadeTabs();
   $("enq").addEventListener("input",render);
   $("sendBtn").addEventListener("click",()=>{$("sendMsg").textContent="Demo only: nothing was sent.";});
   $("copyBtn").addEventListener("click",()=>{
