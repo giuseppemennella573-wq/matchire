@@ -242,6 +242,9 @@ export interface Enquiry {
   filed_reason?: string | null;
   /** The vendor said this is an enquiry: Matchire never files it under Other. */
   kept?: number;
+  /** A reply told the planner the vendor will reply directly; why, until the vendor replies or marks it done. */
+  promised_reason?: string | null;
+  promised_at?: string | null;
 }
 
 export interface Message {
@@ -256,6 +259,8 @@ export interface Message {
   template: string | null;
   /** A quote draft's promised hold deadline ("I'm holding the date for you until …"). */
   hold_until?: string | null;
+  /** On a draft: what it promises the vendor will do ("Answer: …"), if it hands over. */
+  promise?: string | null;
   /** 1 when the vendor changed the draft before it went out, 0 when sent as drafted, null for older messages. */
   edited?: number | null;
   created_at: string;

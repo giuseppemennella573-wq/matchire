@@ -49,7 +49,8 @@ test("no extra-hour rate: no invented price, the reply says it'll be confirmed, 
   const r = await E.processEnquiry(booth, enquiryId);
   const body = E.pendingDraft(enquiryId)!.body;
   assert.match(body, /Mirror Booth 2h · 2h: SGD 900/);
-  assert.match(body, /I'll confirm the price for the extra 1h/);
+  assert.match(body, /The extra 1h isn't on our price list\. I'll pass this to .+ and they'll reply directly\./);
+  assert.equal(E.pendingDraft(enquiryId)!.promise, "Price the extra 1h (not on your price list)", "the draft records what it promises");
   assert.doesNotMatch(body, /Extra 1h:/);
   assert.match(r.ownerReason!, /no extra-hour rate/, "flagged for approval");
 });

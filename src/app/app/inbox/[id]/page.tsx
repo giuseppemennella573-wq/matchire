@@ -83,6 +83,13 @@ export default async function EnquiryPage({ params, searchParams }: { params: Pr
           <Submit className="btn btn-primary btn-sm">Move to Enquiries</Submit>
         </form>
       )}
+      {e.promised_reason && (
+        <form action={outcomeAction} className="alert alert-err row between" style={{ flexWrap: "wrap", gap: 8 }}>
+          <input type="hidden" name="enquiryId" value={e.id} />
+          <span><b>You promised a reply</b>{e.promised_at ? ` (${formatDateTime(e.promised_at)})` : ""}: {e.promised_reason}. Matchire told them you&apos;ll reply directly.</span>
+          <Submit className="btn btn-ghost btn-sm" name="intent" value="handled">Mark as done</Submit>
+        </form>
+      )}
       {e.status === "won" && e.owner_reason?.startsWith("Message from a booked client") && (
         <form action={outcomeAction} className="alert alert-warn row between" style={{ flexWrap: "wrap", gap: 8 }}>
           <input type="hidden" name="enquiryId" value={e.id} />

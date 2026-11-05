@@ -315,6 +315,9 @@ const COLUMNS: [table: string, column: string, definition: string][] = [
   ["items", "equipment_id", "INTEGER REFERENCES equipment(id) ON DELETE SET NULL"],
   ["enquiries", "filed_reason", "TEXT"],
   ["enquiries", "kept", "INTEGER NOT NULL DEFAULT 0"],
+  ["messages", "promise", "TEXT"],
+  ["enquiries", "promised_reason", "TEXT"],
+  ["enquiries", "promised_at", "TEXT"],
 ];
 
 function migrate(conn: DatabaseSync) {

@@ -27,7 +27,7 @@ const STATUS_BADGE: Record<EnquiryStatus, string> = {
 import { clientHistory, clientNote } from "@/lib/clients";
 
 /** A booked client wrote again: no draft, but the vendor needs to see it. */
-const BOOKED_WROTE = "(e.status = 'won' AND e.owner_reason LIKE 'Message from a booked client%')";
+const BOOKED_WROTE = "((e.status = 'won' AND e.owner_reason LIKE 'Message from a booked client%') OR e.promised_reason IS NOT NULL)";
 
 export default async function Inbox({ searchParams }: { searchParams: Promise<{ filter?: string; error?: string; msg?: string }> }) {
   const { vendor } = await requireVendor();
@@ -75,6 +75,7 @@ export default async function Inbox({ searchParams }: { searchParams: Promise<{ 
                 <div className="row">
                   <b>{e.contact_name || e.contact_handle || `Enquiry #${e.id}`}</b>
                   <span className={`badge ${STATUS_BADGE[e.status]}`}>{STATUS_LABEL[e.status]}</span>
+                  {e.promised_reason && <span className="badge badge-red" title={e.promised_reason}>Promised a reply</span>}
                   {e.has_draft ? <span className="badge badge-brand">Reply ready</span> : null}
                   {e.status === "won" && e.owner_reason?.startsWith("Message from a booked client") && <span className="badge badge-amber">Booked client wrote</span>}
                   {e.fishing_reason && <span className="badge badge-amber" title={e.fishing_reason}>Possible price-fishing</span>}
