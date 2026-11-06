@@ -302,10 +302,18 @@ export default async function Settings({ searchParams }: { searchParams: Promise
               </label>
               {ch.technical ? (
                 <>
-                  <label className="check">
-                    <input type="checkbox" name="wa_templates_approved" defaultChecked={ch.technical.templatesApproved} />
-                    <span><b>My follow-up templates are approved in Meta</b> <span className="small muted">(admin only)</span>. <span className="muted">Until <code>quote_nudge</code> and <code>quote_last_call</code> (Utility, English) are approved, WhatsApp follow-ups after the 24-hour window wait for you.</span></span>
-                  </label>
+                  {tpl.source === "meta" && !tpl.error ? (
+                    // Under Matchire's WABA, Meta's answer decides; the tick is kept as it is, as the fallback.
+                    <p className="small">
+                      {ch.technical.templatesApproved && <input type="hidden" name="wa_templates_approved" value="on" />}
+                      <b>Follow-up templates:</b> {describeStatus(tpl)} <span className="muted">(read from Matchire&apos;s WhatsApp Business Account, admin only). {tpl.approved ? "Follow-ups after WhatsApp's 24-hour window go out automatically." : "Until they're approved, WhatsApp follow-ups after the 24-hour window wait for you."}</span>
+                    </p>
+                  ) : (
+                    <label className="check">
+                      <input type="checkbox" name="wa_templates_approved" defaultChecked={ch.technical.templatesApproved} />
+                      <span><b>My follow-up templates are approved in Meta</b> <span className="small muted">(admin only)</span>. <span className="muted">Until <code>quote_nudge</code> and <code>quote_last_call</code> (Utility, English) are approved, WhatsApp follow-ups after the 24-hour window wait for you.{tpl.source === "meta" ? ` Matchire ${describeStatus(tpl)}, so this tick is used for now.` : ""}</span></span>
+                    </label>
+                  )}
                   <ul className="small muted">
                     <li><code>quote_nudge</code>: Hi {"{{1}}"}, just checking you saw our quote for {"{{2}}"}. Happy to answer any questions. Reply here anytime.</li>
                     <li><code>quote_last_call</code>: Hi {"{{1}}"}, we&apos;re holding {"{{2}}"} for you until {"{{3}}"}. Reply here if you&apos;d like to confirm.</li>
