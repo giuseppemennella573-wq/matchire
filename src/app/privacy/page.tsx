@@ -1,5 +1,5 @@
 import { Logo } from "@/components/logo";
-export const metadata = { title: "Privacy policy" };
+export const metadata = { title: "Privacy policy", alternates: { canonical: "https://matchire.ai/privacy" } };
 
 const UPDATED = "3 November 2026";
 
