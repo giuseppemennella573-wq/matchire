@@ -34,6 +34,8 @@ test("JSON-LD copies the page: plan names and SGD prices, hero, meta description
   for (const o of app.offers) assert.ok(o.description.endsWith(note), "early-access terms as on the page");
   assert.equal(app.description, text(html.match(/<section class="hero">[\s\S]*?<p class="lede">([\s\S]*?)<\/p>/)![1]));
   for (const chip of ["Photobooths", "Venues", "Caterers", "AV & sound", "Décor & florists", "Emcees"]) assert.ok(app.audience.audienceType.includes(chip));
+  assert.equal(node("Organization").email, "hello@matchire.ai", "the address in the footer");
+  assert.match(html, /<footer>[\s\S]*mailto:hello@matchire\.ai/);
   assert.equal(node("Organization").description, html.match(/<meta name="description" content="([^"]+)">/)![1]);
   assert.equal(faq.length, 9);
   assert.deepEqual(node("FAQPage").mainEntity.map((q: Node) => ({ q: q.name, a: q.acceptedAnswer.text })), faq);
