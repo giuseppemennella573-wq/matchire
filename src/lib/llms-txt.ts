@@ -46,6 +46,12 @@ Our guarantee: when paid plans start, if Matchire doesn't win you a booking in y
 MATCHIRE.AI PTE. LTD., Singapore. UEN 202546112G.
 Contact: hello@matchire.ai
 
+## Guides
+- All guides: https://matchire.ai/guides
+- How to reply to event enquiries in Singapore: https://matchire.ai/guides/reply-to-event-enquiries-singapore (what to ask before quoting, a reply structure, follow-ups)
+- WhatsApp reply templates for event vendors: https://matchire.ai/guides/whatsapp-enquiry-templates-event-vendors (six copy-paste replies, WhatsApp Business basics)
+- What an AI booking assistant should do for an event vendor: https://matchire.ai/guides/ai-booking-assistant-for-event-vendors (a neutral buyer's checklist)
+
 ## Links
 - Home: https://matchire.ai/
 - Pricing: https://matchire.ai/#pricing

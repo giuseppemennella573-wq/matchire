@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 // Search engines and AI assistants: canonical, JSON-LD, /llms.txt and robots.txt
 // must say exactly what the visible landing page says.
 const html = readFileSync("public/landing.html", "utf8");
+const GUIDES = ["reply-to-event-enquiries-singapore", "whatsapp-enquiry-templates-event-vendors", "ai-booking-assistant-for-event-vendors"];
 const text = (s: string) => s.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 const section = (id: string) => html.match(new RegExp(`<section class="band" id="${id}">[\\s\\S]*?</section>`))![0];
 const plans = [...section("pricing").matchAll(/<h3>([^<]+)<\/h3>[\s\S]*?<div class="price">(\d+)<small>/g)].map((m) => ({ name: m[1], price: m[2] }));
@@ -41,14 +42,15 @@ test("JSON-LD copies the page: plan names and SGD prices, hero, meta description
   assert.deepEqual(node("FAQPage").mainEntity.map((q: Node) => ({ q: q.name, a: q.acceptedAnswer.text })), faq);
 });
 
-test("/llms.txt: 200, plain text, under 60 lines, prices as on the page, coming-soon stays coming soon", async () => {
+test("/llms.txt: 200, plain text, under 75 lines, prices as on the page, coming-soon stays coming soon", async () => {
   const { GET } = await import("../src/app/llms.txt/route.ts");
   const res = GET();
   assert.equal(res.status, 200);
   assert.match(res.headers.get("content-type") ?? "", /^text\/plain/);
   const body = await res.text();
   assert.ok(body.startsWith("# Matchire.ai\n\n> "));
-  assert.ok(body.trim().split("\n").length < 60);
+  assert.ok(body.trim().split("\n").length < 75);
+  for (const u of ["guides", ...GUIDES]) assert.ok(body.includes(`https://matchire.ai/${u === "guides" ? "guides" : `guides/${u}`}`), u);
   for (const p of plans) assert.match(body, new RegExp(`^- ${p.name}: ${p.price}\\. `, "m"));
   assert.match(body, /Instagram DMs: coming soon/);
   assert.ok(body.includes(text(section("pricing").match(/<p class="price-note">([\s\S]*?)<\/p>/)![1])));
